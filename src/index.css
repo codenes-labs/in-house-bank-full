@@ -30,6 +30,7 @@
   --radius-lg: 1rem;
   --radius-xl: 1.25rem;
   --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 8px 24px rgb(15 23 42 / 0.06);
+  --shadow-control: 0 1px 2px rgb(15 23 42 / 0.05), 0 2px 8px rgb(15 23 42 / 0.04);
 }
 
 html.theme-dark {
@@ -58,6 +59,7 @@ html.theme-dark {
   --color-success-soft: #064e3b;
   --color-danger-soft: #450a0a;
   --shadow-card: 0 8px 32px rgb(0 0 0 / 0.35);
+  --shadow-control: 0 1px 2px rgb(0 0 0 / 0.25), 0 2px 8px rgb(0 0 0 / 0.2);
   color-scheme: dark;
 }
 
@@ -117,4 +119,26 @@ html.theme-dark .app-scroll::-webkit-scrollbar-thumb {
 
 html.theme-dark .app-scroll:hover::-webkit-scrollbar-thumb {
   background-color: rgb(148 163 184 / 0.32);
+}
+
+.field-control {
+  box-shadow: var(--shadow-control);
+}
+
+.field-control-month {
+  color-scheme: light;
+}
+
+html.theme-dark .field-control-month {
+  color-scheme: dark;
+}
+
+.field-control-month::-webkit-calendar-picker-indicator {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+  opacity: 0;
 }

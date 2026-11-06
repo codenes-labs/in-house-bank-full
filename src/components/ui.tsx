@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
+import { Calendar, ChevronDown } from 'lucide-react';
 import { formatCentsAsBrl } from '../domain/money/brl-input';
 
 export function cx(...classes: Array<string | false | null | undefined>) {
@@ -68,21 +69,43 @@ export function Field({
 }
 
 const controlClass =
-  'min-h-12 w-full rounded-lg border border-input bg-card px-3 text-base text-foreground outline-none focus:ring-2 focus:ring-ring';
+  'field-control min-h-12 w-full rounded-xl border border-border bg-card px-4 text-base text-foreground outline-none transition-[box-shadow,border-color] focus:border-ring focus:ring-2 focus:ring-ring/25';
 
 export function TextInput({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
   return <input className={cx(controlClass, className)} {...props} />;
 }
 
-export function SelectInput(props: SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select className={cx(controlClass, props.className)} {...props} />;
+export function MonthInput({ className, ...props }: Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>) {
+  return (
+    <div className="relative min-w-0">
+      <input type="month" className={cx(controlClass, 'field-control-month relative min-w-0 pr-11', className)} {...props} />
+      <Calendar className="pointer-events-none absolute top-1/2 right-3 size-5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+    </div>
+  );
+}
+
+export function SelectInput({ className, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <div className="relative min-w-0">
+      <select className={cx(controlClass, 'appearance-none pr-11', className)} {...props} />
+      <ChevronDown className="pointer-events-none absolute top-1/2 right-3 size-5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+    </div>
+  );
 }
 
 export function TextArea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return <textarea className={cx(controlClass, 'min-h-28 py-3', props.className)} {...props} />;
 }
 
-export function StatusPill({ label, tone }: { label: string; tone: 'pending' | 'paid' | 'overdue' | 'neutral' }) {
+export function StatusPill({
+  label,
+  tone,
+  className,
+}: {
+  label: string;
+  tone: 'pending' | 'paid' | 'overdue' | 'neutral';
+  className?: string;
+}) {
   return (
     <span
       className={cx(
@@ -91,6 +114,7 @@ export function StatusPill({ label, tone }: { label: string; tone: 'pending' | '
         tone === 'paid' && 'bg-success-soft text-status-paid',
         tone === 'overdue' && 'bg-danger-soft text-status-overdue',
         tone === 'neutral' && 'bg-muted text-muted-foreground',
+        className,
       )}
     >
       {label}
