@@ -9,3 +9,14 @@ Todas as tabelas de dados têm `user_id` referenciando `users`. RLS compara `use
 Gravação por registro. O backup JSON `version: 1` é a única substituição completa, e só dos dados do usuário que importou.
 
 Segredos só no servidor (Worker ou dev Vite). Variáveis: `DATABASE_URL` e `JWT_SECRET` (mínimo 32 caracteres).
+
+## Contas iniciais (seed)
+
+Cadastro público fechado. Contas criadas pelo seed em `src/server/account-seed.ts`:
+
+| Conta | Login | Senha inicial | Comportamento |
+| --- | --- | --- | --- |
+| Admin | `admin@codenes.com.br` | `CodenesTemp1` | Dados reais; trocar senha em `/alterar-senha` no primeiro acesso |
+| Demo | `teste` ou `teste@teste.com` | `teste` | Dados fictícios; ao sair e entrar de novo, volta ao mock |
+
+Recuperação de senha: `/recuperar-senha` (e-mail + nova senha). Não vale para a conta demo.
