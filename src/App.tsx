@@ -8,6 +8,7 @@ import { HomePage } from './pages/home-page';
 import { InstallmentsPage } from './pages/installments-page';
 import { LandingPage } from './pages/landing-page';
 import { PlanDetailPage } from './pages/plan-detail-page';
+import { NewInstallmentPage } from './pages/new-installment-page';
 import { ReportsPage } from './pages/reports-page';
 import { SettingsPage } from './pages/settings-page';
 import { AccountChangePasswordPage } from './pages/account-change-password-page';
@@ -56,6 +57,7 @@ export default function App() {
       <Route element={<PrivateRoutes />}>
         <Route path="/inicio" element={<HomePage />} />
         <Route path="/parcelamentos" element={<InstallmentsPage />} />
+        <Route path="/parcelamentos/novo" element={<NewInstallmentPage />} />
         <Route path="/parcelamentos/:planId" element={<PlanDetailPage />} />
         <Route path="/financeiro" element={<FinancialPage />} />
         <Route path="/relatorios" element={<ReportsPage />} />

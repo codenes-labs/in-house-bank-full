@@ -21,7 +21,22 @@ import { Button, Card, Field, money, SelectInput, TextInput } from './ui';
 
 const today = todayCalendarDate();
 
-export function CarneGenerator() {
+export function CarneGenerator({
+  title = 'Gerar carnê',
+  description = 'Preencha, confira o simulador e baixe o PDF. Visitante não grava histórico.',
+  prefill,
+  onSaveBundle,
+}: {
+  title?: string;
+  description?: string;
+  prefill?: {
+    beneficiary?: string;
+    pixKey?: string;
+    institution?: string;
+    city?: string;
+  };
+  onSaveBundle?: (bundle: GeneratedInstallmentPlanBundle) => Promise<void>;
+} = {}) {
   const [usedAmount, setUsedAmount] = useState('');
   const [returnAmount, setReturnAmount] = useState('');
   const [type, setType] = useState<string>(InstallmentPlanType.Loan);
@@ -30,10 +45,10 @@ export function CarneGenerator() {
   const [issueDate, setIssueDate] = useState(today);
   const [firstDueDate, setFirstDueDate] = useState(computeDefaultFirstDueDate(today));
   const [installmentsCount, setInstallmentsCount] = useState('');
-  const [pixKey, setPixKey] = useState('');
-  const [beneficiary, setBeneficiary] = useState('');
-  const [institution, setInstitution] = useState('');
-  const [city, setCity] = useState('');
+  const [pixKey, setPixKey] = useState(prefill?.pixKey ?? '');
+  const [beneficiary, setBeneficiary] = useState(prefill?.beneficiary ?? '');
+  const [institution, setInstitution] = useState(prefill?.institution ?? '');
+  const [city, setCity] = useState(prefill?.city ?? '');
   const [ratePercent, setRatePercent] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [warning, setWarning] = useState<string | null>(null);
@@ -41,6 +56,7 @@ export function CarneGenerator() {
   const [pdfFile, setPdfFile] = useState<{ filename: string; url: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const pdfRequest = useRef(0);
   const pdfUrl = useRef<string | null>(null);
 
@@ -119,7 +135,7 @@ export function CarneGenerator() {
     const created = createInstallmentPlanBundle(buildInput(nextReturn), createId(), new Date().toISOString());
     setBundle(created);
     writePendingBundle(created);
-    setMessage('Parcelas geradas. Nada foi salvo na nuvem.');
+    setMessage(onSaveBundle ? 'Parcelas geradas. Revise e salve na conta.' : 'Parcelas geradas. Nada foi salvo na nuvem.');
     void preparePdf(created);
     return created;
   }
@@ -165,11 +181,26 @@ export function CarneGenerator() {
     generate(formatted);
   }
 
+  async function saveToAccount() {
+    if (!bundle || !onSaveBundle) {
+      return;
+    }
+    setSaving(true);
+    try {
+      await onSaveBundle(bundle);
+      writePendingBundle(null);
+    } catch (cause) {
+      setMessage(cause instanceof Error ? cause.message : 'Não foi possível salvar.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <Card className="grid gap-4">
       <div>
-        <h2 className="text-xl font-semibold">Gerar carnê</h2>
-        <p className="text-sm text-muted-foreground">Preencha, confira o simulador e baixe o PDF. Visitante não grava histórico.</p>
+        <h2 className="text-xl font-semibold">{title}</h2>
+        <p className="text-sm text-muted-foreground">{description}</p>
       </div>
       <div className="grid gap-3 md:grid-cols-2">
         <Field label="Valor utilizado" error={errors.usedAmountCents}>
@@ -234,17 +265,24 @@ export function CarneGenerator() {
         />
       </div>
       <div className="grid gap-2 sm:grid-cols-2">
-        <Button type="button" onClick={() => generate()} disabled={!pixValid}>Gerar parcelas</Button>
+        <Button type="button" onClick={() => generate()} disabled={!pixValid}>
+          Gerar parcelas
+        </Button>
+        {onSaveBundle ? (
+          <Button type="button" variant="primary" disabled={!bundle || saving} onClick={() => void saveToAccount()}>
+            {saving ? 'Salvando…' : 'Salvar na conta'}
+          </Button>
+        ) : null}
         {pdfFile ? (
           <a
             href={pdfFile.url}
             download={pdfFile.filename}
-            className="press inline-flex min-h-12 items-center justify-center rounded-lg bg-brand-soft px-4 text-base font-semibold text-secondary-foreground"
+            className="press inline-flex min-h-12 items-center justify-center rounded-lg bg-brand-soft px-4 text-base font-semibold text-secondary-foreground sm:col-span-2"
           >
             Baixar PDF
           </a>
         ) : (
-          <Button type="button" variant="soft" disabled>
+          <Button type="button" variant="soft" disabled className={onSaveBundle ? '' : 'sm:col-span-1'}>
             {busy ? 'Preparando PDF…' : 'Baixar PDF'}
           </Button>
         )}
