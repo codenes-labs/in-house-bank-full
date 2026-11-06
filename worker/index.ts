@@ -13,8 +13,8 @@ export default {
     const url = new URL(request.url);
     if (url.pathname.startsWith('/api')) {
       const handler = createApiHandler({
-        databaseUrl: env.DATABASE_URL,
-        jwtSecret: env.JWT_SECRET,
+        databaseUrl: env.DATABASE_URL?.trim(),
+        jwtSecret: env.JWT_SECRET?.trim(),
       });
       return handler(request);
     }

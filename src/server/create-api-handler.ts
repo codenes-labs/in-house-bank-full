@@ -42,14 +42,26 @@ const schemaReady = new Map<string, Promise<void>>();
 
 export function createApiHandler(options: { databaseUrl?: string; jwtSecret?: string }): (request: Request) => Promise<Response> {
   return async (request) => {
-    if (!options.databaseUrl || !options.jwtSecret) {
+    const databaseUrl = options.databaseUrl?.trim() || undefined;
+    const jwtSecret = options.jwtSecret?.trim() || undefined;
+    const url = new URL(request.url);
+
+    if (url.pathname === '/api/health' && request.method === 'GET') {
+      return json({
+        configured: Boolean(databaseUrl && jwtSecret),
+        database: Boolean(databaseUrl),
+        jwt: Boolean(jwtSecret),
+      });
+    }
+
+    if (!databaseUrl || !jwtSecret) {
       return json({ configured: false, user: null, error: 'Servidor não configurado.' }, request.method === 'GET' ? 200 : 503);
     }
     try {
-      const sql = neon(normalizeDatabaseUrl(options.databaseUrl));
-      await ensureSchema(options.databaseUrl, sql);
+      const sql = neon(normalizeDatabaseUrl(databaseUrl));
+      await ensureSchema(databaseUrl, sql);
       await ensureSeededAccounts(sql);
-      return await route(sql, request, options.jwtSecret);
+      return await route(sql, request, jwtSecret);
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : 'Falha no banco.';
       return json({ error: message }, 500);

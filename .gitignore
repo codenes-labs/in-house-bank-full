@@ -27,3 +27,4 @@ dist-ssr
 .dev.vars
 .docker/.env
 .wrangler
+wrangler-secrets.json
