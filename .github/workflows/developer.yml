@@ -1,8 +1,7 @@
 name: Developer
 
-# Feature branches e PRs. Master usa só o workflow Deploy.
+# Push em feature branch. PR e master não disparam este workflow.
 on:
-  pull_request:
   push:
     branches-ignore:
       - master
