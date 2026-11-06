@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { planWithInstallmentSum } from '../application/plan-with-installment-sum';
 import { useBank } from '../components/bank-context';
+import { MaskedMoneyInput } from '../components/masked-inputs';
 import { Button, Card, EmptyState, Field, money, StatusPill, TextArea, TextInput } from '../components/ui';
 import { todayCalendarDate } from '../domain/calendar/today-calendar-date';
 import { InstallmentStatus } from '../domain/enums/installment-status';
@@ -289,7 +290,12 @@ export function PlanDetailPage() {
                 const data = new FormData(event.currentTarget);
                 void changeAmount(installment.id, String(data.get('amount')), String(data.get('due')));
               }}>
-                <TextInput name="amount" defaultValue={formatCentsAsBrl(installment.amountCents)} aria-label="Valor da parcela" />
+                <MaskedMoneyInput
+                  key={installment.id}
+                  name="amount"
+                  defaultValue={formatCentsAsBrl(installment.amountCents)}
+                  aria-label="Valor da parcela"
+                />
                 <TextInput name="due" type="date" defaultValue={installment.dueDate} aria-label="Vencimento" />
                 <Button type="submit" variant="soft">Salvar parcela</Button>
               </form>

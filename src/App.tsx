@@ -10,6 +10,7 @@ import { LandingPage } from './pages/landing-page';
 import { PlanDetailPage } from './pages/plan-detail-page';
 import { ReportsPage } from './pages/reports-page';
 import { SettingsPage } from './pages/settings-page';
+import { AccountChangePasswordPage } from './pages/account-change-password-page';
 
 function ChangePasswordGate() {
   const { session, loading, configured } = useAuth();
@@ -59,6 +60,7 @@ export default function App() {
         <Route path="/financeiro" element={<FinancialPage />} />
         <Route path="/relatorios" element={<ReportsPage />} />
         <Route path="/configuracoes" element={<SettingsPage />} />
+        <Route path="/conta/alterar-senha" element={<AccountChangePasswordPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

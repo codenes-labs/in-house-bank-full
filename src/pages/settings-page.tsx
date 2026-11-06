@@ -1,5 +1,10 @@
 import { useState, type FormEvent } from 'react';
 import { useBank } from '../components/bank-context';
+import {
+  MaskedDueDayInput,
+  MaskedInstallmentCountInput,
+  MaskedRateInput,
+} from '../components/masked-inputs';
 import { useTheme } from '../components/theme';
 import { Button, Card, Field, SelectInput, TextArea, TextInput } from '../components/ui';
 import { APP_DATA_BACKUP_VERSION } from '../domain/models/app-data-backup';
@@ -98,15 +103,21 @@ export function SettingsPage() {
               {pixValid ? <Check className="pointer-events-none absolute top-1/2 right-3 size-5 -translate-y-1/2 text-accent" aria-label="Chave Pix válida" /> : null}
             </div>
           </Field>
-          <Field label="Parcelas padrão"><TextInput name="defaultInstallments" type="number" defaultValue={settings.defaultInstallments} /></Field>
-          <Field label="Dia de vencimento"><TextInput name="defaultDueDay" type="number" defaultValue={settings.defaultDueDay ?? ''} /></Field>
+          <Field label="Parcelas padrão">
+            <MaskedInstallmentCountInput name="defaultInstallments" defaultValue={String(settings.defaultInstallments)} />
+          </Field>
+          <Field label="Dia de vencimento">
+            <MaskedDueDayInput name="defaultDueDay" defaultValue={settings.defaultDueDay ? String(settings.defaultDueDay) : ''} />
+          </Field>
           <Field label="Juros padrão">
             <SelectInput name="defaultInterestType" defaultValue={settings.defaultInterestType}>
               <option value={DefaultInterestType.Simple}>Simples</option>
               <option value={DefaultInterestType.Compound}>Composto</option>
             </SelectInput>
           </Field>
-          <Field label="CDI ao ano (%)"><TextInput name="cdiAnnualPercent" defaultValue={String(settings.cdiAnnualPercent)} /></Field>
+          <Field label="CDI ao ano (%)">
+            <MaskedRateInput name="cdiAnnualPercent" defaultValue={String(settings.cdiAnnualPercent).replace('.', ',')} />
+          </Field>
           <Field label="Metas em reais, separadas por vírgula">
             <TextInput name="milestones" defaultValue={settings.milestonesCents.map((cents) => cents / 100).join(', ')} placeholder="10000, 20000, 50000, 100000, 200000, 500000, 1000000" />
           </Field>
@@ -125,7 +136,6 @@ export function SettingsPage() {
             }} />
           </Field>
           {settings.logoDataUrl ? <img src={settings.logoDataUrl} alt="Logotipo atual" className="h-16 w-16 rounded-lg object-contain" /> : null}
-          <Button type="button" variant="soft" onClick={() => theme.toggle()}>{theme.mode === 'dark' ? 'Usar tema claro' : 'Usar tema escuro'}</Button>
           <Button type="submit">Salvar</Button>
         </Card>
       </form>

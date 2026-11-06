@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { maskInstallmentCount, maskMoneyField, maskMonthlyRate } from './mask-generator-fields';
+import { maskDueDay, maskInstallmentCount, maskMoneyField, maskMonthlyRate } from './mask-generator-fields';
 
 describe('maskMoneyField', () => {
   it('formats each typed digit as reais', () => {
@@ -21,6 +21,14 @@ describe('maskInstallmentCount', () => {
     expect(maskInstallmentCount('3dddddd')).toBe('3');
     expect(maskInstallmentCount('99')).toBe('60');
     expect(maskInstallmentCount('')).toBe('');
+  });
+});
+
+describe('maskDueDay', () => {
+  it('limits day to 31', () => {
+    expect(maskDueDay('5')).toBe('5');
+    expect(maskDueDay('99')).toBe('31');
+    expect(maskDueDay('')).toBe('');
   });
 });
 

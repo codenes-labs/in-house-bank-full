@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useBank } from '../components/bank-context';
+import { MaskedMoneyInput, MaskedRateInput } from '../components/masked-inputs';
 import { Button, Card, EmptyState, Field, money, TextInput } from '../components/ui';
 import { createId } from '../domain/ids/create-id';
 import { applyCashBoxMovement } from '../domain/cash-boxes/apply-cash-box-movement';
@@ -119,7 +120,7 @@ export function FinancialPage() {
         void bank.saveSettings({ ...bank.snapshot.settings, freeBalanceCents: amount });
       }}>
         <Field label="Saldo livre">
-          <TextInput name="free" inputMode="decimal" placeholder="0,00" />
+          <MaskedMoneyInput name="free" placeholder="0,00" />
         </Field>
         <Button type="submit" variant="soft">Atualizar saldo livre</Button>
       </form>
@@ -142,7 +143,7 @@ export function FinancialPage() {
               void move(cashBox.id, String(data.get('type')) as CashBoxMovementType, String(data.get('amount') ?? ''));
               event.currentTarget.reset();
             }}>
-              <TextInput name="amount" inputMode="decimal" placeholder="Valor" aria-label="Valor do lançamento" />
+              <MaskedMoneyInput name="amount" placeholder="0,00" aria-label="Valor do lançamento" />
               <Button type="submit" name="type" value={CashBoxMovementType.Deposit}>Aportar</Button>
               <Button type="submit" name="type" value={CashBoxMovementType.Withdrawal} variant="soft">Resgatar</Button>
             </form>
@@ -164,9 +165,9 @@ export function FinancialPage() {
         <form className="grid gap-3 md:grid-cols-2" onSubmit={(event) => void saveBox(event)}>
           <Field label="Nome"><TextInput name="name" /></Field>
           <Field label="Instituição"><TextInput name="institution" /></Field>
-          <Field label="% do CDI"><TextInput name="cdi" defaultValue="100" /></Field>
-          <Field label="Saldo inicial"><TextInput name="balance" defaultValue="0,00" /></Field>
-          <Field label="Limite opcional"><TextInput name="limit" /></Field>
+          <Field label="% do CDI"><MaskedRateInput name="cdi" defaultValue="100" /></Field>
+          <Field label="Saldo inicial"><MaskedMoneyInput name="balance" defaultValue="0,00" /></Field>
+          <Field label="Limite opcional"><MaskedMoneyInput name="limit" placeholder="0,00" /></Field>
           <Button type="submit">Criar caixinha</Button>
         </form>
       </Card>

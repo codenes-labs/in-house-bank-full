@@ -23,6 +23,14 @@ export function maskInstallmentCount(value: string): string {
   return String(Math.min(Number(digits), 60));
 }
 
+export function maskDueDay(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 2);
+  if (!digits) {
+    return '';
+  }
+  return String(Math.min(Number(digits), 31));
+}
+
 function maskDecimal(value: string, wholeLimit: number, fractionLimit: number): string {
   const cleaned = value.replace(/[^\d,]/g, '');
   const commaAt = cleaned.indexOf(',');

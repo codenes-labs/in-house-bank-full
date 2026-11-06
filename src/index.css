@@ -82,3 +82,39 @@ body {
 .press:active {
   transform: scale(0.98);
 }
+
+/* Scroll só na coluna central; barra fina e colada à direita da área útil */
+.app-scroll {
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(148 163 184 / 0.28) transparent;
+}
+
+html.theme-dark .app-scroll {
+  scrollbar-color: rgb(148 163 184 / 0.22) transparent;
+}
+
+.app-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.app-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.app-scroll::-webkit-scrollbar-thumb {
+  background-color: rgb(148 163 184 / 0.22);
+  border-radius: 999px;
+}
+
+.app-scroll:hover::-webkit-scrollbar-thumb {
+  background-color: rgb(148 163 184 / 0.42);
+}
+
+html.theme-dark .app-scroll::-webkit-scrollbar-thumb {
+  background-color: rgb(148 163 184 / 0.18);
+}
+
+html.theme-dark .app-scroll:hover::-webkit-scrollbar-thumb {
+  background-color: rgb(148 163 184 / 0.32);
+}

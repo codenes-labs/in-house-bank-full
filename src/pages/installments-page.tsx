@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useBank } from '../components/bank-context';
 import { Card, EmptyState, money, SelectInput, StatusPill, TextInput } from '../components/ui';
@@ -46,21 +46,42 @@ export function InstallmentsPage() {
   return (
     <div className="grid gap-4">
       <h1 className="text-3xl font-semibold">Parcelamentos</h1>
-      <div className="grid gap-3 lg:grid-cols-[1fr_12rem_12rem]">
-        <TextInput value={search} placeholder="Buscar pagador ou referência" onChange={(event) => setSearch(event.target.value)} />
-        <TextInput type="month" value={month} onChange={(event) => setMonth(event.target.value)} aria-label="Mês de vencimento" />
-        <SelectInput value={sort} onChange={(event) => setSort(event.target.value as InstallmentPlanListSort)} aria-label="Ordenação">
-          <option value={InstallmentPlanListSort.NextDue}>Próximo vencimento</option>
-          <option value={InstallmentPlanListSort.Amount}>Valor</option>
-          <option value={InstallmentPlanListSort.CreatedAt}>Data de criação</option>
-        </SelectInput>
+      <div className="grid gap-3">
+        <FilterField label="Buscar">
+          <TextInput
+            value={search}
+            placeholder="Pagador ou referência"
+            onChange={(event) => setSearch(event.target.value)}
+          />
+        </FilterField>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <FilterField label="Mês de vencimento">
+            <TextInput
+              type="month"
+              value={month}
+              onChange={(event) => setMonth(event.target.value)}
+              className="min-w-0"
+            />
+          </FilterField>
+          <FilterField label="Ordenar por">
+            <SelectInput
+              value={sort}
+              onChange={(event) => setSort(event.target.value as InstallmentPlanListSort)}
+              className="min-w-0"
+            >
+              <option value={InstallmentPlanListSort.NextDue}>Próximo vencimento</option>
+              <option value={InstallmentPlanListSort.Amount}>Valor</option>
+              <option value={InstallmentPlanListSort.CreatedAt}>Data de criação</option>
+            </SelectInput>
+          </FilterField>
+        </div>
       </div>
-      <div className="flex gap-2 overflow-x-auto">
+      <div className="flex gap-2 overflow-x-auto pb-1">
         {filters.map(([value, label]) => (
           <button
             key={value}
             type="button"
-            className={`min-h-12 shrink-0 rounded-full px-4 font-semibold ${status === value ? 'bg-primary text-primary-foreground' : 'bg-card text-foreground'}`}
+            className={`min-h-11 shrink-0 rounded-full px-4 text-sm font-semibold ${status === value ? 'bg-primary text-primary-foreground' : 'bg-card text-foreground'}`}
             onClick={() => setStatus(value)}
           >
             {label}
@@ -88,6 +109,15 @@ export function InstallmentsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+function FilterField({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <label className="grid min-w-0 gap-1">
+      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</span>
+      {children}
+    </label>
   );
 }
 
