@@ -1,6 +1,6 @@
 name: Deploy
 
-# Só master (merge ou push direto). Não depende de PR.
+# Só master. Lint → testes → deploy (cada job depende do anterior).
 on:
   push:
     branches: [master]
@@ -10,8 +10,48 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+  test:
+    name: Testes
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Unit tests
+        run: npm test
+
   cloudflare:
     name: Deploy Cloudflare
+    needs: [lint, test]
     runs-on: ubuntu-latest
     permissions:
       contents: read
