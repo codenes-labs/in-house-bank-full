@@ -2,7 +2,12 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { authRequestInit, writeAccessToken } from '../lib/auth-token';
 
 export interface AuthSession {
-  user: { id: string; email: string };
+  user: {
+    id: string;
+    email: string;
+    mustChangePassword: boolean;
+    isDemo: boolean;
+  };
 }
 
 interface AuthContextValue {
@@ -10,8 +15,7 @@ interface AuthContextValue {
   loading: boolean;
   session: AuthSession | null;
   signIn: (email: string, password: string) => Promise<string | null>;
-  signUp: (email: string, password: string) => Promise<string | null>;
-  sendRecovery: (email: string) => Promise<string | null>;
+  recoverPassword: (email: string, newPassword: string) => Promise<string | null>;
   updatePassword: (password: string) => Promise<string | null>;
   signOut: () => Promise<void>;
 }
@@ -61,14 +65,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       async signIn(email, password) {
         return authenticate('/api/auth/sign-in', email, password, setSession);
       },
-      async signUp(email, password) {
-        return authenticate('/api/auth/sign-up', email, password, setSession);
+      async recoverPassword(email, newPassword) {
+        const response = await fetch('/api/auth/recover', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ email, newPassword }),
+        });
+        const body = (await response.json()) as { error?: string };
+        if (!response.ok) {
+          return body.error ?? 'Não foi possível redefinir a senha.';
+        }
+        return null;
       },
-      async sendRecovery() {
-        return 'A recuperação de senha por e-mail não está disponível neste banco.';
-      },
-      async updatePassword() {
-        return 'A recuperação de senha por e-mail não está disponível neste banco.';
+      async updatePassword(password) {
+        const response = await fetch('/api/auth/password', authRequestInit({
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ newPassword: password }),
+        }));
+        const body = (await response.json()) as {
+          error?: string;
+          user?: AuthSession['user'];
+          accessToken?: string;
+        };
+        if (!response.ok || !body.user || !body.accessToken) {
+          return body.error ?? 'Não foi possível salvar a senha.';
+        }
+        writeAccessToken(body.accessToken);
+        setSession({ user: body.user });
+        return null;
       },
       async signOut() {
         await fetch('/api/auth/sign-out', authRequestInit({ method: 'POST' }));

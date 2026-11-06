@@ -49,7 +49,9 @@ export function LandingPage() {
           <li>Relatórios de recebimento e patrimônio</li>
           <li>Backup e cobrança por WhatsApp</li>
         </ul>
-        <Link to="/cadastro" className="mt-4 inline-flex min-h-12 items-center rounded-lg bg-primary px-4 font-semibold text-primary-foreground">Criar conta</Link>
+        <Link to="/entrar" className="mt-4 inline-flex min-h-12 items-center rounded-lg bg-primary px-4 font-semibold text-primary-foreground">
+          Entrar na conta
+        </Link>
       </Card>
       <footer className="py-8 text-sm text-muted-foreground">In House Bank. Só controle financeiro.</footer>
     </div>

@@ -19,11 +19,16 @@ const items = [
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { signOut } = useAuth();
+  const { signOut, session } = useAuth();
   const { mode, toggle } = useTheme();
 
   return (
     <div className="min-h-dvh bg-background lg:grid lg:grid-cols-[17rem_1fr]">
+      {session?.user.isDemo ? (
+        <p className="border-b border-border bg-warning-soft px-4 py-2 text-center text-sm text-status-pending lg:col-span-2">
+          Conta de demonstração: você pode editar tudo, mas ao sair e entrar de novo os dados voltam ao mock.
+        </p>
+      ) : null}
       <aside className="hidden border-r border-border bg-card lg:flex lg:flex-col lg:px-4 lg:py-6">
         <Logo />
         <nav className="mt-8 grid gap-1" aria-label="Menu principal">
