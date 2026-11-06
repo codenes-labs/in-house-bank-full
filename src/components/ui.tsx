@@ -70,8 +70,8 @@ export function Field({
 const controlClass =
   'min-h-12 w-full rounded-lg border border-input bg-card px-3 text-base text-foreground outline-none focus:ring-2 focus:ring-ring';
 
-export function TextInput(props: InputHTMLAttributes<HTMLInputElement>) {
-  return <input className={cx(controlClass, props.className)} {...props} />;
+export function TextInput({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
+  return <input className={cx(controlClass, className)} {...props} />;
 }
 
 export function SelectInput(props: SelectHTMLAttributes<HTMLSelectElement>) {

@@ -4,21 +4,13 @@ import { useTheme } from '../components/theme';
 import { Button, Card, Field, SelectInput, TextArea, TextInput } from '../components/ui';
 import { APP_DATA_BACKUP_VERSION } from '../domain/models/app-data-backup';
 import { DefaultInterestType } from '../domain/enums/default-interest-type';
-import { detectPixKeyType } from '../domain/pix/validate-pix-key';
-import { PixKeyType } from '../domain/enums/pix-key-type';
+import { validatePixKey } from '../domain/pix/validate-pix-key';
+import { Check } from 'lucide-react';
 import { parseAppDataBackupJson } from '../domain/backup/assert-app-data-backup';
 import { serializeAppDataBackup } from '../domain/backup/serialize-app-data-backup';
 import { validateSettings } from '../domain/settings/validate-settings';
 import { DEFAULT_WHATSAPP_MESSAGE } from '../domain/whatsapp/default-whatsapp-message';
 import { resizeLogoFile } from '../pdf/resize-logo';
-
-const pixLabels: Record<PixKeyType, string> = {
-  EMAIL: 'E-mail',
-  PHONE: 'Telefone',
-  RANDOM: 'Aleatória',
-  CPF: 'CPF',
-  CNPJ: 'CNPJ',
-};
 
 export function SettingsPage() {
   const bank = useBank();
@@ -27,7 +19,7 @@ export function SettingsPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pixKey, setPixKey] = useState(settings.defaultPixKey);
-  const pixType = detectPixKeyType(pixKey);
+  const pixValid = validatePixKey(pixKey).valid;
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -101,8 +93,10 @@ export function SettingsPage() {
           <Field label="Cidade"><TextInput name="city" defaultValue={settings.city} maxLength={15} /></Field>
           <Field label="Instituição"><TextInput name="defaultInstitution" defaultValue={settings.defaultInstitution} /></Field>
           <Field label="Chave Pix padrão">
-            <TextInput name="defaultPixKey" value={pixKey} onChange={(event) => setPixKey(event.target.value)} />
-            <span className="text-sm font-normal text-muted-foreground">{pixType ? pixLabels[pixType] : 'Tipo não reconhecido'}</span>
+            <div className="relative">
+              <TextInput name="defaultPixKey" className={pixValid ? 'pr-10' : undefined} value={pixKey} onChange={(event) => setPixKey(event.target.value)} />
+              {pixValid ? <Check className="pointer-events-none absolute top-1/2 right-3 size-5 -translate-y-1/2 text-accent" aria-label="Chave Pix válida" /> : null}
+            </div>
           </Field>
           <Field label="Parcelas padrão"><TextInput name="defaultInstallments" type="number" defaultValue={settings.defaultInstallments} /></Field>
           <Field label="Dia de vencimento"><TextInput name="defaultDueDay" type="number" defaultValue={settings.defaultDueDay ?? ''} /></Field>

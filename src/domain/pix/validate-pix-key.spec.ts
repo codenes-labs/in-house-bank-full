@@ -6,6 +6,9 @@ describe('detectPixKeyType (RN-09)', () => {
   it('detects email, phone, random, CPF and CNPJ', () => {
     expect(detectPixKeyType('pagador@example.com')).toBe(PixKeyType.Email);
     expect(detectPixKeyType('+5511987654321')).toBe(PixKeyType.Phone);
+    expect(detectPixKeyType('(11) 98765-4321')).toBe(PixKeyType.Phone);
+    expect(detectPixKeyType('11987654321')).toBe(PixKeyType.Phone);
+    expect(detectPixKeyType('5511987654321')).toBe(PixKeyType.Phone);
     expect(detectPixKeyType('31b6c1ca-b977-42e8-9ae5-99a93ba06edb')).toBe(PixKeyType.Random);
     expect(detectPixKeyType('390.533.447-05')).toBe(PixKeyType.Cpf);
     expect(detectPixKeyType('11.222.333/0001-81')).toBe(PixKeyType.Cnpj);
@@ -38,6 +41,18 @@ describe('validatePixKey (RN-09)', () => {
     });
 
     expect(validatePixKey('+55 11 98765-4321')).toEqual({
+      valid: true,
+      type: PixKeyType.Phone,
+      normalizedKey: '+5511987654321',
+    });
+
+    expect(validatePixKey('(11) 98765-4321')).toEqual({
+      valid: true,
+      type: PixKeyType.Phone,
+      normalizedKey: '+5511987654321',
+    });
+
+    expect(validatePixKey('11987654321')).toEqual({
       valid: true,
       type: PixKeyType.Phone,
       normalizedKey: '+5511987654321',

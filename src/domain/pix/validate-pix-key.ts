@@ -22,12 +22,12 @@ export function detectPixKeyType(raw: string): PixKeyTypeValue | null {
     return PixKeyType.Email;
   }
 
-  if (trimmed.startsWith('+')) {
-    return PixKeyType.Phone;
-  }
-
   if (UUID_PATTERN.test(trimmed)) {
     return PixKeyType.Random;
+  }
+
+  if (looksLikePhone(trimmed)) {
+    return PixKeyType.Phone;
   }
 
   const digits = onlyDigits(trimmed);
@@ -74,12 +74,44 @@ function validateEmail(raw: string): PixKeyValidationResult {
 }
 
 function validatePhone(raw: string): PixKeyValidationResult {
-  const normalizedKey = `+${onlyDigits(raw)}`;
+  const national = nationalPhoneDigits(onlyDigits(raw));
+  if (!national) {
+    return invalid();
+  }
+
+  const normalizedKey = `+55${national}`;
   if (!PHONE_PATTERN.test(normalizedKey)) {
     return invalid();
   }
 
   return { valid: true, type: PixKeyType.Phone, normalizedKey };
+}
+
+function looksLikePhone(raw: string): boolean {
+  const trimmed = raw.trim();
+  if (trimmed.startsWith('+') || /[()]/.test(trimmed)) {
+    return true;
+  }
+
+  if (/[./]/.test(trimmed)) {
+    return false;
+  }
+
+  const digits = onlyDigits(trimmed);
+  if (digits.length === 11 && isValidCpf(digits)) {
+    return false;
+  }
+
+  return nationalPhoneDigits(digits) !== null;
+}
+
+function nationalPhoneDigits(digits: string): string | null {
+  const national = digits.startsWith('55') && (digits.length === 12 || digits.length === 13) ? digits.slice(2) : digits;
+  if (!PHONE_PATTERN.test(`+55${national}`)) {
+    return null;
+  }
+
+  return national;
 }
 
 function validateRandom(raw: string): PixKeyValidationResult {
