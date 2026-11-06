@@ -3,8 +3,12 @@ export const schemaStatements = [
     id uuid primary key,
     email text not null unique,
     password_hash text not null,
+    account_kind text not null default 'standard',
+    must_change_password boolean not null default false,
     created_at timestamptz not null default now()
   )`,
+  `alter table public.users add column if not exists account_kind text not null default 'standard'`,
+  `alter table public.users add column if not exists must_change_password boolean not null default false`,
   `create table if not exists public.settings (
     user_id uuid primary key references public.users (id) on delete cascade,
     business_name text not null default '',
