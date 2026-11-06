@@ -6,9 +6,8 @@ import type { Installment } from '../domain/models/installment';
 import type { InstallmentPlan } from '../domain/models/installment-plan';
 import type { Settings } from '../domain/models/settings';
 import type { GeneratedInstallmentPlanBundle } from '../domain/quick-generator/create-installment-plan-from-generator';
-import { supabase } from '../lib/supabase';
 import { createEmptySnapshot, type BankSnapshot } from '../repositories/bank-repository';
-import { createSupabaseBankRepository } from '../repositories/supabase-bank-repository';
+import { createHttpBankRepository } from '../repositories/http-bank-repository';
 import type { BankRepository } from '../repositories/bank-repository';
 import { useAuth } from './auth-context';
 import { useTheme } from './theme';
@@ -41,13 +40,13 @@ export function BankProvider({ children }: { children: ReactNode }) {
   const userId = session?.user.id ?? null;
 
   useEffect(() => {
-    if (!userId || !supabase) {
+    if (!userId) {
       setSnapshot(createEmptySnapshot());
       setReady(true);
       setError(null);
       return;
     }
-    const repository = createSupabaseBankRepository(supabase, userId);
+    const repository = createHttpBankRepository();
     let active = true;
     setReady(false);
     void repository
@@ -74,8 +73,7 @@ export function BankProvider({ children }: { children: ReactNode }) {
   }, [setMode, userId]);
 
   const value = useMemo<BankContextValue>(() => {
-    const repository: BankRepository | null =
-      userId && supabase ? createSupabaseBankRepository(supabase, userId) : null;
+    const repository: BankRepository | null = userId ? createHttpBankRepository() : null;
 
     async function run(work: (repo: BankRepository) => Promise<void>): Promise<void> {
       if (!repository) {

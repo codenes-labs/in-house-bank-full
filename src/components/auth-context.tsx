@@ -1,14 +1,16 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import type { Session } from '@supabase/supabase-js';
-import { supabase, supabaseConfigured } from '../lib/supabase';
+import { authRequestInit, writeAccessToken } from '../lib/auth-token';
+
+export interface AuthSession {
+  user: { id: string; email: string };
+}
 
 interface AuthContextValue {
   configured: boolean;
   loading: boolean;
-  session: Session | null;
+  session: AuthSession | null;
   signIn: (email: string, password: string) => Promise<string | null>;
   signUp: (email: string, password: string) => Promise<string | null>;
-  signInWithGoogle: () => Promise<string | null>;
   sendRecovery: (email: string) => Promise<string | null>;
   updatePassword: (password: string) => Promise<string | null>;
   signOut: () => Promise<void>;
@@ -17,83 +19,87 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(supabaseConfigured);
+  const [session, setSession] = useState<AuthSession | null>(null);
+  const [configured, setConfigured] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!supabase) {
-      return;
-    }
     let active = true;
-    void supabase.auth.getSession().then(({ data }) => {
-      if (active) {
-        setSession(data.session);
+    void fetch('/api/auth/session', authRequestInit())
+      .then(async (response) => {
+        if (!response.ok) {
+          return { configured: false, user: null };
+        }
+        return (await response.json()) as { configured?: boolean; user?: AuthSession['user'] | null };
+      })
+      .then((body) => {
+        if (!active) {
+          return;
+        }
+        setConfigured(body.configured !== false);
+        setSession(body.user ? { user: body.user } : null);
         setLoading(false);
-      }
-    });
-    const { data } = supabase.auth.onAuthStateChange((_event, next) => {
-      setSession(next);
-      setLoading(false);
-    });
+      })
+      .catch(() => {
+        if (!active) {
+          return;
+        }
+        setConfigured(false);
+        setSession(null);
+        setLoading(false);
+      });
     return () => {
       active = false;
-      data.subscription.unsubscribe();
     };
   }, []);
 
   const value = useMemo<AuthContextValue>(
     () => ({
-      configured: supabaseConfigured,
+      configured,
       loading,
       session,
       async signIn(email, password) {
-        if (!supabase) {
-          return 'Configure o Supabase para entrar.';
-        }
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        return error?.message ?? null;
+        return authenticate('/api/auth/sign-in', email, password, setSession);
       },
       async signUp(email, password) {
-        if (!supabase) {
-          return 'Configure o Supabase para criar a conta.';
-        }
-        const { error } = await supabase.auth.signUp({ email, password });
-        return error?.message ?? null;
+        return authenticate('/api/auth/sign-up', email, password, setSession);
       },
-      async signInWithGoogle() {
-        if (!supabase) {
-          return 'Configure o Supabase para entrar com Google.';
-        }
-        const { error } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: { redirectTo: `${window.location.origin}/inicio` },
-        });
-        return error?.message ?? null;
+      async sendRecovery() {
+        return 'A recuperação de senha por e-mail não está disponível neste banco.';
       },
-      async sendRecovery(email) {
-        if (!supabase) {
-          return 'Configure o Supabase para recuperar a senha.';
-        }
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/recuperar-senha`,
-        });
-        return error?.message ?? null;
-      },
-      async updatePassword(password) {
-        if (!supabase) {
-          return 'Configure o Supabase para definir a nova senha.';
-        }
-        const { error } = await supabase.auth.updateUser({ password });
-        return error?.message ?? null;
+      async updatePassword() {
+        return 'A recuperação de senha por e-mail não está disponível neste banco.';
       },
       async signOut() {
-        await supabase?.auth.signOut();
+        await fetch('/api/auth/sign-out', authRequestInit({ method: 'POST' }));
+        writeAccessToken(null);
+        setSession(null);
       },
     }),
-    [loading, session],
+    [configured, loading, session],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+async function authenticate(
+  path: string,
+  email: string,
+  password: string,
+  setSession: (session: AuthSession | null) => void,
+): Promise<string | null> {
+  const response = await fetch(path, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  const body = (await response.json()) as { error?: string; user?: AuthSession['user']; accessToken?: string };
+  if (!response.ok || !body.user || !body.accessToken) {
+    return body.error ?? 'Não foi possível entrar.';
+  }
+  writeAccessToken(body.accessToken);
+  setSession({ user: body.user });
+  return null;
 }
 
 export function useAuth(): AuthContextValue {

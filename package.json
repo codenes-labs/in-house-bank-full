@@ -8,11 +8,12 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
+    "deploy": "npm run build && wrangler deploy",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.119.0",
+    "@neondatabase/serverless": "^1.2.0",
     "lucide-react": "^1.69.0",
     "pdf-lib": "^1.17.1",
     "qrcode": "^1.5.4",
@@ -29,10 +30,12 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "@vitest/coverage-v8": "^5.1.0",
+    "@cloudflare/workers-types": "^5.20261104.1",
     "oxlint": "^1.90.0",
     "tailwindcss": "^4.3.4",
     "typescript": "~7.0.2",
     "vite": "^8.3.6",
-    "vitest": "^5.1.0"
+    "vitest": "^5.1.0",
+    "wrangler": "^4.14.0"
   }
 }

@@ -1,11 +1,11 @@
 # Banco
 
-Postgres no Supabase. Migration em `supabase/migrations/20261105120000_init.sql`.
+Postgres no [Neon](https://neon.tech). O schema sobe automaticamente pelo servidor em `src/server/schema.ts` na primeira requisição.
 
-Tabelas: `settings`, `installment_plans`, `installments`, `cash_boxes`, `cash_box_movements`.
+Tabelas de conta: `users`. Tabelas de dados: `settings`, `installment_plans`, `installments`, `cash_boxes`, `cash_box_movements`.
 
-Todas têm `user_id` apontando para `auth.users`. RLS liga select, insert, update e delete somente quando `auth.uid() = user_id`.
+Todas as tabelas de dados têm `user_id` referenciando `users`. RLS compara `user_id` com `current_setting('app.user_id')`, definido pelo servidor em cada transação.
 
 Gravação por registro. O backup JSON `version: 1` é a única substituição completa, e só dos dados do usuário que importou.
 
-Não usar a chave de serviço no front. Variáveis: `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`.
+Segredos só no servidor (Worker ou dev Vite). Variáveis: `DATABASE_URL` e `JWT_SECRET` (mínimo 32 caracteres).

@@ -30,7 +30,7 @@ O desenvolvimento segue SDD: a spec vem antes do código de produção, e cada r
 
 ## Pronto quando
 
-A spec existe, os testes unitários passam, o lint e o build passam, e tabelas novas têm RLS por `auth.uid() = user_id`.
+A spec existe, os testes unitários passam, o lint e o build passam, e tabelas novas têm RLS por `user_id = current_setting('app.user_id')::uuid`.
 
 ## Interface
 

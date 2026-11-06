@@ -35,10 +35,6 @@ export function AuthPage({ mode }: { mode: 'sign-in' | 'sign-up' | 'recover' }) 
       setError(result);
       return;
     }
-    if (mode === 'sign-up') {
-      setMessage('Conta criada. Se a confirmação por e-mail estiver ativa, abra a mensagem antes de entrar.');
-      return;
-    }
     if (mode === 'recover' && !password) {
       setMessage('Enviamos o link de recuperação, se o e-mail existir.');
       return;
@@ -55,7 +51,7 @@ export function AuthPage({ mode }: { mode: 'sign-in' | 'sign-up' | 'recover' }) 
         <h1 className="text-2xl font-semibold">{title}</h1>
         {!auth.configured ? (
           <p className="rounded-lg bg-warning-soft px-3 py-2 text-sm text-status-pending">
-            Falta a URL e a chave anônima do Supabase no arquivo .env. O carnê aberto continua disponível na página inicial.
+            O banco Neon não está acessível. O carnê aberto continua disponível na página inicial.
           </p>
         ) : null}
         <form className="grid gap-3" onSubmit={(event) => void submit(event)}>
@@ -71,11 +67,6 @@ export function AuthPage({ mode }: { mode: 'sign-in' | 'sign-up' | 'recover' }) 
           {message ? <p className="text-sm text-accent">{message}</p> : null}
           <Button type="submit">{title}</Button>
         </form>
-        {mode !== 'recover' ? (
-          <Button type="button" variant="soft" onClick={() => void auth.signInWithGoogle().then((result) => result && setError(result))}>
-            Continuar com Google
-          </Button>
-        ) : null}
         <div className="grid gap-1 text-sm">
           {mode !== 'sign-in' ? <Link to="/entrar">Já tenho conta</Link> : <Link to="/cadastro">Criar conta</Link>}
           {mode !== 'recover' ? <Link to="/recuperar-senha">Esqueci a senha</Link> : null}
