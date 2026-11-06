@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { useBank } from '../components/bank-context';
-import { Button, Card, EmptyState } from '../components/ui';
+import { Button, Card, EmptyState, StatusPill } from '../components/ui';
+import { installmentStatusLabel } from '../domain/installments/status-labels';
 import { computeDashboardMetrics } from '../domain/dashboard/compute-dashboard-metrics';
 import {
   formatDashboardBrl,
@@ -57,7 +58,7 @@ export function HomePage() {
       <header className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm text-muted-foreground">Bem-vindo</p>
-          <h1 className="text-3xl font-semibold">{receivable} a receber</h1>
+          <h1 className="text-2xl font-semibold sm:text-3xl">{receivable} a receber</h1>
           <p className="text-muted-foreground">{overdueLabel}</p>
         </div>
         <button
@@ -77,7 +78,7 @@ export function HomePage() {
         </Card>
       ) : null}
       {notice ? <p className="text-sm text-accent">{notice}</p> : null}
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <Metric label="Saídas" value={formatDashboardBrl(formatCentsAsBrl(metrics.totalUsedCents), valuesVisible)} />
         <Metric label="Retorno previsto" value={formatDashboardBrl(formatCentsAsBrl(metrics.totalEmittedCents), valuesVisible)} />
         <Metric label="Lucro previsto" value={formatDashboardBrl(formatCentsAsBrl(metrics.expectedProfitCents), valuesVisible)} />
@@ -92,12 +93,34 @@ export function HomePage() {
             {upcoming.map((installment) => {
               const plan = bank.snapshot.installmentPlans.find((item) => item.id === installment.planId);
               const status = deriveInstallmentStatus(installment, today);
+              const tone =
+                status === InstallmentStatus.Paid
+                  ? 'paid'
+                  : status === InstallmentStatus.Overdue
+                    ? 'overdue'
+                    : 'pending';
+              const dueLabel = installment.dueDate.split('-').reverse().join('/');
+              const amountLabel = formatDashboardBrl(formatCentsAsBrl(installment.amountCents), valuesVisible);
+              if (!plan) {
+                return null;
+              }
               return (
-                <li key={installment.id} className="flex items-center justify-between gap-3 rounded-lg bg-muted px-3 py-2">
-                  <span>{plan?.borrowerName ?? 'Pagador'} · {installment.number}</span>
-                  <span>{installment.dueDate.split('-').reverse().join('/')}</span>
-                  <strong>{formatDashboardBrl(formatCentsAsBrl(installment.amountCents), valuesVisible)}</strong>
-                  <span className="text-sm">{status === InstallmentStatus.Overdue ? 'Vencida' : 'Pendente'}</span>
+                <li key={installment.id}>
+                  <Link
+                    to={`/parcelamentos/${plan.id}`}
+                    className="press grid gap-2 rounded-lg bg-muted px-3 py-2.5 sm:flex sm:items-center sm:justify-between sm:gap-3"
+                  >
+                    <div className="flex items-start justify-between gap-2 sm:contents">
+                      <span className="min-w-0 font-medium">
+                        {plan.borrowerName} · {installment.number}
+                      </span>
+                      <StatusPill label={installmentStatusLabel(status)} tone={tone} />
+                    </div>
+                    <div className="flex items-center justify-between gap-3 sm:contents">
+                      <span className="text-sm text-muted-foreground">{dueLabel}</span>
+                      <strong className="tabular-nums">{amountLabel}</strong>
+                    </div>
+                  </Link>
                 </li>
               );
             })}
@@ -129,9 +152,9 @@ export function HomePage() {
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <Card>
-      <p className="text-sm text-muted-foreground">{label}</p>
-      <p className="mt-1 text-2xl font-semibold">{value}</p>
+    <Card className="min-w-0">
+      <p className="text-xs text-muted-foreground sm:text-sm">{label}</p>
+      <p className="mt-1 text-lg font-semibold tabular-nums sm:text-2xl">{value}</p>
     </Card>
   );
 }
