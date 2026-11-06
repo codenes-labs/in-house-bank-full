@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-background: #f4f7fb;
+  --color-foreground: #0f172a;
+  --color-card: #ffffff;
+  --color-card-foreground: #0f172a;
+  --color-primary: #1e3a8a;
+  --color-primary-foreground: #ffffff;
+  --color-brand: #1d4ed8;
+  --color-brand-soft: #dbeafe;
+  --color-secondary: #dbeafe;
+  --color-secondary-foreground: #1e3a8a;
+  --color-muted: #e8eef6;
+  --color-muted-foreground: #475569;
+  --color-accent: #0f766e;
+  --color-accent-foreground: #ffffff;
+  --color-destructive: #b91c1c;
+  --color-border: #e2e8f0;
+  --color-input: #e2e8f0;
+  --color-ring: #1e3a8a;
+  --color-status-pending: #b45309;
+  --color-status-paid: #047857;
+  --color-status-overdue: #b91c1c;
+  --color-warning-soft: #fef3c7;
+  --color-success-soft: #d1fae5;
+  --color-danger-soft: #fee2e2;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 8px 24px rgb(15 23 42 / 0.06);
+}
+
+html.theme-dark {
+  --color-background: #070d18;
+  --color-foreground: #e5eefc;
+  --color-card: #111827;
+  --color-card-foreground: #e5eefc;
+  --color-primary: #93c5fd;
+  --color-primary-foreground: #0f172a;
+  --color-brand: #60a5fa;
+  --color-brand-soft: #1e293b;
+  --color-secondary: #1e293b;
+  --color-secondary-foreground: #dbeafe;
+  --color-muted: #1e293b;
+  --color-muted-foreground: #94a3b8;
+  --color-accent: #2dd4bf;
+  --color-accent-foreground: #042f2e;
+  --color-destructive: #f87171;
+  --color-border: #243044;
+  --color-input: #243044;
+  --color-ring: #93c5fd;
+  --color-status-pending: #fbbf24;
+  --color-status-paid: #34d399;
+  --color-status-overdue: #f87171;
+  --color-warning-soft: #422006;
+  --color-success-soft: #064e3b;
+  --color-danger-soft: #450a0a;
+  --shadow-card: 0 8px 32px rgb(0 0 0 / 0.35);
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+.press {
+  transition: transform 120ms ease, opacity 120ms ease;
+}
+
+.press:active {
+  transform: scale(0.98);
+}
