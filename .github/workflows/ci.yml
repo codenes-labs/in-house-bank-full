@@ -1,8 +1,15 @@
 name: CI
 
+# Lint e testes: push em qualquer branch e PR para master.
+# Deploy: só push em master (merge), depois que lint e testes passam.
 on:
-  push:
   pull_request:
+    branches: [master]
+  push:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   developer:
