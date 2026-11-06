@@ -3,6 +3,8 @@ import { PlanStatus } from '../enums/plan-status';
 import type { CalendarDate } from '../models/calendar-date';
 import { deriveInstallmentStatus } from './derive-installment-status';
 import type { InstallmentPlanListRow } from './installment-plan-list-row';
+import type { InstallmentDueDateRange } from './installment-due-date-range';
+import { installmentDueDateInRange } from './installment-due-date-range';
 
 export const InstallmentPlanListStatusFilter = {
   All: 'ALL',
@@ -16,7 +18,7 @@ export type InstallmentPlanListStatusFilter =
 
 export interface InstallmentPlanListFilterCriteria {
   status: InstallmentPlanListStatusFilter;
-  dueMonth?: string;
+  dueDateRange?: InstallmentDueDateRange;
   searchText?: string;
 }
 
@@ -33,11 +35,11 @@ export function matchesInstallmentPlanListFilter(
     }
   }
 
-  if (criteria.dueMonth) {
-    const hasDueInMonth = row.installments.some((installment) =>
-      installment.dueDate.startsWith(criteria.dueMonth!),
+  if (criteria.dueDateRange) {
+    const hasDueInRange = row.installments.some((installment) =>
+      installmentDueDateInRange(installment.dueDate, criteria.dueDateRange!),
     );
-    if (!hasDueInMonth) {
+    if (!hasDueInRange) {
       return false;
     }
   }

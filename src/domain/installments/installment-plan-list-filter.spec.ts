@@ -59,10 +59,10 @@ describe('filterInstallmentPlanListRows', () => {
     expect(filtered[0]?.planStatus).toBe(PlanStatus.Overdue);
   });
 
-  it('filters by due month', () => {
+  it('filters by due date range', () => {
     const filtered = filterInstallmentPlanListRows(
       rows,
-      { status: InstallmentPlanListStatusFilter.All, dueMonth: '2026-11' },
+      { status: InstallmentPlanListStatusFilter.All, dueDateRange: { from: '2026-11-01', to: '2026-11-30' } },
       today,
     );
     expect(filtered).toHaveLength(1);
