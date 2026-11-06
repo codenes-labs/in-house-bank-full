@@ -56,7 +56,7 @@ export function AuthPage({ mode }: { mode: 'sign-in' | 'recover' }) {
           </p>
         ) : null}
         <form className="grid gap-3" onSubmit={(event) => void submit(event)}>
-          <Field label={mode === 'sign-in' ? 'E-mail ou teste' : 'E-mail'}>
+          <Field label="E-mail">
             <TextInput
               type={mode === 'sign-in' ? 'text' : 'email'}
               autoComplete="username"
@@ -79,7 +79,7 @@ export function AuthPage({ mode }: { mode: 'sign-in' | 'recover' }) {
         <div className="grid gap-1 text-sm">
           {mode !== 'sign-in' ? <Link to="/entrar">Voltar ao login</Link> : null}
           {mode !== 'recover' ? <Link to="/recuperar-senha">Esqueci a senha</Link> : null}
-          <Link to="/">Voltar ao carnê aberto</Link>
+          <Link to="/">Voltar</Link>
         </div>
       </Card>
     </div>
