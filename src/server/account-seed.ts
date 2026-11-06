@@ -20,7 +20,7 @@ export const AccountKind = {
 
 export type AccountKind = (typeof AccountKind)[keyof typeof AccountKind];
 
-const accountsReady = new WeakMap<object, Promise<void>>();
+const accountsReady = new Map<string, Promise<void>>();
 
 export function normalizeLoginEmail(raw: string): string {
   const trimmed = raw.trim().toLowerCase();
@@ -30,13 +30,13 @@ export function normalizeLoginEmail(raw: string): string {
   return trimmed;
 }
 
-export function ensureSeededAccounts(sql: NeonQueryFunction<false, false>): Promise<void> {
-  const existing = accountsReady.get(sql);
+export function ensureSeededAccounts(databaseUrl: string, sql: NeonQueryFunction<false, false>): Promise<void> {
+  const existing = accountsReady.get(databaseUrl);
   if (existing) {
     return existing;
   }
   const pending = seedAccounts(sql);
-  accountsReady.set(sql, pending);
+  accountsReady.set(databaseUrl, pending);
   return pending;
 }
 
@@ -67,8 +67,6 @@ async function seedAccounts(sql: NeonQueryFunction<false, false>): Promise<void>
     )
     on conflict (email) do nothing
   `;
-
-  await restoreDemoSnapshot(sql, DEMO_USER_ID);
 }
 
 export async function restoreDemoSnapshot(sql: NeonQueryFunction<false, false>, userId: string): Promise<void> {

@@ -38,7 +38,7 @@ type SessionUser = {
   isDemo: boolean;
 };
 
-const schemaReady = new Map<string, Promise<void>>();
+const bootstrapReady = new Map<string, Promise<void>>();
 
 export function createApiHandler(options: { databaseUrl?: string; jwtSecret?: string }): (request: Request) => Promise<Response> {
   return async (request) => {
@@ -59,8 +59,7 @@ export function createApiHandler(options: { databaseUrl?: string; jwtSecret?: st
     }
     try {
       const sql = neon(normalizeDatabaseUrl(databaseUrl));
-      await ensureSchema(databaseUrl, sql);
-      await ensureSeededAccounts(sql);
+      await ensureBootstrapped(databaseUrl, sql);
       return await route(sql, request, jwtSecret);
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : 'Falha no banco.';
@@ -295,17 +294,17 @@ async function loadBank(sql: Sql, userId: string) {
   };
 }
 
-function ensureSchema(databaseUrl: string, sql: Sql): Promise<void> {
-  const existing = schemaReady.get(databaseUrl);
+function ensureBootstrapped(databaseUrl: string, sql: Sql): Promise<void> {
+  const key = normalizeDatabaseUrl(databaseUrl);
+  const existing = bootstrapReady.get(key);
   if (existing) {
     return existing;
   }
   const pending = (async () => {
-    for (const statement of schemaStatements) {
-      await sql.query(statement);
-    }
+    await sql.transaction(schemaStatements.map((statement) => sql.query(statement)));
+    await ensureSeededAccounts(key, sql);
   })();
-  schemaReady.set(databaseUrl, pending);
+  bootstrapReady.set(key, pending);
   return pending;
 }
 
