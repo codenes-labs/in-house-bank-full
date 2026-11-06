@@ -12,7 +12,6 @@ import {
   computeCarneInstallmentRowHeightPt,
 } from '../domain/pdf/carne-pdf-layout';
 import { buildCarneHeaderSummary } from '../domain/pdf/build-carne-header-summary';
-import { fitSingleLineFontSize } from '../domain/pdf/fit-single-line-font-size';
 import { formatCalendarDateBr } from '../domain/pdf/format-calendar-date-br';
 import { formatCentsAsBrl } from '../domain/money/brl-input';
 import type { Installment } from '../domain/models/installment';
@@ -83,10 +82,10 @@ function drawPageHeader(
   const { width, height } = page.getSize();
   const titleY = height - PAGE_MARGIN - 14;
 
-  page.drawText('CARNÊPIX', {
+  page.drawText('In House Bank', {
     x: PAGE_MARGIN,
     y: titleY,
-    size: 20,
+    size: 18,
     font: fontBold,
     color: hex(CARNE_PDF_COLORS.primary600),
   });
@@ -112,13 +111,7 @@ function drawPageHeader(
     maxWidth: width - PAGE_MARGIN * 2,
   });
 
-  const lineY = summaryY - 8;
-  page.drawLine({
-    start: { x: PAGE_MARGIN, y: lineY },
-    end: { x: width - PAGE_MARGIN, y: lineY },
-    thickness: 2,
-    color: hex(CARNE_PDF_COLORS.primary600),
-  });
+  drawRoundedRect(page, PAGE_MARGIN, summaryY - 10, 42, 3, 1.5, hex(CARNE_PDF_COLORS.accent));
 }
 
 async function drawInstallmentRow(
@@ -142,30 +135,25 @@ async function drawInstallmentRow(
   const mainX = stubDividerX;
   const mainWidth = cardWidth - stubWidth;
 
-  page.drawRectangle({
-    x: cardX,
-    y: rowBottom,
-    width: cardWidth,
-    height: rowHeight,
-    borderColor: hex(CARNE_PDF_COLORS.border),
-    borderWidth: 1,
-    color: hex(CARNE_PDF_COLORS.white),
-  });
-
-  page.drawRectangle({
-    x: cardX,
-    y: rowBottom,
-    width: stubWidth,
-    height: rowHeight,
-    color: hex(CARNE_PDF_COLORS.primary50),
-  });
+  const cardRadius = 12;
+  drawRoundedRect(page, cardX + 1.5, rowBottom - 2, cardWidth, rowHeight, cardRadius, hex('#E2E8F0'));
+  drawRoundedRect(page, cardX, rowBottom, cardWidth, rowHeight, cardRadius, hex(CARNE_PDF_COLORS.white));
+  drawRoundedRect(
+    page,
+    cardX + 7,
+    rowBottom + 7,
+    stubWidth - 16,
+    rowHeight - 14,
+    9,
+    hex(CARNE_PDF_COLORS.primary50),
+  );
 
   page.drawLine({
-    start: { x: stubDividerX, y: rowBottom },
-    end: { x: stubDividerX, y: rowTop },
+    start: { x: stubDividerX, y: rowBottom + 16 },
+    end: { x: stubDividerX, y: rowTop - 16 },
     thickness: 0.8,
     color: hex(CARNE_PDF_COLORS.stubDivider),
-    dashArray: [4, 3],
+    dashArray: [1.2, 3.2],
   });
 
   drawStubHeader(page, input.plan, installment, cardX, stubWidth, rowTop, fontBold);
@@ -184,14 +172,6 @@ async function drawInstallmentRow(
     fontBold,
     fontPix,
   );
-
-  page.drawLine({
-    start: { x: cardX, y: rowBottom },
-    end: { x: cardX + cardWidth, y: rowBottom },
-    thickness: 0.5,
-    color: hex(CARNE_PDF_COLORS.muted),
-    dashArray: [3, 2],
-  });
 }
 
 function drawStubHeader(
@@ -205,30 +185,22 @@ function drawStubHeader(
 ): void {
   const headerBottom = rowTop - ROW_HEADER_HEIGHT;
 
-  page.drawRectangle({
-    x: cardX,
-    y: headerBottom,
-    width: stubWidth,
-    height: ROW_HEADER_HEIGHT,
-    color: hex(CARNE_PDF_COLORS.primary50),
-  });
-
-  page.drawText('CANHOTO', {
-    x: cardX + 10,
-    y: headerBottom + 7,
+  page.drawText('Canhoto', {
+    x: cardX + 16,
+    y: headerBottom + 8,
     size: 8,
     font: fontBold,
     color: hex(CARNE_PDF_COLORS.primary700),
   });
 
-  const parcelaLabel = `Parcela ${installment.number}/${plan.installmentsCount}`;
+  const parcelaLabel = `${installment.number}/${plan.installmentsCount}`;
   const parcelaWidth = fontBold.widthOfTextAtSize(parcelaLabel, 8);
   page.drawText(parcelaLabel, {
-    x: cardX + stubWidth - parcelaWidth - 10,
-    y: headerBottom + 7,
+    x: cardX + stubWidth - parcelaWidth - 18,
+    y: headerBottom + 8,
     size: 8,
     font: fontBold,
-    color: hex(CARNE_PDF_COLORS.primary700),
+    color: hex(CARNE_PDF_COLORS.accent),
   });
 }
 
@@ -244,30 +216,34 @@ function drawMainHeader(
 ): void {
   const headerBottom = rowTop - ROW_HEADER_HEIGHT;
 
-  page.drawRectangle({
-    x: mainX,
-    y: headerBottom,
-    width: mainWidth,
-    height: ROW_HEADER_HEIGHT,
+  page.drawText('In House Bank', {
+    x: mainX + 12,
+    y: headerBottom + 7,
+    size: 10,
+    font: fontBold,
     color: hex(CARNE_PDF_COLORS.primary700),
   });
-
-  page.drawText('CARNÊPIX', {
-    x: mainX + 10,
-    y: headerBottom + 5,
-    size: 11,
-    font: fontBold,
-    color: hex(CARNE_PDF_COLORS.white),
+  page.drawText('Pague com Pix', {
+    x: mainX + 18 + fontBold.widthOfTextAtSize('In House Bank', 10),
+    y: headerBottom + 8,
+    size: 8,
+    font,
+    color: hex(CARNE_PDF_COLORS.label),
   });
 
-  const rightLabel = `Parcela ${installment.number}/${plan.installmentsCount}  |  Pague com Pix`;
-  const rightWidth = font.widthOfTextAtSize(rightLabel, 7);
-  page.drawText(rightLabel, {
-    x: mainX + mainWidth - rightWidth - 10,
-    y: headerBottom + 7,
-    size: 7,
+  const pillLabel = `Parcela ${installment.number}/${plan.installmentsCount}`;
+  const pillSize = 7.5;
+  const pillWidth = fontBold.widthOfTextAtSize(pillLabel, pillSize) + 16;
+  const pillHeight = 14;
+  const pillX = mainX + mainWidth - pillWidth - 12;
+  const pillY = headerBottom + 4;
+  drawRoundedRect(page, pillX, pillY, pillWidth, pillHeight, 7, hex(CARNE_PDF_COLORS.primary50));
+  page.drawText(pillLabel, {
+    x: pillX + 8,
+    y: pillY + 3.5,
+    size: pillSize,
     font: fontBold,
-    color: hex(CARNE_PDF_COLORS.white),
+    color: hex(CARNE_PDF_COLORS.primary600),
   });
 }
 
@@ -282,8 +258,8 @@ function drawStubBody(
   font: PDFFont,
   fontBold: PDFFont,
 ): void {
-  const textX = cardX + 10;
-  const maxWidth = stubWidth - 18;
+  const textX = cardX + 16;
+  const maxWidth = stubWidth - 34;
   const bodyBottom = rowBottom + 8;
   const paymentLine = installment.paidDate
     ? formatCalendarDateBr(installment.paidDate)
@@ -332,13 +308,13 @@ async function drawMainBody(
   fontBold: PDFFont,
   fontPix: PDFFont,
 ): Promise<void> {
-  const paddingX = 10;
-  const bodyTop = rowTop - ROW_HEADER_HEIGHT - 6;
-  const bodyBottom = rowBottom + 6;
-  const qrColumnWidth = 88;
+  const paddingX = 12;
+  const bodyTop = rowTop - ROW_HEADER_HEIGHT - 4;
+  const bodyBottom = rowBottom + 12;
+  const qrColumnWidth = 92;
   const leftColX = mainX + paddingX;
   const leftColWidth = mainWidth - paddingX * 2 - qrColumnWidth;
-  const qrSize = Math.min(76, bodyTop - bodyBottom - 14);
+  const qrSize = Math.min(72, bodyTop - bodyBottom - 22);
 
   const brCode = buildStaticPixBrCode({
     pixKey: input.plan.pixKey,
@@ -348,32 +324,29 @@ async function drawMainBody(
     txid: installment.txid,
   });
 
-  const pixLineHeight = 5;
-  const pixCodeSize = fitSingleLineFontSize({
-    maxWidth: leftColWidth,
-    minSize: 2,
-    maxSize: 4.6,
-    widthAtSize: (fontSize) => fontPix.widthOfTextAtSize(brCode, fontSize),
-  });
-  const pixCodeHeight = pixLineHeight;
-  const pixHeaderHeight = 8;
-  const valueBoxHeight = 20;
+  const pixCodeSize = 4.2;
+  const pixLines = wrapText(brCode, fontPix, pixCodeSize, leftColWidth).slice(0, 3);
+  const pixLineHeight = 6;
+  const pixBlockHeight = pixLines.length * pixLineHeight;
+  const pixHeaderHeight = 9;
+  const valueBoxHeight = 26;
 
-  const pixCodeBottom = bodyBottom + 2;
-  page.drawText(brCode, {
-    x: leftColX,
-    y: pixCodeBottom,
-    size: pixCodeSize,
-    font: fontPix,
-    color: hex(CARNE_PDF_COLORS.pixCode),
+  const pixCodeBottom = bodyBottom;
+  pixLines.forEach((line, index) => {
+    page.drawText(line, {
+      x: leftColX,
+      y: pixCodeBottom + (pixLines.length - 1 - index) * pixLineHeight,
+      size: pixCodeSize,
+      font: fontPix,
+      color: hex(CARNE_PDF_COLORS.pixCode),
+    });
   });
 
-  const pixHeaderY = pixCodeBottom + pixCodeHeight + 3;
-  const pixHeader = 'PIX COPIA E COLA';
-  page.drawText(pixHeader, {
+  const pixHeaderY = pixCodeBottom + pixBlockHeight + 2;
+  page.drawText('Pix copia e cola', {
     x: leftColX,
     y: pixHeaderY,
-    size: 6,
+    size: 6.5,
     font,
     color: hex(CARNE_PDF_COLORS.label),
     maxWidth: leftColWidth,
@@ -382,7 +355,7 @@ async function drawMainBody(
   const valorBoxY = pixHeaderY + pixHeaderHeight + 4;
   drawValorDocumentoBox(page, leftColX, valorBoxY, installment.amountCents, font, fontBold);
 
-  const fieldsBottomLimit = valorBoxY + valueBoxHeight + 4;
+  const fieldsBottomLimit = valorBoxY + valueBoxHeight + 6;
   let y = bodyTop;
   const fieldRowHeight = 22;
 
@@ -461,8 +434,13 @@ async function drawMainBody(
   const qrBase64 = qrDataUrl.split(',')[1] ?? '';
   const qrBytes = Uint8Array.from(atob(qrBase64), (char) => char.charCodeAt(0));
   const qrImage = await page.doc.embedPng(qrBytes);
-  const qrX = mainX + mainWidth - paddingX - qrSize;
-  const qrY = bodyBottom + (bodyTop - bodyBottom - qrSize) / 2;
+  const qrPad = 6;
+  const frameSize = qrSize + qrPad * 2;
+  const frameX = mainX + mainWidth - paddingX - frameSize;
+  const frameY = bodyBottom + (bodyTop - bodyBottom - frameSize - 10) / 2;
+  drawRoundedRect(page, frameX, frameY, frameSize, frameSize, 8, hex(CARNE_PDF_COLORS.primary50));
+  const qrX = frameX + qrPad;
+  const qrY = frameY + qrPad;
   page.drawImage(qrImage, {
     x: qrX,
     y: qrY,
@@ -470,12 +448,12 @@ async function drawMainBody(
     height: qrSize,
   });
 
-  const scanCaption = 'Escaneie com o app do seu banco';
-  const scanWidth = font.widthOfTextAtSize(scanCaption, 5.5);
+  const scanCaption = 'Escaneie no app do banco';
+  const scanWidth = font.widthOfTextAtSize(scanCaption, 6);
   page.drawText(scanCaption, {
-    x: qrX + (qrSize - scanWidth) / 2,
-    y: qrY - 8,
-    size: 5.5,
+    x: frameX + (frameSize - scanWidth) / 2,
+    y: frameY - 10,
+    size: 6,
     font,
     color: hex(CARNE_PDF_COLORS.label),
   });
@@ -489,38 +467,30 @@ function drawValorDocumentoBox(
   font: PDFFont,
   fontBold: PDFFont,
 ): void {
-  const label = 'Valor do documento';
+  const label = 'Valor';
   const amountText = `R$ ${formatCentsAsBrl(amountCents)}`;
-  const labelSize = 6;
-  const amountSize = 12;
-  const labelWidth = font.widthOfTextAtSize(label.toUpperCase(), labelSize);
+  const labelSize = 7;
+  const amountSize = 13;
+  const labelWidth = font.widthOfTextAtSize(label, labelSize);
   const amountWidth = fontBold.widthOfTextAtSize(amountText, amountSize);
   const boxWidth = labelWidth + amountWidth + 28;
-  const boxHeight = 20;
+  const boxHeight = 24;
 
-  page.drawRectangle({
-    x,
-    y,
-    width: boxWidth,
-    height: boxHeight,
-    color: hex(CARNE_PDF_COLORS.valueBoxBg),
-    borderColor: hex(CARNE_PDF_COLORS.border),
-    borderWidth: 0.4,
-  });
+  drawRoundedRect(page, x, y, boxWidth, boxHeight, 8, hex(CARNE_PDF_COLORS.valueBoxBg));
 
-  page.drawText(label.toUpperCase(), {
-    x: x + 8,
-    y: y + 7,
+  page.drawText(label, {
+    x: x + 10,
+    y: y + 8,
     size: labelSize,
     font,
-    color: hex(CARNE_PDF_COLORS.label),
+    color: hex(CARNE_PDF_COLORS.accent),
   });
   page.drawText(amountText, {
     x: x + labelWidth + 18,
-    y: y + 5,
+    y: y + 6,
     size: amountSize,
     font: fontBold,
-    color: hex(CARNE_PDF_COLORS.primary600),
+    color: hex(CARNE_PDF_COLORS.accent),
   });
 }
 
@@ -536,7 +506,7 @@ function drawLabelValue(
   labelSize: number,
   valueSize: number,
 ): void {
-  page.drawText(label.toUpperCase(), {
+  page.drawText(label, {
     x,
     y,
     size: labelSize,
@@ -588,4 +558,40 @@ function hex(value: string) {
   const normalized = value.replace('#', '');
   const numeric = Number.parseInt(normalized, 16);
   return rgb(((numeric >> 16) & 255) / 255, ((numeric >> 8) & 255) / 255, (numeric & 255) / 255);
+}
+
+function drawRoundedRect(
+  page: PDFPage,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+  color: ReturnType<typeof rgb>,
+): void {
+  const corner = Math.min(radius, width / 2, height / 2);
+  page.drawRectangle({ x: x + corner, y, width: width - corner * 2, height, color });
+  page.drawRectangle({ x, y: y + corner, width, height: height - corner * 2, color });
+  page.drawEllipse({ x: x + corner, y: y + corner, xScale: corner, yScale: corner, color });
+  page.drawEllipse({ x: x + width - corner, y: y + corner, xScale: corner, yScale: corner, color });
+  page.drawEllipse({ x: x + corner, y: y + height - corner, xScale: corner, yScale: corner, color });
+  page.drawEllipse({ x: x + width - corner, y: y + height - corner, xScale: corner, yScale: corner, color });
+}
+
+function wrapText(text: string, font: PDFFont, size: number, maxWidth: number): string[] {
+  const lines: string[] = [];
+  let current = '';
+  for (const char of text) {
+    const next = current + char;
+    if (current && font.widthOfTextAtSize(next, size) > maxWidth) {
+      lines.push(current);
+      current = char;
+    } else {
+      current = next;
+    }
+  }
+  if (current) {
+    lines.push(current);
+  }
+  return lines;
 }

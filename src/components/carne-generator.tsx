@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createId } from '../domain/ids/create-id';
 import { brlStringToCents } from '../domain/money/brl-input';
 import { todayCalendarDate } from '../domain/calendar/today-calendar-date';
@@ -13,11 +13,8 @@ import { simulateReturnAmounts } from '../domain/return-amount/simulate-return-a
 import { createEmptySettings } from '../domain/models/settings';
 import { buildCarnePdfFilename } from '../domain/pdf/build-carne-pdf-filename';
 import { formatCentsAsBrl } from '../domain/money/brl-input';
-import { validateBrazilianPhone } from '../domain/whatsapp/validate-brazilian-phone';
-import { maskBrazilianPhone } from '../domain/whatsapp/validate-brazilian-phone';
 import type { GeneratedInstallmentPlanBundle } from '../domain/quick-generator/create-installment-plan-from-generator';
 import { readGeneratorDraft, writeGeneratorDraft, writePendingBundle } from '../lib/guest-draft';
-import { downloadPdfBytes } from '../pdf/download-pdf-bytes';
 import { generateCarnePdf } from '../pdf/generate-carne-pdf';
 import { Button, Card, Field, money, SelectInput, TextInput } from './ui';
 
@@ -47,14 +44,24 @@ export function CarneGenerator() {
   const [beneficiary, setBeneficiary] = useState(stored?.beneficiary ?? '');
   const [institution, setInstitution] = useState(stored?.institution ?? '');
   const [city, setCity] = useState(stored?.city ?? '');
-  const [payerPhone, setPayerPhone] = useState(stored?.payerPhone ?? '');
   const [ratePercent, setRatePercent] = useState(stored?.ratePercent ?? '3');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [warning, setWarning] = useState<string | null>(null);
   const [bundle, setBundle] = useState<GeneratedInstallmentPlanBundle | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [pdfFile, setPdfFile] = useState<{ filename: string; url: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const pdfRequest = useRef(0);
+  const pdfUrl = useRef<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (pdfUrl.current) {
+        const current = pdfUrl.current;
+        window.setTimeout(() => URL.revokeObjectURL(current), 60_000);
+      }
+    };
+  }, []);
 
   const pixType = detectPixKeyType(pixKey);
   const principal = brlStringToCents(usedAmount) ?? 0;
@@ -66,6 +73,25 @@ export function CarneGenerator() {
     }
     return simulateReturnAmounts(principal, rate, count);
   }, [count, principal, rate]);
+
+  function rememberPdf(next: { filename: string; url: string } | null) {
+    const previous = pdfUrl.current;
+    pdfUrl.current = next?.url ?? null;
+    setPdfFile(next);
+    if (previous) {
+      window.setTimeout(() => URL.revokeObjectURL(previous), 60_000);
+    }
+  }
+
+  function edit(apply: () => void) {
+    pdfRequest.current += 1;
+    setBundle(null);
+    rememberPdf(null);
+    writePendingBundle(null);
+    setMessage(null);
+    setBusy(false);
+    apply();
+  }
 
   function persistDraft(nextReturn = returnAmount) {
     writeGeneratorDraft({
@@ -81,7 +107,6 @@ export function CarneGenerator() {
       beneficiary,
       institution,
       city,
-      payerPhone,
       ratePercent,
     });
   }
@@ -108,63 +133,57 @@ export function CarneGenerator() {
     if (!city.trim() || city.trim().length > 15) {
       fieldErrors.city = 'Informe a cidade do beneficiário com até 15 caracteres.';
     }
-    if (payerPhone.trim()) {
-      const phone = validateBrazilianPhone(payerPhone);
-      if (!phone.valid) {
-        fieldErrors.payerPhone = phone.error ?? 'WhatsApp inválido.';
-      }
-    }
     const validation = validateQuickGenerator(buildInput(nextReturn));
     setErrors({ ...validation.errors, ...fieldErrors });
     setWarning(validation.warnings.expectedProfit ?? null);
     if (!validation.valid || Object.keys(fieldErrors).length > 0) {
+      pdfRequest.current += 1;
       setBundle(null);
+      rememberPdf(null);
       writePendingBundle(null);
+      setBusy(false);
       return null;
     }
     const created = createInstallmentPlanBundle(buildInput(nextReturn), createId(), new Date().toISOString());
-    if (payerPhone.trim()) {
-      created.plan.payerPhone = validateBrazilianPhone(payerPhone).nationalDigits ?? undefined;
-    }
     setBundle(created);
     writePendingBundle(created);
     setMessage('Parcelas geradas. Nada foi salvo na nuvem.');
+    void preparePdf(created);
     return created;
   }
 
-  async function openPdf(download: boolean) {
-    const current = bundle ?? generate();
-    if (!current) {
-      return;
-    }
+  async function preparePdf(created: GeneratedInstallmentPlanBundle) {
+    const request = ++pdfRequest.current;
+    rememberPdf(null);
     setBusy(true);
     try {
       const settings = {
         ...createEmptySettings(),
-        businessName: current.plan.beneficiary,
+        businessName: created.plan.beneficiary,
         city: city.trim(),
-        defaultPixKey: current.plan.pixKey,
-        defaultInstitution: current.plan.institution,
+        defaultPixKey: created.plan.pixKey,
+        defaultInstitution: created.plan.institution,
       };
-      const bytes = await generateCarnePdf({ plan: current.plan, installments: current.installments, settings });
-      if (download) {
-        downloadPdfBytes(
-          buildCarnePdfFilename(current.plan.borrowerName, current.plan.reference, current.plan.issueDate),
-          bytes,
-        );
-      } else {
-        const url = URL.createObjectURL(new Blob([Uint8Array.from(bytes)], { type: 'application/pdf' }));
-        setPreviewUrl((previous) => {
-          if (previous) {
-            URL.revokeObjectURL(previous);
-          }
-          return url;
-        });
+      const bytes = await generateCarnePdf({
+        plan: created.plan,
+        installments: created.installments,
+        settings,
+      });
+      if (pdfRequest.current !== request) {
+        return;
       }
+      rememberPdf({
+        filename: buildCarnePdfFilename(created.plan.borrowerName, created.plan.reference, created.plan.issueDate),
+        url: URL.createObjectURL(new Blob([bytes.slice()], { type: 'application/pdf' })),
+      });
     } catch (cause) {
-      setMessage(cause instanceof Error ? cause.message : 'Não foi possível gerar o PDF.');
+      if (pdfRequest.current === request) {
+        setMessage(cause instanceof Error ? cause.message : 'Não foi possível gerar o PDF.');
+      }
     } finally {
-      setBusy(false);
+      if (pdfRequest.current === request) {
+        setBusy(false);
+      }
     }
   }
 
@@ -182,59 +201,51 @@ export function CarneGenerator() {
       </div>
       <div className="grid gap-3 md:grid-cols-2">
         <Field label="Valor utilizado" error={errors.usedAmountCents}>
-          <TextInput inputMode="decimal" value={usedAmount} onChange={(event) => setUsedAmount(event.target.value)} placeholder="540,00" />
+          <TextInput inputMode="decimal" value={usedAmount} onChange={(event) => edit(() => setUsedAmount(event.target.value))} placeholder="540,00" />
         </Field>
         <Field label="Retorno total" error={errors.returnAmountCents}>
-          <TextInput inputMode="decimal" value={returnAmount} onChange={(event) => setReturnAmount(event.target.value)} placeholder="604,80" />
+          <TextInput inputMode="decimal" value={returnAmount} onChange={(event) => edit(() => setReturnAmount(event.target.value))} placeholder="604,80" />
         </Field>
         <Field label="Tipo">
-          <SelectInput value={type} onChange={(event) => setType(event.target.value)}>
+          <SelectInput value={type} onChange={(event) => edit(() => setType(event.target.value))}>
             {Object.values(InstallmentPlanType).map((value) => (
               <option key={value} value={value}>{INSTALLMENT_PLAN_TYPE_LABELS[value]}</option>
             ))}
           </SelectInput>
         </Field>
         <Field label="Parcelas" error={errors.installmentsCount}>
-          <TextInput inputMode="numeric" value={installmentsCount} onChange={(event) => setInstallmentsCount(event.target.value)} />
+          <TextInput inputMode="numeric" value={installmentsCount} onChange={(event) => edit(() => setInstallmentsCount(event.target.value))} />
         </Field>
         <Field label="Pagador" error={errors.borrowerName}>
-          <TextInput value={borrowerName} onChange={(event) => setBorrowerName(event.target.value)} />
+          <TextInput value={borrowerName} onChange={(event) => edit(() => setBorrowerName(event.target.value))} />
         </Field>
         <Field label="Referência" error={errors.reference}>
-          <TextInput value={reference} onChange={(event) => setReference(event.target.value)} />
+          <TextInput value={reference} onChange={(event) => edit(() => setReference(event.target.value))} />
         </Field>
         <Field label="Beneficiário" error={errors.beneficiary}>
-          <TextInput value={beneficiary} onChange={(event) => setBeneficiary(event.target.value)} />
+          <TextInput value={beneficiary} onChange={(event) => edit(() => setBeneficiary(event.target.value))} />
         </Field>
         <Field label="Instituição" error={errors.institution}>
-          <TextInput value={institution} onChange={(event) => setInstitution(event.target.value)} />
+          <TextInput value={institution} onChange={(event) => edit(() => setInstitution(event.target.value))} />
         </Field>
         <Field label="Cidade do beneficiário" error={errors.city}>
-          <TextInput value={city} onChange={(event) => setCity(event.target.value)} maxLength={15} />
+          <TextInput value={city} onChange={(event) => edit(() => setCity(event.target.value))} maxLength={15} />
         </Field>
         <Field label="Chave Pix" error={errors.pixKey}>
-          <TextInput value={pixKey} onChange={(event) => setPixKey(event.target.value)} />
+          <TextInput value={pixKey} onChange={(event) => edit(() => setPixKey(event.target.value))} />
           <span className="text-sm font-normal text-muted-foreground">{pixType ? `Tipo: ${pixLabels[pixType]}` : 'Tipo ainda não reconhecido'}</span>
         </Field>
         <Field label="Data da operação" error={errors.issueDate}>
-          <TextInput type="date" value={issueDate} onChange={(event) => setIssueDate(event.target.value)} />
+          <TextInput type="date" value={issueDate} onChange={(event) => edit(() => setIssueDate(event.target.value))} />
         </Field>
         <Field label="Primeiro vencimento" error={errors.firstDueDate}>
-          <TextInput type="date" value={firstDueDate} onChange={(event) => setFirstDueDate(event.target.value)} />
-        </Field>
-        <Field label="WhatsApp do pagador" error={errors.payerPhone}>
-          <TextInput
-            inputMode="tel"
-            value={payerPhone}
-            placeholder="(11) 99999-9999"
-            onChange={(event) => setPayerPhone(maskBrazilianPhone(event.target.value))}
-          />
+          <TextInput type="date" value={firstDueDate} onChange={(event) => edit(() => setFirstDueDate(event.target.value))} />
         </Field>
       </div>
       {warning ? <p className="rounded-lg bg-warning-soft px-3 py-2 text-sm text-status-pending">{warning}</p> : null}
       <div className="grid gap-3 lg:grid-cols-[12rem_1fr_1fr]">
         <Field label="Taxa ao mês (%)">
-          <TextInput inputMode="decimal" value={ratePercent} onChange={(event) => setRatePercent(event.target.value)} />
+          <TextInput inputMode="decimal" value={ratePercent} onChange={(event) => edit(() => setRatePercent(event.target.value))} />
         </Field>
         <SimulatorColumn
           title="Juros simples"
@@ -249,9 +260,20 @@ export function CarneGenerator() {
         />
       </div>
       <div className="grid gap-2 sm:grid-cols-2">
-        <Button type="button" onClick={() => generate()} disabled={busy || !pixType}>Gerar parcelas</Button>
-        <Button type="button" variant="soft" onClick={() => void openPdf(false)} disabled={busy || !pixType}>Pré-visualizar PDF</Button>
-        <Button type="button" variant="soft" onClick={() => void openPdf(true)} disabled={busy || !pixType}>Baixar PDF</Button>
+        <Button type="button" onClick={() => generate()} disabled={!pixType}>Gerar parcelas</Button>
+        {pdfFile ? (
+          <a
+            href={pdfFile.url}
+            download={pdfFile.filename}
+            className="press inline-flex min-h-12 items-center justify-center rounded-lg bg-brand-soft px-4 text-base font-semibold text-secondary-foreground"
+          >
+            Baixar PDF
+          </a>
+        ) : (
+          <Button type="button" variant="soft" disabled>
+            {busy ? 'Preparando PDF…' : 'Baixar PDF'}
+          </Button>
+        )}
       </div>
       {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
       {bundle ? (
@@ -264,9 +286,6 @@ export function CarneGenerator() {
             </li>
           ))}
         </ul>
-      ) : null}
-      {previewUrl ? (
-        <iframe title="Pré-visualização do carnê" src={previewUrl} className="h-[32rem] w-full rounded-lg border border-border" />
       ) : null}
     </Card>
   );

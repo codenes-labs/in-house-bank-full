@@ -21,16 +21,17 @@ export function computeCarneInstallmentRowHeightPt(
 }
 
 export const CARNE_PDF_COLORS = {
-  primary700: '#1E40AF',
+  primary700: '#1E3A8A',
   primary600: '#1D4ED8',
-  primary50: '#EFF6FF',
-  valueBoxBg: '#E8EEF9',
-  text: '#111111',
+  primary50: '#DBEAFE',
+  accent: '#0F766E',
+  valueBoxBg: '#CCFBF1',
+  text: '#0F172A',
   muted: '#475569',
-  label: '#666666',
-  pixCode: '#444444',
-  border: '#CFCFD6',
-  stubDivider: '#888888',
+  label: '#64748B',
+  pixCode: '#334155',
+  border: '#E2E8F0',
+  stubDivider: '#93C5FD',
   white: '#FFFFFF',
 } as const;
 

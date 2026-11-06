@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { planWithInstallmentSum } from '../application/plan-with-installment-sum';
 import { useBank } from '../components/bank-context';
@@ -34,6 +34,57 @@ export function PlanDetailPage() {
     .sort((left, right) => left.number - right.number);
   const [notice, setNotice] = useState<string | null>(null);
   const [phonePrompt, setPhonePrompt] = useState('');
+  const [bookletUrl, setBookletUrl] = useState<string | null>(null);
+  const bookletFilename = plan
+    ? buildCarnePdfFilename(plan.borrowerName, plan.reference, plan.issueDate)
+    : 'carne.pdf';
+  const bookletKey = [
+    plan?.id ?? '',
+    plan?.beneficiary ?? '',
+    plan?.pixKey ?? '',
+    plan?.institution ?? '',
+    plan?.reference ?? '',
+    plan?.borrowerName ?? '',
+    plan?.issueDate ?? '',
+    plan?.returnAmountCents ?? '',
+    plan?.paymentInstructions ?? '',
+    plan?.responsibilityTerm ?? '',
+    bank.snapshot.settings.city ?? '',
+    bank.snapshot.settings.paymentInstructions ?? '',
+    bank.snapshot.settings.pdfFooterText ?? '',
+    bank.snapshot.settings.responsibilityTerm ?? '',
+    bank.snapshot.settings.logoDataUrl ?? '',
+    installments
+      .map((item) => `${item.id}:${item.amountCents}:${item.dueDate}:${item.txid}:${item.paidDate ?? ''}`)
+      .join('|'),
+  ].join('~');
+
+  useEffect(() => {
+    if (!plan || installments.length === 0) {
+      return;
+    }
+    let cancelled = false;
+    setBookletUrl((current) => {
+      if (current) {
+        window.setTimeout(() => URL.revokeObjectURL(current), 60_000);
+      }
+      return null;
+    });
+    void generateCarnePdf({
+      plan,
+      installments,
+      settings: { ...bank.snapshot.settings, city: bank.snapshot.settings.city || 'SAO PAULO' },
+    }).then((bytes) => {
+      if (cancelled) {
+        return;
+      }
+      const url = URL.createObjectURL(new Blob([bytes.slice()], { type: 'application/pdf' }));
+      setBookletUrl(url);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [bookletKey]);
 
   if (!bank.ready) {
     return <p>Carregando…</p>;
@@ -188,7 +239,17 @@ export function PlanDetailPage() {
       <p className="text-muted-foreground">{plan.reference} · retorno {money(plan.returnAmountCents)}</p>
       {notice ? <p className="text-sm text-accent">{notice}</p> : null}
       <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="soft" onClick={() => void print()}>Gerar PDF</Button>
+        {bookletUrl ? (
+          <a
+            href={bookletUrl}
+            download={bookletFilename}
+            className="press inline-flex min-h-12 items-center justify-center rounded-lg bg-brand-soft px-4 text-base font-semibold text-secondary-foreground"
+          >
+            Baixar PDF
+          </a>
+        ) : (
+          <Button type="button" variant="soft" disabled>Preparando PDF…</Button>
+        )}
         <Button type="button" variant="danger" onClick={() => void removePlan()}>Excluir</Button>
       </div>
       <div className="grid gap-3">

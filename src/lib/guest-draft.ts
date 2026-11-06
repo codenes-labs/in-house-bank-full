@@ -16,7 +16,6 @@ export interface GeneratorDraft {
   beneficiary: string;
   institution: string;
   city: string;
-  payerPhone: string;
   ratePercent: string;
 }
 
