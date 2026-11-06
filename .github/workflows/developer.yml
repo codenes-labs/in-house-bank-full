@@ -1,8 +1,11 @@
 name: Developer
 
+# Feature branches e PRs. Master usa só o workflow Deploy.
 on:
-  push:
   pull_request:
+  push:
+    branches-ignore:
+      - master
 
 concurrency:
   group: developer-${{ github.event.pull_request.number || github.ref }}
