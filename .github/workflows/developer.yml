@@ -1,10 +1,10 @@
 name: Developer
 
-# Push em qualquer branch (inclui master). Para só feature branches, descomente branches-ignore.
+# Feature branches: lint → testes. Master usa só deploy.yml (lint → testes → deploy).
 on:
   push:
-    # branches-ignore:
-    #   - master
+    branches-ignore:
+      - master
 
 concurrency:
   group: developer-${{ github.ref }}
