@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { Plus } from 'lucide-react';
 import { useBank } from '../components/bank-context';
 import { OverlayPanel } from '../components/overlay-panel';
 import { MaskedMoneyInput, MaskedRateInput } from '../components/masked-inputs';
@@ -17,6 +18,8 @@ export function FinancialPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [movementAmountFieldKeys, setMovementAmountFieldKeys] = useState<Record<string, number>>({});
   const [deleteConfirmCashBoxId, setDeleteConfirmCashBoxId] = useState<string | null>(null);
+  const [createCashBoxOpen, setCreateCashBoxOpen] = useState(false);
+  const [createCashBoxFormKey, setCreateCashBoxFormKey] = useState(0);
   const cashBoxPendingDelete = deleteConfirmCashBoxId
     ? bank.snapshot.cashBoxes.find((item) => item.id === deleteConfirmCashBoxId)
     : undefined;
@@ -55,7 +58,8 @@ export function FinancialPage() {
       limitCents: input.limitCents,
       balanceCents: input.balanceCents,
     });
-    event.currentTarget.reset();
+    setCreateCashBoxOpen(false);
+    setCreateCashBoxFormKey((previous) => previous + 1);
     setNotice('Caixinha criada.');
   }
 
@@ -93,7 +97,13 @@ export function FinancialPage() {
 
   return (
     <div className="grid gap-4">
-      <h1 className="text-3xl font-semibold">Financeiro</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-3xl font-semibold">Financeiro</h1>
+        <Button type="button" variant="soft" className="gap-2" onClick={() => setCreateCashBoxOpen(true)}>
+          <Plus className="size-5" aria-hidden />
+          Criar caixinha
+        </Button>
+      </div>
       {notice ? <p className="text-sm text-accent">{notice}</p> : null}
       <div className="grid gap-3 md:grid-cols-3">
         <Card><p className="text-sm text-muted-foreground">Saldo livre</p><p className="text-2xl font-semibold">{money(settings.freeBalanceCents)}</p></Card>
@@ -124,7 +134,12 @@ export function FinancialPage() {
         </Field>
         <Button type="submit" variant="soft">Atualizar saldo livre</Button>
       </form>
-      {bank.snapshot.cashBoxes.length === 0 ? <EmptyState title="Nenhuma caixinha" text="Crie a primeira para projetar o rendimento." /> : null}
+      {bank.snapshot.cashBoxes.length === 0 ? (
+        <div className="grid gap-3">
+          <EmptyState title="Nenhuma caixinha" text="Crie a primeira para projetar o rendimento." />
+          <Button type="button" onClick={() => setCreateCashBoxOpen(true)}>Criar caixinha</Button>
+        </div>
+      ) : null}
       {bank.snapshot.cashBoxes.map((cashBox) => {
         const estimate = overview.yieldByCashBox.find((item) => item.cashBoxId === cashBox.id);
         const movements = bank.snapshot.cashBoxMovements.filter((item) => item.cashBoxId === cashBox.id);
@@ -180,17 +195,25 @@ export function FinancialPage() {
           </Card>
         );
       })}
-      <Card>
-        <h2 className="mb-3 font-semibold">Nova caixinha</h2>
-        <form className="grid gap-3 md:grid-cols-2" onSubmit={(event) => void saveBox(event)}>
-          <Field label="Nome"><TextInput name="name" /></Field>
-          <Field label="Instituição"><TextInput name="institution" /></Field>
+      <OverlayPanel
+        open={createCashBoxOpen}
+        title="Criar caixinha"
+        onClose={() => setCreateCashBoxOpen(false)}
+      >
+        <form key={createCashBoxFormKey} className="grid gap-3" onSubmit={(event) => void saveBox(event)}>
+          <Field label="Nome"><TextInput name="name" required /></Field>
+          <Field label="Instituição"><TextInput name="institution" required /></Field>
           <Field label="% do CDI"><MaskedRateInput name="cdi" defaultValue="100" /></Field>
           <Field label="Saldo inicial"><MaskedMoneyInput name="balance" defaultValue="0,00" /></Field>
           <Field label="Limite opcional"><MaskedMoneyInput name="limit" placeholder="0,00" /></Field>
-          <Button type="submit">Criar caixinha</Button>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="ghost" onClick={() => setCreateCashBoxOpen(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit">Criar caixinha</Button>
+          </div>
         </form>
-      </Card>
+      </OverlayPanel>
       <OverlayPanel
         open={deleteConfirmCashBoxId !== null && cashBoxPendingDelete !== undefined}
         title="Excluir caixinha"

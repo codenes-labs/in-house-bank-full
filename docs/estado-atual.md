@@ -40,7 +40,7 @@ Rotas privadas principais: `/inicio`, `/parcelamentos`, `/parcelamentos/:planId`
 ## Outras telas (resumo)
 
 - **Início:** dashboard (SPEC-08 pendente em parte).
-- **Financeiro:** saldo livre, caixinhas com aporte/resgate, metas de patrimônio na mesma página.
+- **Financeiro:** saldo livre, caixinhas com aporte/resgate e metas de patrimônio; criação de caixinha em painel lateral (**Criar caixinha** no topo); exclusão com confirmação e transferência do saldo para saldo livre; histórico sem desfazer (SPEC-10: rota `/caixinhas` e menu **Mais** ainda pendentes).
 - **Relatórios:** gráficos Recharts (SPEC-10 prevê extrato em texto — não implementado).
 - **Configurações:** negócio, Pix padrão, CDI, metas, backup.
 
