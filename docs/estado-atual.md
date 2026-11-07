@@ -22,6 +22,8 @@ Barra inferior (3 itens): Início, Patrimônio (`/patrimonio` hub), Relatórios 
 
 Rotas privadas principais: `/inicio`, `/patrimonio`, `/financeiro`, `/financeiro/saldo-livre`, `/caixinhas`, `/parcelamentos`, `/relatorios/extrato`, `/relatorios/resumo`, `/configuracoes`.
 
+Rotas públicas extras: `/docs` (hub técnico: stack, arquitetura, Neon, CI/CD, deploy, apresentação/vídeo), `/docs/api` (Swagger), `/termos`, `/privacidade` com textos completos. Rodapé na landing. `GET /api/openapi.json` (SPEC-11). Não aparecem no menu logado.
+
 ## Parcelamentos — lista (`/parcelamentos`)
 
 - Lista: em mobile/tablet, um badge de status por parcelamento (à direita do nome); desktop mantém colunas Pagador, Referência, Status, Retorno, Pagas.
@@ -40,7 +42,7 @@ Rotas privadas principais: `/inicio`, `/patrimonio`, `/financeiro`, `/financeiro
 ## Outras telas (resumo)
 
 - **Início:** dashboard (SPEC-08 pendente em parte).
-- **Financeiro:** painel com KPIs clicáveis — **Saldo livre** abre `/financeiro/saldo-livre` (**Entrada** / **Saída**, últimas saídas); **Caixinhas** abre `/caixinhas`; patrimônio e meta no painel. Parcela marcada paga em **Parcelamentos** credita o valor no saldo livre; desfazer pagamento debita de volta.
+- **Financeiro:** KPIs clicáveis (saldo livre, caixinhas), patrimônio e rendimento estimado; cards **Contas a receber** e **Contas a pagar** só visuais (não clicáveis, SPEC-10). **Saldo livre** → `/financeiro/saldo-livre` (entrada/saída). Parcela paga credita o saldo livre.
 - **Relatórios / Extrato:** filtro **Saldo livre** e **Caixinha** listam linhas de `buildLedger`; demais tipos ainda em desenvolvimento. Resumo: gráficos Recharts (SPEC-10 prevê extrato em texto no resumo — não implementado).
 - **Configurações:** negócio, Pix padrão, CDI, metas, backup.
 

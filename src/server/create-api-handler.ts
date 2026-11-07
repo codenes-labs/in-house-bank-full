@@ -26,6 +26,7 @@ import {
   mapSettings,
   type Row,
 } from './rows';
+import { buildOpenApiDocument } from './openapi-document';
 import {
   deleteCashBox,
   removeRow,
@@ -56,6 +57,16 @@ export function createApiHandler(options: { databaseUrl?: string; jwtSecret?: st
     const databaseUrl = options.databaseUrl?.trim() || undefined;
     const jwtSecret = options.jwtSecret?.trim() || undefined;
     const url = new URL(request.url);
+
+    if (url.pathname === '/api/openapi.json' && request.method === 'GET') {
+      return new Response(JSON.stringify(buildOpenApiDocument(url.origin)), {
+        status: 200,
+        headers: {
+          'content-type': 'application/json',
+          'cache-control': 'public, max-age=300',
+        },
+      });
+    }
 
     if (url.pathname === '/api/health' && request.method === 'GET') {
       return json({

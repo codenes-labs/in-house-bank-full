@@ -1,23 +1,11 @@
 import { Link } from 'react-router-dom';
 import { CarneGenerator } from '../components/carne-generator';
-import { useTheme } from '../components/theme';
-import { Card, Logo } from '../components/ui';
+import { PublicSiteChrome } from '../components/public-site-chrome';
+import { Card } from '../components/ui';
 
 export function LandingPage() {
-  const { mode, toggle } = useTheme();
   return (
-    <div className="mx-auto min-h-dvh max-w-6xl px-4 py-5">
-      <header className="flex items-center justify-between gap-3">
-        <Logo />
-        <div className="flex items-center gap-2">
-          <button type="button" className="min-h-12 px-2 text-sm font-semibold text-primary" onClick={toggle}>
-            {mode === 'dark' ? 'Tema claro' : 'Tema escuro'}
-          </button>
-          <Link to="/entrar" className="inline-flex min-h-12 items-center rounded-lg bg-primary px-4 font-semibold text-primary-foreground">
-            Entrar
-          </Link>
-        </div>
-      </header>
+    <PublicSiteChrome>
       <section className="mt-8 grid gap-6 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
         <div>
           <p className="text-sm font-semibold uppercase tracking-wide text-accent">Controle financeiro pessoal</p>
@@ -53,7 +41,6 @@ export function LandingPage() {
           Entrar na conta
         </Link>
       </Card>
-      <footer className="py-8 text-sm text-muted-foreground">In House Bank. Só controle financeiro.</footer>
-    </div>
+    </PublicSiteChrome>
   );
 }
