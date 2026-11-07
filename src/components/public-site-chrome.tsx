@@ -8,13 +8,11 @@ import { useTheme } from './theme';
 import { cx, Logo } from './ui';
 
 function DocsHeaderActions({
-  inDocs,
   themeLabel,
   mode,
   toggle,
   className,
 }: {
-  inDocs: boolean;
   themeLabel: string;
   mode: ThemeMode;
   toggle: () => void;
@@ -84,34 +82,16 @@ function PublicSiteHeader({
           )}
         </div>
         {inDocs ? (
-          <DocsHeaderActions
-            inDocs={inDocs}
-            themeLabel={themeLabel}
-            mode={mode}
-            toggle={toggle}
-            className="sm:hidden"
-          />
+          <DocsHeaderActions themeLabel={themeLabel} mode={mode} toggle={toggle} className="sm:hidden" />
         ) : null}
       </div>
       {inDocs && docsSearch ? (
         <DocsHeaderSearchField className="w-full min-w-0 sm:max-w-xs sm:flex-1 md:max-w-sm lg:max-w-md" />
       ) : null}
       {inDocs ? (
-        <DocsHeaderActions
-          inDocs={inDocs}
-          themeLabel={themeLabel}
-          mode={mode}
-          toggle={toggle}
-          className="ml-auto hidden sm:flex"
-        />
+        <DocsHeaderActions themeLabel={themeLabel} mode={mode} toggle={toggle} className="ml-auto hidden sm:flex" />
       ) : (
-        <DocsHeaderActions
-          inDocs={inDocs}
-          themeLabel={themeLabel}
-          mode={mode}
-          toggle={toggle}
-          className="ml-auto"
-        />
+        <DocsHeaderActions themeLabel={themeLabel} mode={mode} toggle={toggle} className="ml-auto" />
       )}
     </header>
   );
