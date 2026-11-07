@@ -47,6 +47,18 @@ export function FinancialPage() {
           <p className="text-2xl font-semibold tabular-nums">{money(overview.patrimonyCents)}</p>
         </Card>
       </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Card aria-disabled="true">
+          <p className="text-sm text-muted-foreground">Contas a receber</p>
+          <p className="text-2xl font-semibold tabular-nums">{money(0)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Em breve</p>
+        </Card>
+        <Card aria-disabled="true">
+          <p className="text-sm text-muted-foreground">Contas a pagar</p>
+          <p className="text-2xl font-semibold tabular-nums">{money(0)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Em breve</p>
+        </Card>
+      </div>
       <Card>
         <p>Rendimento mensal estimado: {money(overview.estimatedMonthlyYieldTotalCents)}</p>
         <p className="text-sm text-muted-foreground">
