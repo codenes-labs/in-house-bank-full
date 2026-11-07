@@ -1,10 +1,10 @@
 import { useState, type FormEvent } from 'react';
 import { useBank } from '../components/bank-context';
+import { OverlayPanel } from '../components/overlay-panel';
 import { MaskedMoneyInput, MaskedRateInput } from '../components/masked-inputs';
 import { Button, Card, EmptyState, Field, money, TextInput } from '../components/ui';
 import { createId } from '../domain/ids/create-id';
 import { applyCashBoxMovement } from '../domain/cash-boxes/apply-cash-box-movement';
-import { computeBalanceAfterRemovingCashBoxMovement } from '../domain/cash-boxes/compute-balance-after-removing-cash-box-movement';
 import { validateCashBoxInput } from '../domain/cash-boxes/validate-cash-box';
 import { CashBoxMovementType } from '../domain/enums/cash-box-movement-type';
 import { computeFinancialOverview } from '../domain/finance/compute-financial-overview';
@@ -15,6 +15,11 @@ import { brlStringToCents } from '../domain/money/brl-input';
 export function FinancialPage() {
   const bank = useBank();
   const [notice, setNotice] = useState<string | null>(null);
+  const [movementAmountFieldKeys, setMovementAmountFieldKeys] = useState<Record<string, number>>({});
+  const [deleteConfirmCashBoxId, setDeleteConfirmCashBoxId] = useState<string | null>(null);
+  const cashBoxPendingDelete = deleteConfirmCashBoxId
+    ? bank.snapshot.cashBoxes.find((item) => item.id === deleteConfirmCashBoxId)
+    : undefined;
   const settings = {
     ...bank.snapshot.settings,
     milestonesCents: milestonesOrDefault(bank.snapshot.settings.milestonesCents),
@@ -54,16 +59,16 @@ export function FinancialPage() {
     setNotice('Caixinha criada.');
   }
 
-  async function move(cashBoxId: string, type: CashBoxMovementType, amountRaw: string) {
+  async function move(cashBoxId: string, type: CashBoxMovementType, amountRaw: string): Promise<boolean> {
     const cashBox = bank.snapshot.cashBoxes.find((item) => item.id === cashBoxId);
     const amountCents = brlStringToCents(amountRaw) ?? 0;
     if (!cashBox) {
-      return;
+      return false;
     }
     const result = applyCashBoxMovement(cashBox, { type, amountCents });
     if (!result.ok) {
       setNotice(result.error === 'INSUFFICIENT_BALANCE' ? 'Saldo insuficiente.' : result.error === 'LIMIT_EXCEEDED' ? 'Limite da caixinha excedido.' : 'Informe um valor maior que zero.');
-      return;
+      return false;
     }
     await bank.saveCashBox({ ...cashBox, balanceCents: result.balanceCents });
     await bank.saveMovement({
@@ -74,21 +79,16 @@ export function FinancialPage() {
       date: todayCalendarDate(),
     });
     setNotice(type === CashBoxMovementType.Deposit ? 'Aporte registrado.' : 'Resgate registrado.');
+    return true;
   }
 
-  async function removeMovement(movementId: string) {
-    const movement = bank.snapshot.cashBoxMovements.find((item) => item.id === movementId);
-    const cashBox = bank.snapshot.cashBoxes.find((item) => item.id === movement?.cashBoxId);
-    if (!movement || !cashBox) {
+  async function confirmDeleteCashBox() {
+    if (!deleteConfirmCashBoxId) {
       return;
     }
-    const result = computeBalanceAfterRemovingCashBoxMovement(cashBox, movement);
-    if (!result.ok) {
-      setNotice('Não foi possível desfazer este lançamento.');
-      return;
-    }
-    await bank.saveCashBox({ ...cashBox, balanceCents: result.balanceCents });
-    await bank.deleteMovement(movementId);
+    await bank.deleteCashBox(deleteConfirmCashBoxId);
+    setDeleteConfirmCashBoxId(null);
+    setNotice('Caixinha excluída.');
   }
 
   return (
@@ -138,12 +138,33 @@ export function FinancialPage() {
               <strong>{money(cashBox.balanceCents)}</strong>
             </div>
             <form className="grid gap-2 sm:grid-cols-[1fr_auto_auto]" onSubmit={(event) => {
-              event.preventDefault();
-              const data = new FormData(event.currentTarget);
-              void move(cashBox.id, String(data.get('type')) as CashBoxMovementType, String(data.get('amount') ?? ''));
-              event.currentTarget.reset();
+              void (async () => {
+                event.preventDefault();
+                const submitter = event.nativeEvent.submitter;
+                const data = new FormData(
+                  event.currentTarget,
+                  submitter instanceof HTMLElement ? submitter : undefined,
+                );
+                const type = data.get('type');
+                if (type !== CashBoxMovementType.Deposit && type !== CashBoxMovementType.Withdrawal) {
+                  setNotice('Escolha aportar ou resgatar.');
+                  return;
+                }
+                const ok = await move(cashBox.id, type, String(data.get('amount') ?? ''));
+                if (ok) {
+                  setMovementAmountFieldKeys((previous) => ({
+                    ...previous,
+                    [cashBox.id]: (previous[cashBox.id] ?? 0) + 1,
+                  }));
+                }
+              })();
             }}>
-              <MaskedMoneyInput name="amount" placeholder="0,00" aria-label="Valor do lançamento" />
+              <MaskedMoneyInput
+                key={movementAmountFieldKeys[cashBox.id] ?? 0}
+                name="amount"
+                placeholder="0,00"
+                aria-label="Valor do lançamento"
+              />
               <Button type="submit" name="type" value={CashBoxMovementType.Deposit}>Aportar</Button>
               <Button type="submit" name="type" value={CashBoxMovementType.Withdrawal} variant="soft">Resgatar</Button>
             </form>
@@ -152,11 +173,10 @@ export function FinancialPage() {
                 <li key={movement.id} className="flex items-center justify-between gap-2">
                   <span>{movement.type === CashBoxMovementType.Deposit ? 'Aporte' : 'Resgate'} · {movement.date.split('-').reverse().join('/')}</span>
                   <span>{money(movement.amountCents)}</span>
-                  <button type="button" className="font-semibold text-primary" onClick={() => void removeMovement(movement.id)}>Desfazer</button>
                 </li>
               ))}
             </ul>
-            <Button type="button" variant="ghost" onClick={() => void bank.deleteCashBox(cashBox.id)}>Excluir caixinha</Button>
+            <Button type="button" variant="ghost" onClick={() => setDeleteConfirmCashBoxId(cashBox.id)}>Excluir caixinha</Button>
           </Card>
         );
       })}
@@ -171,6 +191,30 @@ export function FinancialPage() {
           <Button type="submit">Criar caixinha</Button>
         </form>
       </Card>
+      <OverlayPanel
+        open={deleteConfirmCashBoxId !== null && cashBoxPendingDelete !== undefined}
+        title="Excluir caixinha"
+        onClose={() => setDeleteConfirmCashBoxId(null)}
+      >
+        {cashBoxPendingDelete ? (
+          <div className="grid gap-4">
+            <p>
+              Excluir <strong>{cashBoxPendingDelete.name}</strong>? Esta ação não pode ser desfeita.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              O saldo de {money(cashBoxPendingDelete.balanceCents)} será transferido automaticamente para o saldo livre.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="ghost" onClick={() => setDeleteConfirmCashBoxId(null)}>
+                Cancelar
+              </Button>
+              <Button type="button" onClick={() => void confirmDeleteCashBox()}>
+                Confirmar exclusão
+              </Button>
+            </div>
+          </div>
+        ) : null}
+      </OverlayPanel>
     </div>
   );
 }

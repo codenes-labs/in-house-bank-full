@@ -157,6 +157,23 @@ export async function saveMovement(sql: Sql, userId: string, movement: CashBoxMo
   ]);
 }
 
+export async function deleteCashBox(sql: Sql, userId: string, cashBoxId: string): Promise<void> {
+  await sql.transaction([
+    sql`select set_config('app.user_id', ${userId}, true)`,
+    sql`
+      update settings
+      set
+        free_balance_cents = free_balance_cents + coalesce(
+          (select balance_cents from cash_boxes where id = ${cashBoxId}::uuid and user_id = ${userId}::uuid),
+          0
+        ),
+        updated_at = now()
+      where user_id = ${userId}::uuid
+    `,
+    sql`delete from cash_boxes where id = ${cashBoxId}::uuid and user_id = ${userId}::uuid`,
+  ]);
+}
+
 export async function removeRow(
   sql: Sql,
   userId: string,

@@ -1,3 +1,4 @@
+import { settingsAfterDeletingCashBox } from '../domain/cash-boxes/settings-after-deleting-cash-box';
 import type { AppDataBackup } from '../domain/models/app-data-backup';
 import type { CashBox } from '../domain/models/cash-box';
 import type { CashBoxMovement } from '../domain/models/cash-box-movement';
@@ -47,8 +48,10 @@ export function createMemoryBankRepository(initial?: BankSnapshot): BankReposito
       snapshot = { ...snapshot, cashBoxes: upsert(snapshot.cashBoxes, cashBox) };
     },
     async deleteCashBox(cashBoxId: string) {
+      const deletedCashBox = snapshot.cashBoxes.find((cashBox) => cashBox.id === cashBoxId);
       snapshot = {
         ...snapshot,
+        settings: settingsAfterDeletingCashBox(snapshot.settings, deletedCashBox),
         cashBoxes: snapshot.cashBoxes.filter((cashBox) => cashBox.id !== cashBoxId),
         cashBoxMovements: snapshot.cashBoxMovements.filter((movement) => movement.cashBoxId !== cashBoxId),
       };

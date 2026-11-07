@@ -35,4 +35,22 @@ describe('createMemoryBankRepository', () => {
     expect(snapshot.installmentPlans).toEqual([]);
     expect(snapshot.settings.businessName).toBe('Nova');
   });
+
+  it('transfers cash box balance to free balance when deleting the box', async () => {
+    const repository = createMemoryBankRepository();
+    await repository.saveSettings({ ...createEmptySettings(), freeBalanceCents: 1_000_00 });
+    await repository.saveCashBox({
+      id: 'box-1',
+      name: 'Reserva',
+      institution: 'Banco',
+      cdiPercent: 100,
+      balanceCents: 500_00,
+    });
+
+    await repository.deleteCashBox('box-1');
+
+    const snapshot = await repository.load();
+    expect(snapshot.cashBoxes).toEqual([]);
+    expect(snapshot.settings.freeBalanceCents).toBe(1_500_00);
+  });
 });

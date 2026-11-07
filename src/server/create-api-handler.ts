@@ -18,6 +18,7 @@ import { hashPassword, verifyPassword } from './password';
 import { schemaStatements } from './schema';
 import { mapCashBox, mapInstallment, mapMovement, mapPlan, mapSettings, type Row } from './rows';
 import {
+  deleteCashBox,
   removeRow,
   replaceUserBackup,
   saveCashBox,
@@ -140,7 +141,7 @@ async function route(sql: Sql, request: Request, jwtSecret: string): Promise<Res
   }
   const cashBoxId = pathname.match(/^\/api\/bank\/cash-boxes\/([^/]+)$/);
   if (cashBoxId && request.method === 'DELETE') {
-    await removeRow(sql, account.id, 'cash_boxes', cashBoxId[1] ?? '');
+    await deleteCashBox(sql, account.id, cashBoxId[1] ?? '');
     return json({ ok: true });
   }
   const movementId = pathname.match(/^\/api\/bank\/movements\/([^/]+)$/);
