@@ -36,7 +36,7 @@ export function OverlayPanel({
             <X className="size-5" aria-hidden />
           </Button>
         </header>
-        <div className="app-scroll min-h-0 flex-1 overflow-y-auto p-4">{children}</div>
+        <div className="app-scroll scrollbar-hide min-h-0 flex-1 overflow-y-auto p-4">{children}</div>
       </div>
     </div>
   );

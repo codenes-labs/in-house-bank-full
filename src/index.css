@@ -85,6 +85,38 @@ body {
   transform: scale(0.98);
 }
 
+.scroll-x-soft {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+}
+
+.scroll-x-soft::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+@media (max-width: 1023px) {
+  html.docs-public-scroll {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  html.docs-public-scroll::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 /* Scroll só na coluna central; barra fina e colada à direita da área útil */
 .app-scroll {
   scrollbar-gutter: stable;

@@ -59,7 +59,7 @@ const NAV_LABEL_BY_TO = new Map<string, string>(DOCS_NAV.map((item) => [item.to,
 export function filterDocsSearch(query: string): DocsSearchEntry[] {
   const normalized = query.trim().toLowerCase();
   if (!normalized) {
-    return [...DOCS_SEARCH_INDEX];
+    return [];
   }
   return DOCS_SEARCH_INDEX.filter((entry) => {
     const label = NAV_LABEL_BY_TO.get(entry.to) ?? entry.label;
@@ -68,4 +68,16 @@ export function filterDocsSearch(query: string): DocsSearchEntry[] {
     }
     return entry.keywords.some((keyword) => keyword.includes(normalized));
   });
+}
+
+export function docsSearchMatchHint(entry: DocsSearchEntry, query: string): string | null {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) {
+    return null;
+  }
+  const label = (NAV_LABEL_BY_TO.get(entry.to) ?? entry.label).toLowerCase();
+  if (label.includes(normalized)) {
+    return null;
+  }
+  return entry.keywords.find((keyword) => keyword.includes(normalized)) ?? null;
 }

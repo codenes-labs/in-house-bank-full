@@ -1,64 +1,23 @@
-import { useMemo } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Outlet } from 'react-router-dom';
 import { PublicSiteChrome } from '../../components/public-site-chrome';
-import { DOCS_NAV } from './docs-nav';
-import { DocsSearchProvider, useDocsSearch } from './docs-search-context';
-import { filterDocsSearch } from './docs-search-index';
-
-function DocsSideNav({
-  className = '',
-  visibleTo,
-}: {
-  className?: string;
-  visibleTo: ReadonlySet<string>;
-}) {
-  const items = DOCS_NAV.filter((item) => visibleTo.has(item.to));
-  return (
-    <nav className={className} aria-label="Seções da documentação">
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Sumário</p>
-      {items.length === 0 ? (
-        <p className="px-3 py-2 text-sm text-muted-foreground">Nenhuma seção encontrada.</p>
-      ) : (
-        <ul className="grid gap-0.5">
-          {items.map((item) => (
-            <li key={item.to}>
-              <NavLink
-                to={item.to}
-                end={item.to === '/docs'}
-                className={({ isActive }) =>
-                  [
-                    'block rounded-lg border-l-2 py-2 pl-3.5 pr-2 text-sm font-semibold',
-                    isActive
-                      ? 'border-primary bg-brand-soft text-primary'
-                      : 'border-transparent text-muted-foreground hover:border-border hover:bg-muted',
-                  ].join(' ')
-                }
-              >
-                {item.label}
-              </NavLink>
-            </li>
-          ))}
-        </ul>
-      )}
-    </nav>
-  );
-}
+import { DocsSearchProvider } from './docs-search-context';
+import { DocsSidebarNav } from './docs-side-nav';
 
 function DocsLayoutBody() {
-  const { query } = useDocsSearch();
-  const visibleTo = useMemo(
-    () => new Set(filterDocsSearch(query).map((entry) => entry.to)),
-    [query],
-  );
+  useEffect(() => {
+    document.documentElement.classList.add('docs-public-scroll');
+    return () => document.documentElement.classList.remove('docs-public-scroll');
+  }, []);
 
   return (
     <PublicSiteChrome section="docs">
-      <section className="mt-8">
-        <div className="mb-6 lg:grid lg:grid-cols-[minmax(13.5rem,17rem)_minmax(0,1fr)] lg:items-start lg:gap-10 xl:gap-14">
-          <aside className="mb-6 min-w-0 lg:sticky lg:top-[5.25rem] lg:mb-0 lg:self-start lg:pr-2">
-            <DocsSideNav visibleTo={visibleTo} />
+      <section className="mt-6 lg:mt-8">
+        <div className="mb-6">
+          <aside className="mb-6 hidden min-w-0 bg-background pt-1 lg:fixed lg:top-[4.75rem] lg:left-[max(1rem,calc((100vw-72rem)/2+1rem))] lg:z-20 lg:block lg:mb-0 lg:w-[17rem] lg:max-h-[calc(100dvh-4.75rem)] lg:overflow-y-auto lg:overscroll-y-contain lg:pt-4 lg:pr-2">
+            <DocsSidebarNav />
           </aside>
-          <div className="min-w-0">
+          <div className="min-w-0 lg:ml-[calc(17rem+2.5rem)] xl:ml-[calc(17rem+3.5rem)]">
             <div className="grid gap-6">
               <header>
                 <p className="text-sm font-semibold uppercase tracking-wide text-accent">Documentação técnica</p>

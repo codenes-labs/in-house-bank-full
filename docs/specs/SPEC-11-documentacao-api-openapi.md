@@ -11,12 +11,12 @@ Operadores, desenvolvedores e apresentadores do projeto acessam `/docs` pela URL
 ## Regras
 
 1. `GET /api/openapi.json` — OpenAPI 3.0 (`src/server/openapi-document.ts`), público.
-2. `/docs` — layout com **menu lateral** (desktop) e lista vertical (mobile): Visão geral, Stack, Arquitetura, Banco, CI/CD, Deploy, API, Apresentação.
+2. `/docs` — **sidebar fixo** no desktop; em tablet/celular, **menu sanduíche** (sumário em painel lateral), cabeçalho em duas linhas no mobile; marca leva a `/docs`.
 3. `/docs/api` — Swagger UI (CDN) embutido na mesma chrome pública.
 4. `/docs/apresentacao` — área reservada para vídeo + roteiro sugerido.
 5. `/termos` e `/privacidade` — textos completos em português, chrome público compartilhada (`PublicSiteChrome`).
-6. Rodapé com links institucionais (início, Termos, Privacidade, Documentação) na landing e páginas legais; em `/docs` só o aviso legal, sem barra de links.
-7. Em `/docs`: marca leva à landing; sufixo `/ Docs` (mesma cor, sem link); campo **Localizar** no cabeçalho fixo (antes do tema); tema só ícone; ações Página inicial + Entrar; sumário `sticky` abaixo do cabeçalho no desktop; uma única barra de rolagem (página).
+6. Rodapé na landing e páginas legais: **Termos**, **Privacidade**, **Documentação** (sem “Página inicial”; ver SPEC-12). **Sem rodapé** em `/docs`.
+7. Em `/docs`: cabeçalho fixo; marca → `/docs`; sem botão “Página inicial” (SPEC-12); **Localizar** com sugestões; scroll sem barra visível em viewports &lt; `lg`.
 8. Atualizar `openapi-document.ts` ao mudar rotas `/api`.
 9. **Changelog:** `/docs/changelog` lê `src/domain/docs/product-changelog.ts`; manter `docs/CHANGELOG.md` com o mesmo conteúdo ao publicar marcos (versão `MAJOR.MINOR.PATCH` + data).
 
