@@ -8,4 +8,6 @@ Skills em `.cursor/skills`: escrever spec, revisar spec, implementar spec (teste
 
 Não inventar regra. Não alterar o design sem pedido. Não commit nem push sem pedido. Dúvida: perguntar.
 
+Cada mudança de comportamento, UI ou fluxo atualiza a spec correspondente em `docs/specs` no mesmo trabalho. Estado geral do produto: `docs/estado-atual.md`.
+
 O app não movimenta dinheiro e não é meio de pagamento.
