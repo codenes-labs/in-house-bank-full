@@ -98,11 +98,19 @@ export function CashBoxDetailPage() {
 
   return (
     <div className="grid gap-4">
-      <p className="text-sm">
-        <Link to="/caixinhas" className="font-semibold text-primary">
-          Caixinhas
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Link to="/caixinhas" className="text-sm font-semibold text-primary">
+          Voltar para todas as caixinhas
         </Link>
-      </p>
+        <Button
+          type="button"
+          variant="ghost"
+          className="min-h-0 px-0 py-0 text-sm font-semibold"
+          onClick={() => setDeleteOpen(true)}
+        >
+          Excluir caixinha
+        </Button>
+      </div>
       {notice ? <p className="text-sm text-accent">{notice}</p> : null}
       <Card className="grid gap-2">
         <h1 className="text-2xl font-semibold">{cashBox.name}</h1>
@@ -163,9 +171,6 @@ export function CashBoxDetailPage() {
         <h2 className="font-semibold">Histórico</h2>
         <CashBoxHistoryByMonth groups={movementGroups} />
       </Card>
-      <Button type="button" variant="ghost" onClick={() => setDeleteOpen(true)}>
-        Excluir caixinha
-      </Button>
       <DeleteCashBoxPanel
         cashBox={cashBox}
         open={deleteOpen}

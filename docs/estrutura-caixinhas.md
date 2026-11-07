@@ -67,7 +67,7 @@ Deep link: toque no card em `/caixinhas` → `/caixinhas/:id`. Voltar: navegaç�
 
 ### D. Excluir
 
-1. No detalhe, **Excluir caixinha** → painel lateral já usado hoje: confirma transferência do saldo para saldo livre → confirma → volta para `/caixinhas` (ou permanece em financeiro se veio de lá; **preferência:** redirecionar para `/caixinhas`).
+1. No detalhe, **Voltar para todas as caixinhas** e **Excluir caixinha** no topo (mesmo tamanho de fonte) → painel lateral já usado hoje: confirma transferência do saldo para saldo livre → confirma → volta para `/caixinhas` (ou permanece em financeiro se veio de lá; **preferência:** redirecionar para `/caixinhas`).
 
 ---
 
