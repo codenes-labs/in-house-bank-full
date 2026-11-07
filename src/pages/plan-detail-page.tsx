@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Pencil } from 'lucide-react';
 import { planWithInstallmentSum } from '../application/plan-with-installment-sum';
@@ -28,6 +28,12 @@ import { maskBrazilianPhone, validateBrazilianPhone } from '../domain/whatsapp/v
 import { createEmptySettings } from '../domain/models/settings';
 import { downloadPdfBytes } from '../pdf/download-pdf-bytes';
 import { generateCarnePdf } from '../pdf/generate-carne-pdf';
+import {
+  ReprintSelectionMode,
+  selectInstallmentsForReprint,
+} from '../domain/installments/select-installments-for-reprint';
+
+type InstallmentSelectionPurpose = 'delete' | 'download';
 
 export function PlanDetailPage() {
   const { planId = '' } = useParams();
@@ -39,59 +45,20 @@ export function PlanDetailPage() {
     .filter((item) => item.planId === planId)
     .sort((left, right) => left.number - right.number);
   const [notice, setNotice] = useState<string | null>(null);
-  const [bookletUrl, setBookletUrl] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(() => new Set());
+  const [selectionPurpose, setSelectionPurpose] = useState<InstallmentSelectionPurpose | null>(null);
+  const [carneBusy, setCarneBusy] = useState(false);
   const merchantCity = bank.snapshot.settings.city || 'SAO PAULO';
-  const bookletFilename = planFromStore
-    ? buildCarnePdfFilename(planFromStore.borrowerName, planFromStore.reference, planFromStore.issueDate)
-    : 'carne.pdf';
-  const bookletKey = [
-    planFromStore?.id ?? '',
-    planFromStore?.beneficiary ?? '',
-    planFromStore?.pixKey ?? '',
-    planFromStore?.institution ?? '',
-    planFromStore?.reference ?? '',
-    planFromStore?.borrowerName ?? '',
-    planFromStore?.issueDate ?? '',
-    planFromStore?.returnAmountCents ?? '',
-    planFromStore?.paymentInstructions ?? '',
-    planFromStore?.responsibilityTerm ?? '',
-    bank.snapshot.settings.city ?? '',
-    bank.snapshot.settings.paymentInstructions ?? '',
-    bank.snapshot.settings.pdfFooterText ?? '',
-    bank.snapshot.settings.responsibilityTerm ?? '',
-    bank.snapshot.settings.logoDataUrl ?? '',
-    installments
-      .map((item) => `${item.id}:${item.amountCents}:${item.dueDate}:${item.txid}:${item.paidDate ?? ''}`)
-      .join('|'),
-  ].join('~');
+  const installmentIds = useMemo(() => installments.map((item) => item.id), [installments]);
+  const allSelected = installmentIds.length > 0 && installmentIds.every((id) => selectedIds.has(id));
 
   useEffect(() => {
-    if (!planFromStore || installments.length === 0) {
-      return;
-    }
-    let cancelled = false;
-    setBookletUrl((current) => {
-      if (current) {
-        window.setTimeout(() => URL.revokeObjectURL(current), 60_000);
-      }
-      return null;
+    setSelectedIds((current) => {
+      const next = new Set([...current].filter((id) => installmentIds.includes(id)));
+      return next.size === current.size ? current : next;
     });
-    void generateCarnePdf({
-      plan: planFromStore,
-      installments,
-      settings: { ...bank.snapshot.settings, city: merchantCity },
-    }).then((bytes) => {
-      if (cancelled) {
-        return;
-      }
-      const url = URL.createObjectURL(new Blob([bytes.slice()], { type: 'application/pdf' }));
-      setBookletUrl(url);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [bookletKey]);
+  }, [installmentIds]);
 
   if (!bank.ready) {
     return <p>Carregando…</p>;
@@ -105,13 +72,76 @@ export function PlanDetailPage() {
   const planTone =
     planStatus === PlanStatus.Settled ? 'paid' : planStatus === PlanStatus.Overdue ? 'overdue' : 'pending';
 
-  async function print(selected = installments) {
-    const bytes = await generateCarnePdf({
-      plan,
-      installments: selected,
-      settings: { ...bank.snapshot.settings, city: merchantCity },
+  function toggleInstallment(installmentId: string, checked: boolean) {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (checked) {
+        next.add(installmentId);
+      } else {
+        next.delete(installmentId);
+      }
+      return next;
     });
-    downloadPdfBytes(buildCarnePdfFilename(plan.borrowerName, plan.reference, plan.issueDate), bytes);
+  }
+
+  function toggleAll(checked: boolean) {
+    setSelectedIds(checked ? new Set(installmentIds) : new Set());
+  }
+
+  function beginSelection(purpose: InstallmentSelectionPurpose) {
+    setSelectionPurpose(purpose);
+    setSelectedIds(new Set());
+    setNotice(
+      purpose === 'delete' ? 'Marque as parcelas para excluir e toque em Excluir de novo.' : 'Marque as parcelas e toque em Reimprimir de novo.',
+    );
+  }
+
+  function cancelSelection() {
+    setSelectionPurpose(null);
+    setSelectedIds(new Set());
+    setNotice(null);
+  }
+
+  const showSelectionCheckboxes = selectionPurpose !== null;
+
+  async function downloadCarne(): Promise<boolean> {
+    const result = selectInstallmentsForReprint(installments, selectedIds, ReprintSelectionMode.Selected);
+    if (!result.ok) {
+      setNotice('Selecione ao menos uma parcela.');
+      return false;
+    }
+    setCarneBusy(true);
+    try {
+      const bytes = await generateCarnePdf({
+        plan,
+        installments: result.installments,
+        settings: { ...bank.snapshot.settings, city: merchantCity },
+      });
+      downloadPdfBytes(buildCarnePdfFilename(plan.borrowerName, plan.reference, plan.issueDate), bytes);
+      return true;
+    } finally {
+      setCarneBusy(false);
+    }
+  }
+
+  function onBaixarCarneClick() {
+    if (selectionPurpose !== 'download') {
+      beginSelection('download');
+      return;
+    }
+    void downloadCarne().then((ok) => {
+      if (ok) {
+        cancelSelection();
+      }
+    });
+  }
+
+  function onExcluirClick() {
+    if (selectionPurpose !== 'delete') {
+      beginSelection('delete');
+      return;
+    }
+    void removeSelected();
   }
 
   async function charge(installmentId: string) {
@@ -174,18 +204,31 @@ export function PlanDetailPage() {
     setNotice('Parcela atualizada.');
   }
 
-  async function removeInstallment(installmentId: string) {
-    const installment = installments.find((item) => item.id === installmentId);
-    if (!installment || !canDeleteInstallment(installment)) {
-      setNotice('Desfaça o pagamento antes de excluir a parcela.');
+  async function removeSelected() {
+    if (selectedIds.size === 0) {
+      setNotice('Selecione ao menos uma parcela.');
       return;
     }
-    if (!window.confirm('Excluir esta parcela?')) {
+    if (selectedIds.size === installments.length) {
+      await removePlan();
       return;
     }
-    const remaining = installments.filter((item) => item.id !== installmentId);
-    await bank.deleteInstallment(installmentId);
+    const selected = installments.filter((item) => selectedIds.has(item.id));
+    if (selected.some((item) => !canDeleteInstallment(item))) {
+      setNotice('Desfaça o pagamento das parcelas selecionadas antes de excluir.');
+      return;
+    }
+    const label = selected.length === 1 ? 'Excluir esta parcela?' : `Excluir ${selected.length} parcelas?`;
+    if (!window.confirm(label)) {
+      return;
+    }
+    for (const installment of selected) {
+      await bank.deleteInstallment(installment.id);
+    }
+    const remaining = installments.filter((item) => !selectedIds.has(item.id));
     await bank.savePlan(planWithInstallmentSum(plan, remaining));
+    cancelSelection();
+    setNotice(selected.length === 1 ? 'Parcela excluída.' : 'Parcelas excluídas.');
   }
 
   async function persistPlanEdit(saved: InstallmentPlan): Promise<string | null> {
@@ -243,27 +286,36 @@ export function PlanDetailPage() {
               <p className="text-sm text-status-pending">WhatsApp não cadastrado — use Editar para cobrar.</p>
             )}
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="soft" onClick={() => setEditOpen(true)}>
-              <Pencil className="size-4" aria-hidden />
-              Editar
-            </Button>
-            {bookletUrl ? (
-              <a
-                href={bookletUrl}
-                download={bookletFilename}
-                className="press inline-flex min-h-12 items-center justify-center rounded-lg bg-brand-soft px-4 text-base font-semibold text-secondary-foreground"
-              >
-                Baixar PDF
-              </a>
-            ) : (
-              <Button type="button" variant="soft" disabled>
-                Preparando PDF…
+          <div className="flex w-full min-w-0 flex-col gap-2 lg:w-auto lg:items-end">
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="soft" onClick={() => setEditOpen(true)}>
+                <Pencil className="size-4" aria-hidden />
+                Editar
               </Button>
-            )}
-            <Button type="button" variant="danger" onClick={() => void removePlan()}>
-              Excluir
-            </Button>
+              <Button type="button" variant="soft" disabled={carneBusy} onClick={onBaixarCarneClick}>
+                {carneBusy ? 'Reimprimindo…' : 'Reimprimir'}
+              </Button>
+              <Button type="button" variant="danger" onClick={onExcluirClick}>
+                {selectionPurpose === 'delete' ? 'Confirmar exclusão' : 'Excluir'}
+              </Button>
+            </div>
+            {showSelectionCheckboxes ? (
+              <div className="flex flex-wrap items-center gap-2 border-t border-border pt-2">
+                <label className="flex min-h-10 cursor-pointer items-center gap-2 text-sm font-semibold">
+                  <input
+                    type="checkbox"
+                    className="size-4 rounded border-border"
+                    checked={allSelected}
+                    onChange={(event) => toggleAll(event.target.checked)}
+                    aria-label="Selecionar todas as parcelas"
+                  />
+                  Selecionar todas
+                </label>
+                <Button type="button" variant="ghost" className="min-h-10 px-2" onClick={cancelSelection}>
+                  Cancelar
+                </Button>
+              </div>
+            ) : null}
           </div>
         </div>
         {notice ? <p className="text-sm text-accent">{notice}</p> : null}
@@ -277,12 +329,23 @@ export function PlanDetailPage() {
           return (
             <Card key={installment.id} className="grid gap-0 divide-y divide-border p-0">
               <div className="flex flex-wrap items-center justify-between gap-3 p-4">
-                <div>
+                <div className="flex min-w-0 flex-1 items-start gap-3">
+                  {showSelectionCheckboxes ? (
+                    <input
+                      type="checkbox"
+                      className="mt-1 size-4 shrink-0 rounded border-border"
+                      checked={selectedIds.has(installment.id)}
+                      onChange={(event) => toggleInstallment(installment.id, event.target.checked)}
+                      aria-label={`Selecionar parcela ${installment.number}`}
+                    />
+                  ) : null}
+                <div className="min-w-0">
                   <p className="text-sm text-muted-foreground">Parcela {installment.number}</p>
                   <p className="text-xl font-semibold tabular-nums">{money(installment.amountCents)}</p>
                   <p className="text-sm text-muted-foreground">
                     Vencimento {installment.dueDate.split('-').reverse().join('/')}
                   </p>
+                </div>
                 </div>
                 <StatusPill label={installmentStatusLabel(status)} tone={tone} />
               </div>
@@ -343,14 +406,6 @@ export function PlanDetailPage() {
                     Salvar
                   </Button>
                 </form>
-                <div className="flex flex-wrap gap-2">
-                  <Button type="button" variant="ghost" className="min-h-10" onClick={() => void print([installment])}>
-                    Reimprimir
-                  </Button>
-                  <Button type="button" variant="ghost" className="min-h-10" onClick={() => void removeInstallment(installment.id)}>
-                    Excluir parcela
-                  </Button>
-                </div>
               </div>
             </Card>
           );
