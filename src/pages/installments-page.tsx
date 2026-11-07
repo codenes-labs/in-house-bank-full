@@ -164,9 +164,18 @@ export function InstallmentsPage() {
                     <p className="truncate font-semibold">{row.plan.borrowerName}</p>
                     <p className="text-sm text-muted-foreground lg:hidden">{row.plan.reference}</p>
                   </div>
-                  <StatusPill label={planStatusLabel(row.planStatus)} tone={toneForPlan(row.planStatus)} />
+                  <StatusPill
+                    className="max-lg:shrink-0 lg:!hidden"
+                    label={planStatusLabel(row.planStatus)}
+                    tone={toneForPlan(row.planStatus)}
+                  />
                 </div>
-                <span className="hidden text-muted-foreground lg:block">{row.plan.reference}</span>
+                <span className="hidden truncate text-muted-foreground lg:block">{row.plan.reference}</span>
+                <StatusPill
+                  className="max-lg:!hidden lg:inline-flex w-fit"
+                  label={planStatusLabel(row.planStatus)}
+                  tone={toneForPlan(row.planStatus)}
+                />
                 <div className="flex items-baseline justify-between gap-3 lg:contents">
                   <span className="font-semibold tabular-nums">{money(row.plan.returnAmountCents)}</span>
                   <span className="text-sm text-muted-foreground tabular-nums">
