@@ -1,28 +1,26 @@
 import { describe, expect, it } from 'vitest';
-import { MAIN_NAV_ITEMS, resolveMainNavItems } from './main-nav-items';
+import { isRelatoriosResumoDisabled, MAIN_NAV_ITEMS } from './main-nav-items';
 
 describe('MAIN_NAV_ITEMS', () => {
-  it('includes RF-01 menu sections in order', () => {
+  it('lists primary logged-in routes', () => {
     expect(MAIN_NAV_ITEMS.map((item) => item.label)).toEqual([
-      'Página inicial',
-      'Parcelamentos',
+      'Início',
+      'Patrimônio',
       'Financeiro',
+      'Caixinhas',
+      'Parcelamentos',
       'Relatórios',
-      'Configurações',
+      'Ajustes',
     ]);
   });
 });
 
-describe('resolveMainNavItems', () => {
-  it('disables Relatórios on portfolio deployment', () => {
-    const items = resolveMainNavItems('portfolio');
-    const reports = items.find((item) => item.route === '/relatorios');
-    expect(reports?.disabled).toBe(true);
-    expect(reports?.disabledHint).toBe('Em desenvolvimento');
+describe('isRelatoriosResumoDisabled', () => {
+  it('disables Resumo on portfolio deployment', () => {
+    expect(isRelatoriosResumoDisabled('portfolio')).toBe(true);
   });
 
-  it('keeps Relatórios enabled on personal deployment', () => {
-    const reports = resolveMainNavItems('personal').find((item) => item.route === '/relatorios');
-    expect(reports?.disabled).toBeFalsy();
+  it('keeps Resumo enabled on personal deployment', () => {
+    expect(isRelatoriosResumoDisabled('personal')).toBe(false);
   });
 });

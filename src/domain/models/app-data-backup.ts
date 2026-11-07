@@ -1,5 +1,6 @@
 import type { CashBoxMovement } from './cash-box-movement';
 import type { CashBox } from './cash-box';
+import type { FreeBalanceWithdrawal } from './free-balance-withdrawal';
 import type { InstallmentPlan } from './installment-plan';
 import type { Installment } from './installment';
 import type { Settings } from './settings';
@@ -13,4 +14,5 @@ export interface AppDataBackup {
   installments: Installment[];
   cashBoxes: CashBox[];
   cashBoxMovements: CashBoxMovement[];
+  freeBalanceWithdrawals: FreeBalanceWithdrawal[];
 }

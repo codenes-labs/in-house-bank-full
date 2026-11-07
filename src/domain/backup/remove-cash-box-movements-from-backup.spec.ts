@@ -32,6 +32,7 @@ describe('removeCashBoxMovementsFromBackup', () => {
           note: '30% Salario Teste',
         },
       ],
+      freeBalanceWithdrawals: [],
     };
 
     const cleaned = removeCashBoxMovementsFromBackup(

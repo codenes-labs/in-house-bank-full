@@ -3,12 +3,18 @@ import { AppShell } from './components/app-shell';
 import { useAuth } from './components/auth-context';
 import { AuthPage } from './pages/auth-page';
 import { ChangePasswordPage } from './pages/change-password-page';
+import { CashBoxDetailPage } from './pages/cash-box-detail-page';
+import { CashBoxesPage } from './pages/cash-boxes-page';
+import { ExtratoPage } from './pages/extrato-page';
 import { FinancialPage } from './pages/financial-page';
+import { FreeBalancePage } from './pages/free-balance-page';
 import { HomePage } from './pages/home-page';
 import { InstallmentsPage } from './pages/installments-page';
 import { LandingPage } from './pages/landing-page';
+import { PatrimonioPage } from './pages/patrimonio-page';
 import { PlanDetailPage } from './pages/plan-detail-page';
 import { NewInstallmentPage } from './pages/new-installment-page';
+import { RelatoriosLayout } from './pages/relatorios-layout';
 import { ReportsPage } from './pages/reports-page';
 import { SettingsPage } from './pages/settings-page';
 import { AccountChangePasswordPage } from './pages/account-change-password-page';
@@ -56,13 +62,25 @@ export default function App() {
       <Route path="/alterar-senha" element={<ChangePasswordGate />} />
       <Route element={<PrivateRoutes />}>
         <Route path="/inicio" element={<HomePage />} />
+        <Route path="/patrimonio" element={<PatrimonioPage />} />
         <Route path="/parcelamentos" element={<InstallmentsPage />} />
         <Route path="/parcelamentos/novo" element={<NewInstallmentPage />} />
         <Route path="/parcelamentos/:planId" element={<PlanDetailPage />} />
+        <Route path="/caixinhas" element={<CashBoxesPage />} />
+        <Route path="/caixinhas/:cashBoxId" element={<CashBoxDetailPage />} />
         <Route path="/financeiro" element={<FinancialPage />} />
-        <Route path="/relatorios" element={<ReportsPage />} />
+        <Route path="/financeiro/saldo-livre" element={<FreeBalancePage />} />
+        <Route path="/relatorios" element={<RelatoriosLayout />}>
+          <Route index element={<Navigate to="extrato" replace />} />
+          <Route path="extrato" element={<ExtratoPage />} />
+          <Route path="resumo" element={<ReportsPage />} />
+        </Route>
         <Route path="/configuracoes" element={<SettingsPage />} />
         <Route path="/conta/alterar-senha" element={<AccountChangePasswordPage />} />
+        <Route path="/mais" element={<Navigate to="/patrimonio" replace />} />
+        <Route path="/a-receber" element={<Navigate to="/relatorios/extrato?tipo=RECEIVABLES" replace />} />
+        <Route path="/a-pagar" element={<Navigate to="/relatorios/extrato?tipo=PAYABLES" replace />} />
+        <Route path="/extrato" element={<Navigate to="/relatorios/extrato" replace />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

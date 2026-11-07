@@ -1,6 +1,7 @@
 import type { AppDataBackup } from '../domain/models/app-data-backup';
 import type { CashBox } from '../domain/models/cash-box';
 import type { CashBoxMovement } from '../domain/models/cash-box-movement';
+import type { FreeBalanceWithdrawal } from '../domain/models/free-balance-withdrawal';
 import type { Installment } from '../domain/models/installment';
 import type { InstallmentPlan } from '../domain/models/installment-plan';
 import type { Settings } from '../domain/models/settings';
@@ -12,6 +13,7 @@ export interface BankSnapshot {
   installments: Installment[];
   cashBoxes: CashBox[];
   cashBoxMovements: CashBoxMovement[];
+  freeBalanceWithdrawals: FreeBalanceWithdrawal[];
 }
 
 export function createEmptySnapshot(): BankSnapshot {
@@ -21,6 +23,7 @@ export function createEmptySnapshot(): BankSnapshot {
     installments: [],
     cashBoxes: [],
     cashBoxMovements: [],
+    freeBalanceWithdrawals: [],
   };
 }
 
@@ -31,6 +34,7 @@ export function snapshotFromBackup(backup: AppDataBackup): BankSnapshot {
     installments: backup.installments,
     cashBoxes: backup.cashBoxes,
     cashBoxMovements: backup.cashBoxMovements,
+    freeBalanceWithdrawals: backup.freeBalanceWithdrawals,
   };
 }
 
@@ -45,5 +49,9 @@ export interface BankRepository {
   deleteCashBox(cashBoxId: string): Promise<void>;
   saveMovement(movement: CashBoxMovement): Promise<void>;
   deleteMovement(movementId: string): Promise<void>;
+  saveFreeBalanceWithdrawal(
+    withdrawal: FreeBalanceWithdrawal,
+    settings: Settings,
+  ): Promise<void>;
   importBackup(backup: AppDataBackup): Promise<void>;
 }

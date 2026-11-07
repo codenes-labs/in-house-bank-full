@@ -2,6 +2,7 @@ import { settingsAfterDeletingCashBox } from '../domain/cash-boxes/settings-afte
 import type { AppDataBackup } from '../domain/models/app-data-backup';
 import type { CashBox } from '../domain/models/cash-box';
 import type { CashBoxMovement } from '../domain/models/cash-box-movement';
+import type { FreeBalanceWithdrawal } from '../domain/models/free-balance-withdrawal';
 import type { Installment } from '../domain/models/installment';
 import type { InstallmentPlan } from '../domain/models/installment-plan';
 import type { Settings } from '../domain/models/settings';
@@ -63,6 +64,13 @@ export function createMemoryBankRepository(initial?: BankSnapshot): BankReposito
       snapshot = {
         ...snapshot,
         cashBoxMovements: snapshot.cashBoxMovements.filter((movement) => movement.id !== movementId),
+      };
+    },
+    async saveFreeBalanceWithdrawal(withdrawal: FreeBalanceWithdrawal, settings: Settings) {
+      snapshot = {
+        ...snapshot,
+        settings: structuredClone(settings),
+        freeBalanceWithdrawals: upsert(snapshot.freeBalanceWithdrawals, withdrawal),
       };
     },
     async importBackup(backup: AppDataBackup) {

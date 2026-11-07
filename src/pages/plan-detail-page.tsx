@@ -25,6 +25,8 @@ import { buildCarnePdfFilename } from '../domain/pdf/build-carne-pdf-filename';
 import { buildStaticPixBrCode } from '../domain/pix/build-static-pix-br-code';
 import { buildWhatsappChargeMessage, buildWhatsappUrl } from '../domain/whatsapp/build-whatsapp-charge';
 import { maskBrazilianPhone, validateBrazilianPhone } from '../domain/whatsapp/validate-brazilian-phone';
+import { settingsAfterInstallmentChange } from '../domain/finance/settings-after-installment-change';
+import type { Installment } from '../domain/models/installment';
 import { createEmptySettings } from '../domain/models/settings';
 import { downloadPdfBytes } from '../pdf/download-pdf-bytes';
 import { generateCarnePdf } from '../pdf/generate-carne-pdf';
@@ -71,6 +73,14 @@ export function PlanDetailPage() {
   const planStatus = derivePlanStatus(installments, today);
   const planTone =
     planStatus === PlanStatus.Settled ? 'paid' : planStatus === PlanStatus.Overdue ? 'overdue' : 'pending';
+
+  async function persistInstallmentChange(previous: Installment, next: Installment) {
+    const nextSettings = settingsAfterInstallmentChange(bank.snapshot.settings, previous, next);
+    if (nextSettings.freeBalanceCents !== bank.snapshot.settings.freeBalanceCents) {
+      await bank.saveSettings(nextSettings);
+    }
+    await bank.saveInstallment(next);
+  }
 
   function toggleInstallment(installmentId: string, checked: boolean) {
     setSelectedIds((current) => {
@@ -170,7 +180,7 @@ export function PlanDetailPage() {
       setNotice('Esta parcela já está paga.');
       return;
     }
-    await bank.saveInstallment(result.installment);
+    await persistInstallmentChange(installment, result.installment);
   }
 
   async function undo(installmentId: string) {
@@ -182,7 +192,7 @@ export function PlanDetailPage() {
     if (!result.ok) {
       return;
     }
-    await bank.saveInstallment(result.installment);
+    await persistInstallmentChange(installment, result.installment);
   }
 
   async function changeAmount(installmentId: string, amount: string, dueDate: string) {
@@ -199,7 +209,7 @@ export function PlanDetailPage() {
       return;
     }
     const nextInstallments = installments.map((item) => (item.id === installmentId ? result.installment : item));
-    await bank.saveInstallment(result.installment);
+    await persistInstallmentChange(installment, result.installment);
     await bank.savePlan(planWithInstallmentSum(plan, nextInstallments));
     setNotice('Parcela atualizada.');
   }
@@ -357,7 +367,12 @@ export function PlanDetailPage() {
                       type="date"
                       defaultValue={installment.paidDate}
                       aria-label="Data de pagamento"
-                      onChange={(event) => void bank.saveInstallment({ ...installment, paidDate: event.target.value })}
+                      onChange={(event) =>
+                        void persistInstallmentChange(installment, {
+                          ...installment,
+                          paidDate: event.target.value,
+                        })
+                      }
                     />
                     <Button type="button" variant="ghost" onClick={() => void undo(installment.id)}>
                       Desfazer pagamento

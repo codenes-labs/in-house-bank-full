@@ -35,7 +35,6 @@ export function ReportsPage() {
 
   return (
     <div className="grid gap-4">
-      <h1 className="text-3xl font-semibold">Relatórios</h1>
       {empty ? <EmptyState title="Sem dados ainda" text="Os gráficos aparecem quando houver parcelamentos ou caixinhas." /> : null}
       <ChartCard title="Recebido e a receber por mês">
         <ResponsiveContainer width="100%" height={260}>

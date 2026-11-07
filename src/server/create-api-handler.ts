@@ -2,6 +2,7 @@ import { neon, type NeonQueryFunction } from '@neondatabase/serverless';
 import type { AppDataBackup } from '../domain/models/app-data-backup';
 import type { CashBox } from '../domain/models/cash-box';
 import type { CashBoxMovement } from '../domain/models/cash-box-movement';
+import type { FreeBalanceWithdrawal } from '../domain/models/free-balance-withdrawal';
 import type { Installment } from '../domain/models/installment';
 import type { InstallmentPlan } from '../domain/models/installment-plan';
 import { createEmptySettings, type Settings } from '../domain/models/settings';
@@ -16,13 +17,22 @@ import {
 import { signAccessToken, verifyAccessToken } from './jwt';
 import { hashPassword, verifyPassword } from './password';
 import { schemaStatements } from './schema';
-import { mapCashBox, mapInstallment, mapMovement, mapPlan, mapSettings, type Row } from './rows';
+import {
+  mapCashBox,
+  mapFreeBalanceWithdrawal,
+  mapInstallment,
+  mapMovement,
+  mapPlan,
+  mapSettings,
+  type Row,
+} from './rows';
 import {
   deleteCashBox,
   removeRow,
   replaceUserBackup,
   saveCashBox,
   saveInstallment,
+  saveFreeBalanceWithdrawal,
   saveMovement,
   savePlan,
   saveSettings,
@@ -122,6 +132,11 @@ async function route(sql: Sql, request: Request, jwtSecret: string): Promise<Res
   }
   if (pathname === '/api/bank/movements' && request.method === 'PUT') {
     await saveMovement(sql, account.id, (await request.json()) as CashBoxMovement);
+    return json({ ok: true });
+  }
+  if (pathname === '/api/bank/free-balance-withdrawals' && request.method === 'PUT') {
+    const body = (await request.json()) as { withdrawal: FreeBalanceWithdrawal; settings: Settings };
+    await saveFreeBalanceWithdrawal(sql, account.id, body.withdrawal, body.settings);
     return json({ ok: true });
   }
   if (pathname === '/api/bank/import' && request.method === 'POST') {
@@ -284,6 +299,7 @@ async function loadBank(sql: Sql, userId: string) {
     sql`select * from installments where user_id = ${userId}::uuid`,
     sql`select * from cash_boxes where user_id = ${userId}::uuid`,
     sql`select * from cash_box_movements where user_id = ${userId}::uuid`,
+    sql`select * from free_balance_withdrawals where user_id = ${userId}::uuid`,
   ]);
   const settings = (results[1] as Row[])[0];
   return {
@@ -292,6 +308,7 @@ async function loadBank(sql: Sql, userId: string) {
     installments: (results[3] as Row[]).map(mapInstallment),
     cashBoxes: (results[4] as Row[]).map(mapCashBox),
     cashBoxMovements: (results[5] as Row[]).map(mapMovement),
+    freeBalanceWithdrawals: (results[6] as Row[]).map(mapFreeBalanceWithdrawal),
   };
 }
 

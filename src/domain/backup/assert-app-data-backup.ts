@@ -23,6 +23,11 @@ export function assertAppDataBackup(value: unknown): AppDataBackup {
   assertArray(backup['installments'], 'installments');
   assertArray(backup['cashBoxes'], 'cashBoxes');
   assertArray(backup['cashBoxMovements'], 'cashBoxMovements');
+  if (backup['freeBalanceWithdrawals'] === undefined) {
+    backup['freeBalanceWithdrawals'] = [];
+  } else {
+    assertArray(backup['freeBalanceWithdrawals'], 'freeBalanceWithdrawals');
+  }
 
   return backup as unknown as AppDataBackup;
 }

@@ -2,6 +2,7 @@ import type { NeonQueryFunction } from '@neondatabase/serverless';
 import type { AppDataBackup } from '../domain/models/app-data-backup';
 import type { CashBox } from '../domain/models/cash-box';
 import type { CashBoxMovement } from '../domain/models/cash-box-movement';
+import type { FreeBalanceWithdrawal } from '../domain/models/free-balance-withdrawal';
 import type { Installment } from '../domain/models/installment';
 import type { InstallmentPlan } from '../domain/models/installment-plan';
 import type { Settings } from '../domain/models/settings';
@@ -11,6 +12,7 @@ type Sql = NeonQueryFunction<false, false>;
 export async function replaceUserBackup(sql: Sql, userId: string, backup: AppDataBackup): Promise<void> {
   await sql.transaction([
     sql`select set_config('app.user_id', ${userId}, true)`,
+    sql`delete from free_balance_withdrawals where user_id = ${userId}::uuid`,
     sql`delete from cash_box_movements where user_id = ${userId}::uuid`,
     sql`delete from installments where user_id = ${userId}::uuid`,
     sql`delete from installment_plans where user_id = ${userId}::uuid`,
@@ -28,6 +30,9 @@ export async function replaceUserBackup(sql: Sql, userId: string, backup: AppDat
   }
   for (const movement of backup.cashBoxMovements) {
     await saveMovement(sql, userId, movement);
+  }
+  for (const withdrawal of backup.freeBalanceWithdrawals) {
+    await insertFreeBalanceWithdrawal(sql, userId, withdrawal);
   }
 }
 
@@ -137,6 +142,62 @@ export async function saveCashBox(sql: Sql, userId: string, cashBox: CashBox): P
       limit_cents = excluded.limit_cents,
       balance_cents = excluded.balance_cents
     where cash_boxes.user_id = ${userId}::uuid`,
+  ]);
+}
+
+export async function saveFreeBalanceWithdrawal(
+  sql: Sql,
+  userId: string,
+  withdrawal: FreeBalanceWithdrawal,
+  settings: Settings,
+): Promise<void> {
+  await sql.transaction([
+    sql`select set_config('app.user_id', ${userId}, true)`,
+    sql`
+      insert into free_balance_withdrawals (id, user_id, amount_cents, withdrawal_date, note)
+      values (
+        ${withdrawal.id}::uuid,
+        ${userId}::uuid,
+        ${withdrawal.amountCents},
+        ${withdrawal.date},
+        ${withdrawal.note ?? null}
+      )
+      on conflict (id) do update set
+        amount_cents = excluded.amount_cents,
+        withdrawal_date = excluded.withdrawal_date,
+        note = excluded.note
+      where free_balance_withdrawals.user_id = ${userId}::uuid
+    `,
+    sql`
+      update settings
+      set free_balance_cents = ${settings.freeBalanceCents}, updated_at = now()
+      where user_id = ${userId}::uuid
+    `,
+  ]);
+}
+
+async function insertFreeBalanceWithdrawal(
+  sql: Sql,
+  userId: string,
+  withdrawal: FreeBalanceWithdrawal,
+): Promise<void> {
+  await sql.transaction([
+    sql`select set_config('app.user_id', ${userId}, true)`,
+    sql`
+      insert into free_balance_withdrawals (id, user_id, amount_cents, withdrawal_date, note)
+      values (
+        ${withdrawal.id}::uuid,
+        ${userId}::uuid,
+        ${withdrawal.amountCents},
+        ${withdrawal.date},
+        ${withdrawal.note ?? null}
+      )
+      on conflict (id) do update set
+        amount_cents = excluded.amount_cents,
+        withdrawal_date = excluded.withdrawal_date,
+        note = excluded.note
+      where free_balance_withdrawals.user_id = ${userId}::uuid
+    `,
   ]);
 }
 

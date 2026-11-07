@@ -1,6 +1,7 @@
 import type { AppDataBackup } from '../domain/models/app-data-backup';
 import type { CashBox } from '../domain/models/cash-box';
 import type { CashBoxMovement } from '../domain/models/cash-box-movement';
+import type { FreeBalanceWithdrawal } from '../domain/models/free-balance-withdrawal';
 import type { Installment } from '../domain/models/installment';
 import type { InstallmentPlan } from '../domain/models/installment-plan';
 import type { Settings } from '../domain/models/settings';
@@ -19,6 +20,8 @@ export function createHttpBankRepository(): BankRepository {
     deleteCashBox: (cashBoxId) => send(`/api/bank/cash-boxes/${cashBoxId}`, 'DELETE'),
     saveMovement: (movement) => send('/api/bank/movements', 'PUT', movement),
     deleteMovement: (movementId) => send(`/api/bank/movements/${movementId}`, 'DELETE'),
+    saveFreeBalanceWithdrawal: (withdrawal, settings) =>
+      send('/api/bank/free-balance-withdrawals', 'PUT', { withdrawal, settings }),
     importBackup: (backup) => send('/api/bank/import', 'POST', backup),
   };
 }
@@ -26,7 +29,14 @@ export function createHttpBankRepository(): BankRepository {
 async function send(
   path: string,
   method: string,
-  body?: Settings | InstallmentPlan | Installment | CashBox | CashBoxMovement | AppDataBackup,
+  body?:
+    | Settings
+    | InstallmentPlan
+    | Installment
+    | CashBox
+    | CashBoxMovement
+    | AppDataBackup
+    | { withdrawal: FreeBalanceWithdrawal; settings: Settings },
 ): Promise<void> {
   await request(path, authRequestInit({
     method,

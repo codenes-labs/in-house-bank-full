@@ -16,7 +16,7 @@ Referências de produto: lista de “caixinhas” da Nubank (cards compactos →
 | --- | --- | --- |
 | Onde ficam aporte/resgate | `/caixinhas` | Igual: só no **detalhe** da caixinha |
 | `/financeiro` | Saldo livre, patrimônio, rendimento, metas — **sem** bloco de caixinhas | Mantém SPEC-10: **sem** operações nem histórico; pode ter **um** resumo clicável (total em caixinhas → `/caixinhas`) |
-| Menu | Barra 5 itens + **Mais** (`/mais`) | Igual; **Caixinhas** em Patrimônio e no **Mais** |
+| Menu | Barra inferior: **Início**, **Patrimônio**, **Relatórios**; lateral em grupos | **Caixinhas** dentro de Patrimônio (`/patrimonio` → `/caixinhas`); extrato unificado em `/relatorios/extrato` |
 | Criar caixinha | Implícito na rota de caixinhas | Painel lateral **Criar caixinha** (já iniciado em `FinancialPage`; **mover** para `/caixinhas`) |
 | Desfazer movimento | SPEC-10 §4 menciona desfazer | Produto atual: **sem desfazer**; corrigir com resgate/aporte. Atualizar SPEC-10 §4 na implementação |
 | Gráfico | `/relatorios` sem gráfico (SPEC-10 §6) | Gráfico **só** no detalhe da caixinha (aportes mês a mês); não usa a página Relatórios |
@@ -32,7 +32,12 @@ Referências de produto: lista de “caixinhas” da Nubank (cards compactos →
 | `/financeiro` | Painel patrimonial | Cards KPI (saldo livre, total caixinhas, patrimônio), rendimento estimado, meta de patrimônio, atualizar saldo livre. Link ou card-resumo “Caixinhas” → `/caixinhas`. |
 | `/caixinhas` | Home das caixinhas | Lista de cards; botão **+ Criar caixinha** (painel lateral); estado vazio com CTA. |
 | `/caixinhas/:cashBoxId` | Detalhe de uma caixinha | Saldo, metadados, aporte/resgate, histórico por mês, gráfico de aportes, excluir (painel de confirmação existente). |
-| `/mais` | Hub mobile (SPEC-10) | Lista: Caixinhas, Extrato, Financeiro, Relatórios, Ajustes. |
+| `/patrimonio` | Hub Patrimônio (mobile e desktop) | Atalhos: Financeiro, Caixinhas, Parcelamentos. |
+| `/relatorios` | Relatórios | Abas internas **Extrato** e **Resumo** (`/relatorios` redireciona para extrato). |
+| `/relatorios/extrato` | Extrato | Filtro: contas a pagar, a receber, parcelamento ou caixinha. |
+| `/relatorios/resumo` | Resumo | Gráficos/indicadores (até migrar para texto na SPEC-10). |
+
+Rotas antigas `/a-receber`, `/a-pagar`, `/extrato` e `/mais` redirecionam para os destinos acima.
 
 Deep link: toque no card em `/caixinhas` → `/caixinhas/:id`. Voltar: navegação padrão (seta do app ou link “Caixinhas” no topo do detalhe).
 
@@ -47,7 +52,7 @@ Deep link: toque no card em `/caixinhas` → `/caixinhas/:id`. Voltar: navegaç�
 
 ### B. Listar e criar
 
-1. Menu lateral **Caixinhas** ou **Mais** → Caixinhas → `/caixinhas`.
+1. **Patrimônio** → Caixinhas → `/caixinhas` (ou atalho direto na lateral).
 2. Vê grid/lista de cards (uma linha por caixinha no mobile, grid no `lg+`).
 3. **+ Criar caixinha** → painel lateral (mesmo padrão `OverlayPanel` do parcelamento): nome, instituição, % CDI, saldo inicial, limite opcional → salvar → painel fecha, lista atualiza.
 
@@ -155,11 +160,11 @@ Testes unitários obrigatórios antes da UI (SDD).
 - Continua `load`, `saveCashBox`, `deleteCashBox`, `saveMovement`.
 - Páginas derivam histórico e gráfico no cliente a partir do snapshot (como hoje).
 
-### Menu (SPEC-10 §5)
+### Menu (IA revisada — ver `logged-shell-nav.ts`)
 
-- Atualizar `app-shell.tsx`, `main-nav-items.ts`, nova página `/mais`.
-- Desktop: grupo Patrimônio com Caixinhas + Financeiro.
-- Mobile: barra Início, Parcelas, A receber, A pagar, **Mais**.
+- Mobile: **Início**, **Patrimônio**, **Relatórios** (três colunas).
+- Desktop: grupos Início, Patrimônio (Financeiro, Caixinhas, Parcelamentos), Relatórios (um item → abas Extrato/Resumo), Conta (Ajustes).
+- Contas a pagar/receber não têm rota própria: entram no **Financeiro** (futuro) e no **Extrato** com filtro.
 
 ---
 

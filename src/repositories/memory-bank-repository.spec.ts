@@ -29,6 +29,7 @@ describe('createMemoryBankRepository', () => {
       installments: [],
       cashBoxes: [],
       cashBoxMovements: [],
+      freeBalanceWithdrawals: [],
     });
 
     const snapshot = await repository.load();
@@ -52,5 +53,21 @@ describe('createMemoryBankRepository', () => {
     const snapshot = await repository.load();
     expect(snapshot.cashBoxes).toEqual([]);
     expect(snapshot.settings.freeBalanceCents).toBe(1_500_00);
+  });
+
+  it('records a free balance withdrawal and updates settings together', async () => {
+    const repository = createMemoryBankRepository();
+    const settings = { ...createEmptySettings(), freeBalanceCents: 20_000 };
+    await repository.saveSettings(settings);
+    await repository.saveFreeBalanceWithdrawal(
+      { id: 'w1', amountCents: 5_000, date: '2026-11-07' },
+      { ...settings, freeBalanceCents: 15_000 },
+    );
+
+    const snapshot = await repository.load();
+    expect(snapshot.settings.freeBalanceCents).toBe(15_000);
+    expect(snapshot.freeBalanceWithdrawals).toEqual([
+      { id: 'w1', amountCents: 5_000, date: '2026-11-07' },
+    ]);
   });
 });

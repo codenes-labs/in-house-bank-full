@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import type { AppDataBackup } from '../domain/models/app-data-backup';
 import type { CashBox } from '../domain/models/cash-box';
 import type { CashBoxMovement } from '../domain/models/cash-box-movement';
+import type { FreeBalanceWithdrawal } from '../domain/models/free-balance-withdrawal';
 import type { Installment } from '../domain/models/installment';
 import type { InstallmentPlan } from '../domain/models/installment-plan';
 import type { Settings } from '../domain/models/settings';
@@ -26,6 +27,7 @@ interface BankContextValue {
   deleteCashBox: (cashBoxId: string) => Promise<void>;
   saveMovement: (movement: CashBoxMovement) => Promise<void>;
   deleteMovement: (movementId: string) => Promise<void>;
+  saveFreeBalanceWithdrawal: (withdrawal: FreeBalanceWithdrawal, settings: Settings) => Promise<void>;
   importBackup: (backup: AppDataBackup) => Promise<void>;
 }
 
@@ -103,6 +105,8 @@ export function BankProvider({ children }: { children: ReactNode }) {
       deleteCashBox: (cashBoxId) => run((repo) => repo.deleteCashBox(cashBoxId)),
       saveMovement: (movement) => run((repo) => repo.saveMovement(movement)),
       deleteMovement: (movementId) => run((repo) => repo.deleteMovement(movementId)),
+      saveFreeBalanceWithdrawal: (withdrawal, settings) =>
+        run((repo) => repo.saveFreeBalanceWithdrawal(withdrawal, settings)),
       importBackup: (backup) => run((repo) => repo.importBackup(backup)),
     };
   }, [error, ready, snapshot, userId]);

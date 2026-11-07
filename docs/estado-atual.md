@@ -18,9 +18,9 @@ Stack: React, Vite, TypeScript, Tailwind, Vitest, Neon Postgres, JWT, PDF no cli
 
 ## Menu logado (hoje)
 
-Barra inferior (5 itens): Início, Parcelas, Financeiro, Relatórios, Ajustes. Lateral `lg+`: mesma lista em `src/components/app-shell.tsx`. `MAIN_NAV_ITEMS` em domínio ainda não reflete SPEC-10 (futuro).
+Barra inferior (3 itens): Início, Patrimônio (`/patrimonio` hub), Relatórios (`/relatorios` com abas Extrato e Resumo). Lateral `lg+`: grupos em `logged-shell-nav.ts` (Patrimônio: Financeiro, Caixinhas, Parcelamentos; um item Relatórios).
 
-Rotas privadas principais: `/inicio`, `/parcelamentos`, `/parcelamentos/:planId`, `/financeiro`, `/relatorios`, `/configuracoes`.
+Rotas privadas principais: `/inicio`, `/patrimonio`, `/financeiro`, `/financeiro/saldo-livre`, `/caixinhas`, `/parcelamentos`, `/relatorios/extrato`, `/relatorios/resumo`, `/configuracoes`.
 
 ## Parcelamentos — lista (`/parcelamentos`)
 
@@ -34,14 +34,14 @@ Rotas privadas principais: `/inicio`, `/parcelamentos`, `/parcelamentos/:planId`
 - Modo de seleção: 1º toque em **Reimprimir** ou **Excluir** mostra checkboxes; barra do topo mantém Editar/Reimprimir/Excluir primeiro e **Selecionar todas** + **Cancelar** numa segunda linha. 2º toque no mesmo botão confirma (Excluir vira **Confirmar exclusão** no modo exclusão).
 - **Reimprimir:** no modo de reimpressão, gera PDF das marcadas (`selectInstallmentsForReprint`).
 - **Excluir:** no modo exclusão, todas marcadas → plano inteiro; parte → só selecionadas; nenhuma → aviso.
-- Cada parcela: fluxo de marcar paga, Pix, WhatsApp e ajustar valor/vencimento inalterados.
+- Cada parcela: fluxo de marcar paga (valor creditado no **saldo livre**), Pix, WhatsApp e ajustar valor/vencimento inalterados.
 - Sem botões Reimprimir / Excluir parcela nem select “Ações” por parcela (área “Ajustar parcela” só valor e vencimento).
 
 ## Outras telas (resumo)
 
 - **Início:** dashboard (SPEC-08 pendente em parte).
-- **Financeiro:** saldo livre, caixinhas com aporte/resgate e metas de patrimônio; criação de caixinha em painel lateral (**Criar caixinha** no topo); exclusão com confirmação e transferência do saldo para saldo livre; histórico sem desfazer (SPEC-10: rota `/caixinhas` e menu **Mais** ainda pendentes).
-- **Relatórios:** gráficos Recharts (SPEC-10 prevê extrato em texto — não implementado).
+- **Financeiro:** painel com KPIs clicáveis — **Saldo livre** abre `/financeiro/saldo-livre` (**Entrada** / **Saída**, últimas saídas); **Caixinhas** abre `/caixinhas`; patrimônio e meta no painel. Parcela marcada paga em **Parcelamentos** credita o valor no saldo livre; desfazer pagamento debita de volta.
+- **Relatórios / Extrato:** filtro **Saldo livre** e **Caixinha** listam linhas de `buildLedger`; demais tipos ainda em desenvolvimento. Resumo: gráficos Recharts (SPEC-10 prevê extrato em texto no resumo — não implementado).
 - **Configurações:** negócio, Pix padrão, CDI, metas, backup.
 
 ## Contas e seed

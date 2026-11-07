@@ -86,5 +86,6 @@ export function createDemoAppBackup(): AppDataBackup {
         note: 'Aporte inicial de demonstração',
       },
     ],
+    freeBalanceWithdrawals: [],
   };
 }
