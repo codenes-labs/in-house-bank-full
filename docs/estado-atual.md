@@ -52,7 +52,7 @@ Cadastro público fechado. Contas seed: admin e demo (`docs/banco.md`). RLS por 
 
 ## CI
 
-GitHub Actions: lint (oxlint), testes (Vitest). Deploy em `master` para Cloudflare. SPEC-09 (Projeto B) ainda não aplicada no pipeline (coverage mínimo, compose, etc.).
+GitHub Actions: lint (oxlint), testes (Vitest). Deploy em `master` para Cloudflare. Docker: dev em `.docker/` (porta 5173); produção local com `Dockerfile` + `compose.prod.yaml` na raiz (8787). SPEC-09 (Projeto B) ainda pendente no pipeline (coverage mínimo, integração, ADR, etc.).
 
 ## Decisões recentes (UI)
 

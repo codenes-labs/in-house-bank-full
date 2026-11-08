@@ -36,6 +36,30 @@ Copie `.docker/.env.example` para `.docker/.env` e preencha:
 
 Em dev, o Vite encaminha `/api/*` para o handler local.
 
+### Docker (desenvolvimento)
+
+Com Docker instalado, na raiz do repositório:
+
+```bash
+cp .docker/.env.example .docker/.env   # opcional: Neon + JWT
+docker compose -f .docker/docker-compose.dev.yaml up --build
+```
+
+O app fica em [http://localhost:5173](http://localhost:5173). Com `.docker/.env` preenchido, [`/api/health`](http://localhost:5173/api/health) deve mostrar `configured`, `database` e `jwt` como `true`. Sem o arquivo, o container sobe e o health responde com tudo `false`.
+
+O código do host é montado no container (hot reload do Vite).
+
+### Docker (produção local)
+
+Imagem com build da SPA e **Worker via Wrangler** (mesmo modelo do deploy na Cloudflare), útil para validar o pacote antes do `wrangler deploy`:
+
+```bash
+cp .docker/.env.example .docker/.env   # recomendado para API funcional
+docker compose -f compose.prod.yaml up --build
+```
+
+Acesse [http://localhost:8787](http://localhost:8787). Deploy real de produção continua sendo Cloudflare Worker (`npm run deploy`), não este container.
+
 ## Deploy
 
 ```bash

@@ -16,9 +16,9 @@ Um implementador sobe o app com um comando, justifica o Repository, prova a API 
 
 O banco continua o Neon remoto. O Compose não sobe Postgres.
 
-- Criar `Dockerfile` na raiz: Node 22, `npm ci`, comando `npm run dev -- --host 0.0.0.0 --port 5173`.
-- Criar `compose.yaml` na raiz com um serviço `app`. Publica `5173:5173`. Lê variáveis de `.docker/.env` (`env_file`). Não copia `.env` para a imagem e não grava segredo no repositório.
-- O comando único é `docker compose up`. Com o env preenchido, `http://localhost:5173` responde e `/api/health` reflete `DATABASE_URL` e `JWT_SECRET`. Sem o arquivo, o container sobe e `/api/health` responde `configured: false`.
+- Criar `.docker/Dockerfile.dev`: Node 22, `npm ci`, comando `npm run dev -- --host 0.0.0.0 --port 5173`.
+- Criar `.docker/docker-compose.dev.yaml` com um serviço `app`. Publica `5173:5173`. Lê variáveis de `.docker/.env` (`env_file`). Não copia `.env` para a imagem e não grava segredo no repositório.
+- O comando único é `docker compose -f .docker/docker-compose.dev.yaml up`. Com o env preenchido, `http://localhost:5173` responde e `/api/health` reflete `DATABASE_URL` e `JWT_SECRET`. Sem o arquivo, o container sobe e `/api/health` responde `configured: false`.
 
 ### 2. Texto que justifica o Repository
 
@@ -79,7 +79,7 @@ Não abrir ADR de ORM, cache ou fila. Isso é Projeto A.
 
 ## Critérios de aceite
 
-1. `docker compose up` sobe o app na porta 5173 sem segundo comando. Segredos continuam só em `.docker/.env` ou no Worker.
+1. `docker compose -f .docker/docker-compose.dev.yaml up` sobe o app na porta 5173 sem segundo comando. Segredos continuam só em `.docker/.env` ou no Worker.
 2. `docs/arquitetura.md` justifica o Repository e aponta o ADR. `docs/adr/0001-bank-repository.md` tem contexto, opção descartada, decisão e consequências.
 3. `src/server/health.integration.spec.ts` sobe HTTP, chama `/api/health` e `/api/metrics`, e passa sem `DATABASE_URL` real.
 4. `vite.config.ts` declara os quatro pisos. Os dois workflows falham se o coverage cair abaixo deles.

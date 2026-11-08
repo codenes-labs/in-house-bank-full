@@ -1,0 +1,8 @@
+node_modules
+dist
+.git
+.github
+.cursor
+.docker/.env
+*.md
+!README.md

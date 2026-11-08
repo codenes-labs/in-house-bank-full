@@ -9,9 +9,7 @@ export function cx(...classes: Array<string | false | null | undefined>) {
 export function Logo({ light = false }: { light?: boolean }) {
   return (
     <span className={cx('inline-flex items-center gap-2 font-semibold', light ? 'text-primary-foreground' : 'text-primary')}>
-      <span className="grid size-8 place-items-center rounded-lg bg-primary text-sm text-primary-foreground" aria-hidden>
-        IH
-      </span>
+      <img src="/favicon.svg" alt="" className="size-8 shrink-0 rounded-full" width={32} height={32} decoding="async" />
       In House Bank
     </span>
   );

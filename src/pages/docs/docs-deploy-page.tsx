@@ -13,6 +13,15 @@ export function DocsDeployPage() {
       <DocsSection title="Build local">
         <DocsList items={['npm run build — tsc + Vite → dist/', 'npm run deploy — build + wrangler deploy']} />
       </DocsSection>
+      <DocsSection title="Docker">
+        <DocsList
+          items={[
+            'Desenvolvimento: docker compose -f .docker/docker-compose.dev.yaml up — Vite na 5173, env em .docker/.env',
+            'Produção local: docker compose -f compose.prod.yaml up — Dockerfile na raiz, wrangler dev na 8787',
+            'Deploy em nuvem: npm run deploy (Worker), não a imagem Docker de produção',
+          ]}
+        />
+      </DocsSection>
       <DocsSection title="Secrets (GitHub → Worker)">
         <DocsList
           items={[
