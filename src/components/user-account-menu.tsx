@@ -1,15 +1,18 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User } from 'lucide-react';
+import { KeyRound, LogOut, Settings, User, type LucideIcon } from 'lucide-react';
 import { useAuth } from './auth-context';
+import { useBank } from './bank-context';
 import { SaveActionButton } from './standard-action-buttons';
 import { Field, TextInput, cx } from './ui';
 
 export function UserAccountMenu() {
   const { session, signOut } = useAuth();
+  const bank = useBank();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const email = session?.user.email ?? '';
+  const businessName = bank.snapshot.settings.businessName.trim();
 
   useEffect(() => {
     if (!open) {
@@ -55,42 +58,94 @@ export function UserAccountMenu() {
       </button>
       {open ? (
         <div
-          className="absolute top-full right-0 z-30 mt-1 w-[min(18rem,calc(100vw-2rem))] rounded-xl border border-border bg-card p-3 shadow-[var(--shadow-card)]"
+          className="absolute top-full right-0 z-30 mt-1 w-[min(20rem,calc(100vw-2rem))] rounded-xl border border-border bg-card p-2 shadow-[var(--shadow-card)]"
           role="menu"
         >
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Conta</p>
-          <p className="mt-1 break-all text-sm font-semibold text-foreground" title={email}>
-            {email}
-          </p>
-          {session.user.isDemo ? (
-            <p className="mt-2 text-xs leading-snug text-status-pending">
-              Demonstração: senha fixa; alterar senha não tem efeito.
+          <div className="px-3 pt-2 pb-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Conta</p>
+            <p className="mt-2 break-all text-sm font-semibold leading-snug text-foreground" title={email}>
+              {email}
             </p>
-          ) : null}
-          <div className="mt-3 grid gap-1">
-            <Link
-              to="/conta/alterar-senha"
-              className="press flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold text-primary"
-              role="menuitem"
-              onClick={() => setOpen(false)}
-            >
+            {businessName ? (
+              <p className="mt-1 text-sm text-muted-foreground" title={businessName}>
+                {businessName}
+              </p>
+            ) : null}
+            {session.user.isDemo ? (
+              <p className="mt-2 text-xs leading-snug text-status-pending">
+                Demonstração: senha fixa; alterar senha não tem efeito.
+              </p>
+            ) : null}
+          </div>
+          <div className="grid gap-0.5 border-t border-border pt-2">
+            <AccountMenuLink to="/conta/alterar-senha" icon={KeyRound} onNavigate={() => setOpen(false)}>
               Alterar senha
-            </Link>
-            <button
-              type="button"
-              className="press flex min-h-11 items-center rounded-lg px-3 text-left text-sm font-semibold text-muted-foreground lg:hidden"
-              role="menuitem"
+            </AccountMenuLink>
+            <AccountMenuLink
+              to="/configuracoes"
+              icon={Settings}
+              className="lg:hidden"
+              onNavigate={() => setOpen(false)}
+            >
+              Configurações
+            </AccountMenuLink>
+            <AccountMenuButton
+              icon={LogOut}
+              className="text-muted-foreground lg:hidden"
               onClick={() => {
                 setOpen(false);
                 void signOut();
               }}
             >
               Sair
-            </button>
+            </AccountMenuButton>
           </div>
         </div>
       ) : null}
     </div>
+  );
+}
+
+const menuItemClass =
+  'press flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-semibold text-foreground hover:bg-muted';
+
+function AccountMenuLink({
+  to,
+  icon: Icon,
+  children,
+  className,
+  onNavigate,
+}: {
+  to: string;
+  icon: LucideIcon;
+  children: ReactNode;
+  className?: string;
+  onNavigate: () => void;
+}) {
+  return (
+    <Link to={to} className={cx(menuItemClass, className)} role="menuitem" onClick={onNavigate}>
+      <Icon className="size-5 shrink-0" aria-hidden />
+      {children}
+    </Link>
+  );
+}
+
+function AccountMenuButton({
+  icon: Icon,
+  children,
+  className,
+  onClick,
+}: {
+  icon: LucideIcon;
+  children: ReactNode;
+  className?: string;
+  onClick: () => void;
+}) {
+  return (
+    <button type="button" className={cx(menuItemClass, 'w-full text-left', className)} role="menuitem" onClick={onClick}>
+      <Icon className="size-5 shrink-0" aria-hidden />
+      {children}
+    </button>
   );
 }
 
