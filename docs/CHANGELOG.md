@@ -2,6 +2,16 @@
 
 Marcos do produto In House Bank. Atualize **neste arquivo** e em `src/domain/docs/product-changelog.ts` no mesmo trabalho (SPEC-11).
 
+## [0.2.1] — 2026-11-10
+
+### Adicionado
+
+- PDF do extrato de **saldo livre** com layout fintech: resumo do período, saldo após cada movimentação e rodapé paginado (`html2pdf.js`).
+
+### Alterado
+
+- PDF do extrato de **caixinha** e **carnê** com utilitários compartilhados em `src/pdf/` e visual alinhado ao tema (cabeçalho azul-marinho no carnê).
+
 ## [0.2.0] — 2026-11-07
 
 ### Adicionado

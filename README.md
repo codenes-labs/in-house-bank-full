@@ -15,7 +15,17 @@ A documentação pública cobre stack, arquitetura, Neon, CI/CD, deploy e change
 
 ## Stack (resumo)
 
-React 19, Vite, TypeScript, Tailwind CSS 4, Vitest, Neon (Postgres), JWT, `pdf-lib`, Recharts. Produção: **Cloudflare Worker** servindo API (`/api/*`) e SPA no mesmo host.
+React 19, Vite, TypeScript, Tailwind CSS 4, Vitest, Neon (Postgres), JWT, `pdf-lib`, `html2pdf.js` (extrato de saldo livre), Recharts. Produção: **Cloudflare Worker** servindo API (`/api/*`) e SPA no mesmo host.
+
+### PDF no navegador
+
+| Documento | Gerador | Código |
+| --- | --- | --- |
+| Carnê de parcelas | `pdf-lib` | `src/pdf/generate-carne-pdf.ts` |
+| Extrato caixinha | `pdf-lib` | `src/pdf/generate-cash-box-extrato-pdf.ts` |
+| Extrato saldo livre | HTML → `html2pdf.js` | `src/pdf/generate-free-balance-extrato-pdf.ts`, `src/pdf/free-balance-extrato/` |
+
+Relatórios → Extrato (`tipo=caixinha` ou `tipo=saldo-livre`): filtro de período, histórico por mês na tela e download do PDF. O extrato de saldo livre calcula resumo e saldo após cada linha a partir do histórico e do `free_balance_cents` (ver `compute-free-balance-extrato-metrics.ts`).
 
 ## Desenvolvimento local
 

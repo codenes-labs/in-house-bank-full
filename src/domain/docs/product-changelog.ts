@@ -12,6 +12,24 @@ export interface ChangelogRelease {
 /** Atualize junto com `docs/CHANGELOG.md` (mesmo conteúdo). */
 export const PRODUCT_CHANGELOG: readonly ChangelogRelease[] = [
   {
+    version: '0.2.1',
+    date: '2026-11-10',
+    sections: [
+      {
+        title: 'Adicionado',
+        items: [
+          'PDF do extrato de saldo livre com resumo do período, saldo por linha e rodapé paginado (html2pdf.js).',
+        ],
+      },
+      {
+        title: 'Alterado',
+        items: [
+          'PDF do extrato de caixinha e carnê com utilitários compartilhados em src/pdf/ e cabeçalho visual atualizado.',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.2.0',
     date: '2026-11-07',
     sections: [

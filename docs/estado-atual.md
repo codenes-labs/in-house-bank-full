@@ -1,6 +1,6 @@
 # Estado atual do projeto
 
-Última atualização: 2026-03-20 (sessão de parcelamentos e governança de specs).
+Última atualização: 2026-11-10 (extrato PDF saldo livre e carnê/caixinha).
 
 Referência rápida para agentes e implementadores. Detalhes de domínio seguem em `docs/principios.md`, `docs/arquitetura.md` e `docs/banco.md`.
 
@@ -8,7 +8,7 @@ Referência rápida para agentes e implementadores. Detalhes de domínio seguem 
 
 App web para controlar empréstimos e compras parceladas com dinheiro próprio. **Não movimenta dinheiro** e não é meio de pagamento.
 
-Stack: React, Vite, TypeScript, Tailwind, Vitest, Neon Postgres, JWT, PDF no cliente (`pdf-lib`). Produção no Cloudflare Worker com API e estáticos no mesmo domínio.
+Stack: React, Vite, TypeScript, Tailwind, Vitest, Neon Postgres, JWT, PDF no cliente (`pdf-lib` + `html2pdf.js` para extrato de saldo livre). Produção no Cloudflare Worker com API e estáticos no mesmo domínio.
 
 ## Governança
 
@@ -43,7 +43,7 @@ Rotas públicas extras: `/docs` (hub técnico: stack, arquitetura, Neon, CI/CD, 
 
 - **Início:** dashboard (SPEC-08 pendente em parte).
 - **Financeiro:** KPIs clicáveis (saldo livre, caixinhas), patrimônio e rendimento estimado; cards **Contas a receber** e **Contas a pagar** só visuais (não clicáveis, SPEC-10). **Saldo livre** → `/financeiro/saldo-livre` (entrada/saída; card **Histórico** por mês, últimos 30 dias). Ao **excluir caixinha**, o saldo vira entrada no saldo livre com nota `Resgate da caixinha {nome}`. Parcela paga credita o saldo livre. Conta **demo:** até 3 caixinhas com movimentos e saldo livre fictício no snapshot (`demo-cash-box-data.ts`); extrato e histórico mostram **todos os meses** das movimentações fictícias (contas reais usam mês atual / 30 dias).
-- **Relatórios / Extrato:** **Saldo livre** e **Caixinha** com período do mês (PDF, limpar filtro, card **Histórico** por mês); demais tipos ainda em desenvolvimento. Resumo: gráficos Recharts (SPEC-10 prevê extrato em texto no resumo — não implementado).
+- **Relatórios / Extrato:** **Saldo livre** (`tipo=saldo-livre`) e **Caixinha** (`tipo=caixinha`) com período (demo: intervalo das movimentações fictícias; conta real: mês atual), **Limpar filtro**, card **Histórico** por mês e **Baixar extrato**. PDF caixinha: `pdf-lib`, blocos mensais. PDF saldo livre: HTML + `html2pdf.js`, cabeçalho fintech, quatro cards de resumo (saldo inicial, entradas, saídas, saldo final), coluna **Saldo** após cada linha, rodapé com paginação via jsPDF. Demais tipos de extrato ainda em desenvolvimento. **Relatórios / Resumo:** gráficos Recharts (SPEC-10 prevê extrato em texto no resumo — não implementado).
 - **Configurações:** hub com Usuário, Beneficiário, Parcelamentos, Financeiro, Gerais e Backup (SPEC-12).
 
 ## Contas e seed

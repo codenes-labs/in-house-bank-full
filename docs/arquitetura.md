@@ -4,7 +4,7 @@ App web responsivo para controlar empréstimos e compras parceladas com o própr
 
 ## Stack
 
-React, Vite, TypeScript, Tailwind, Vitest, Neon (`@neondatabase/serverless`), JWT (HS256), PDF no navegador com pdf-lib e qrcode.
+React, Vite, TypeScript, Tailwind, Vitest, Neon (`@neondatabase/serverless`), JWT (HS256). PDF gerado no cliente: **pdf-lib** (carnê e extrato de caixinha), **html2pdf.js** (extrato de saldo livre a partir de HTML com estilos compatíveis com html2canvas); utilitários em `src/pdf/` (`pdf-draw`, `wrap-pdf-text`, `embed-data-url-image`). QR Pix via `qrcode`.
 
 ## Produção
 
