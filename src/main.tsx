@@ -5,7 +5,10 @@ import App from './App'
 import { AuthProvider } from './components/auth-context'
 import { BankProvider } from './components/bank-context'
 import { ThemeProvider } from './components/theme'
+import { applyUiFontScale, readStoredUiFontScale } from './domain/theme/ui-font-scale'
 import './index.css'
+
+applyUiFontScale(readStoredUiFontScale())
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

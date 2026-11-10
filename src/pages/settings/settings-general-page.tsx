@@ -1,56 +1,69 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
+import { useAuth } from '../../components/auth-context';
 import { useBank } from '../../components/bank-context';
-import { MaskedRateInput } from '../../components/masked-inputs';
+import { useTheme } from '../../components/theme';
 import { SaveActionButton } from '../../components/standard-action-buttons';
-import { Card, Field, TextInput } from '../../components/ui';
-import { validateSettings } from '../../domain/settings/validate-settings';
+import { Card, Field, SelectInput } from '../../components/ui';
+import type { ThemeMode } from '../../domain/theme/theme-mode';
+import {
+  applyUiFontScale,
+  readStoredUiFontScale,
+  type UiFontScale,
+} from '../../domain/theme/ui-font-scale';
 import { SettingsAlerts, SettingsPageHeader } from './settings-page-header';
 
 export function SettingsGeneralPage() {
+  const auth = useAuth();
   const bank = useBank();
+  const theme = useTheme();
   const settings = bank.snapshot.settings;
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [themeMode, setThemeMode] = useState<ThemeMode>(theme.mode);
+  const [fontScale, setFontScale] = useState<UiFontScale>(readStoredUiFontScale());
+
+  useEffect(() => {
+    setThemeMode(theme.mode);
+  }, [theme.mode]);
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const next = {
-      ...settings,
-      cdiAnnualPercent: Number(String(data.get('cdiAnnualPercent') ?? '0').replace(',', '.')),
-      milestonesCents: String(data.get('milestones') ?? '')
-        .split(',')
-        .map((item) => Math.round(Number(item.trim().replace(/\./g, '').replace(',', '.')) * 100))
-        .filter((item) => item > 0),
-    };
-    const validation = validateSettings(next);
-    if (!validation.valid) {
-      setError(Object.values(validation.errors)[0] ?? 'Revise os dados.');
-      return;
+    try {
+      theme.setMode(themeMode);
+      applyUiFontScale(fontScale);
+      if (auth.session?.user.id && bank.ready) {
+        await bank.saveSettings({ ...settings, theme: themeMode });
+      }
+      setError(null);
+      setNotice('Configurações gerais salvas.');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Não foi possível salvar.');
     }
-    await bank.saveSettings(next);
-    setError(null);
-    setNotice('Ajustes gerais salvos.');
   }
 
   return (
     <div className="grid gap-4">
-      <SettingsPageHeader
-        title="Ajustes gerais"
-        description="Projeção das caixinhas e metas de patrimônio exibidas na home."
-      />
+      <SettingsPageHeader title="Configurações gerais" description="Aparência do app neste dispositivo." />
       <SettingsAlerts notice={notice} error={error} />
       <form className="grid gap-3" onSubmit={(event) => void save(event)}>
         <Card className="grid gap-3">
-          <Field label="CDI ao ano (%)">
-            <MaskedRateInput name="cdiAnnualPercent" defaultValue={String(settings.cdiAnnualPercent).replace('.', ',')} />
+          <Field label="Tema">
+            <SelectInput
+              value={themeMode}
+              onChange={(event) => setThemeMode(event.target.value as ThemeMode)}
+            >
+              <option value="light">Claro</option>
+              <option value="dark">Escuro</option>
+            </SelectInput>
           </Field>
-          <Field label="Metas em reais, separadas por vírgula">
-            <TextInput
-              name="milestones"
-              defaultValue={settings.milestonesCents.map((cents) => cents / 100).join(', ')}
-              placeholder="10000, 20000, 50000, 100000, 200000, 500000, 1000000"
-            />
+          <Field label="Tamanho do texto">
+            <SelectInput
+              value={fontScale}
+              onChange={(event) => setFontScale(event.target.value as UiFontScale)}
+            >
+              <option value="default">Padrão</option>
+              <option value="large">Grande</option>
+            </SelectInput>
           </Field>
           <SaveActionButton type="submit" />
         </Card>

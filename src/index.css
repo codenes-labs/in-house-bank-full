@@ -77,6 +77,10 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+html[data-ui-scale='large'] {
+  font-size: 106.25%;
+}
+
 .press {
   transition: transform 120ms ease, opacity 120ms ease;
 }
