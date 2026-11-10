@@ -83,7 +83,8 @@ Lateral, nesta ordem, em três grupos só visuais:
 
 - Movimento: Início `/inicio`, Parcelamentos `/parcelamentos`, A receber `/a-receber`, A pagar `/a-pagar`, Extrato `/extrato`
 - Patrimônio: Caixinhas `/caixinhas`, Financeiro `/financeiro`
-- Análise: Relatórios `/relatorios`, Ajustes `/configuracoes`
+- Relatórios: no celular, `/relatorios` é hub com cartões (como Patrimônio), incluindo **Resumo**; no desktop, grupo lateral com tipos de extrato e **Resumo**; conteúdo de extrato e resumo central em desenvolvimento (placeholder); subrotas com “Voltar aos relatórios” no celular.
+- Conta: Ajustes `/configuracoes`
 
 No celular, a barra e a lateral derivam de `src/domain/navigation/logged-shell-nav.ts` (grupos desktop e três itens na barra inferior).
 

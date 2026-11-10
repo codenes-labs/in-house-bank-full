@@ -1,9 +1,13 @@
 import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useBank } from '../components/bank-context';
-import { Card, EmptyState, SelectInput, money } from '../components/ui';
+import { Card, EmptyState, money } from '../components/ui';
 import { buildLedger, filterLedgerByExtratoKind } from '../domain/ledger/build-ledger';
 import { EXTRATO_KIND_OPTIONS, ExtratoKind, parseExtratoKind } from '../domain/ledger/extrato-kind';
+
+function extratoKindLabel(kind: ExtratoKind): string {
+  return EXTRATO_KIND_OPTIONS.find((option) => option.value === kind)?.label ?? 'Extrato';
+}
 import { LedgerDirection } from '../domain/ledger/ledger-direction';
 import { formatCalendarDateBr } from '../domain/pdf/format-calendar-date-br';
 
@@ -17,7 +21,7 @@ const KIND_HINTS: Record<ExtratoKind, string> = {
 
 export function ExtratoPage() {
   const bank = useBank();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const kind = parseExtratoKind(searchParams.get('tipo'));
 
   const lines = useMemo(() => {
@@ -33,22 +37,7 @@ export function ExtratoPage() {
 
   return (
     <div className="grid gap-4">
-      <label className="grid gap-2">
-        <span className="text-sm font-semibold">Tipo de extrato</span>
-        <SelectInput
-          value={kind}
-          onChange={(event) => {
-            const next = parseExtratoKind(event.target.value);
-            setSearchParams(next === ExtratoKind.Installments ? {} : { tipo: next });
-          }}
-        >
-          {EXTRATO_KIND_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </SelectInput>
-      </label>
+      <h1 className="text-3xl font-semibold lg:hidden">{extratoKindLabel(kind)}</h1>
       {showLedger ? (
         lines.length === 0 ? (
           <EmptyState title="Nenhum lançamento" text={KIND_HINTS[kind]} />

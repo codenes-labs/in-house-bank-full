@@ -15,6 +15,7 @@ import { PatrimonioPage } from './pages/patrimonio-page';
 import { PlanDetailPage } from './pages/plan-detail-page';
 import { NewInstallmentPage } from './pages/new-installment-page';
 import { RelatoriosLayout } from './pages/relatorios-layout';
+import { RelatoriosPage } from './pages/relatorios-page';
 import { ReportsPage } from './pages/reports-page';
 import { SettingsPage } from './pages/settings-page';
 import { AccountChangePasswordPage } from './pages/account-change-password-page';
@@ -94,10 +95,12 @@ export default function App() {
         <Route path="/caixinhas/:cashBoxId" element={<CashBoxDetailPage />} />
         <Route path="/financeiro" element={<FinancialPage />} />
         <Route path="/financeiro/saldo-livre" element={<FreeBalancePage />} />
-        <Route path="/relatorios" element={<RelatoriosLayout />}>
-          <Route index element={<Navigate to="extrato" replace />} />
-          <Route path="extrato" element={<ExtratoPage />} />
-          <Route path="resumo" element={<ReportsPage />} />
+        <Route path="/relatorios">
+          <Route index element={<RelatoriosPage />} />
+          <Route element={<RelatoriosLayout />}>
+            <Route path="extrato" element={<ExtratoPage />} />
+            <Route path="resumo" element={<ReportsPage />} />
+          </Route>
         </Route>
         <Route path="/configuracoes" element={<SettingsPage />} />
         <Route path="/conta/alterar-senha" element={<AccountChangePasswordPage />} />

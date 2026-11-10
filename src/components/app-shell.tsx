@@ -1,10 +1,14 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import {
+  ArrowDownToLine,
+  ArrowUpFromLine,
   ChartColumn,
+  CircleDollarSign,
   House,
   Landmark,
   Moon,
   PiggyBank,
+  LogOut,
   Settings,
   Sun,
   WalletCards,
@@ -13,14 +17,17 @@ import { useAuth } from './auth-context';
 import { DemoBanner } from './demo-banner';
 import { useAccountThemeToggle } from '../lib/use-account-theme-toggle';
 import { UserAccountMenu } from './user-account-menu';
-import { Button, cx, Logo } from './ui';
+import { cx, Logo } from './ui';
 import {
   DESKTOP_NAV_GROUPS,
   MOBILE_BOTTOM_NAV,
   PATRIMONIO_ROUTE_PREFIXES,
   RELATORIOS_ROUTE_PREFIXES,
+  isRelatoriosExtratoNavActive,
+  relatoriosExtratoNavKind,
   type ShellNavItem,
 } from '../domain/navigation/logged-shell-nav';
+import { ExtratoKind } from '../domain/ledger/extrato-kind';
 
 const NAV_ICONS: Record<string, typeof House> = {
   '/inicio': House,
@@ -29,8 +36,25 @@ const NAV_ICONS: Record<string, typeof House> = {
   '/caixinhas': PiggyBank,
   '/parcelamentos': WalletCards,
   '/relatorios': ChartColumn,
+  '/relatorios/resumo': ChartColumn,
   '/configuracoes': Settings,
 };
+
+const EXTRATO_KIND_NAV_ICONS: Record<ExtratoKind, typeof House> = {
+  [ExtratoKind.Payables]: ArrowDownToLine,
+  [ExtratoKind.Receivables]: ArrowUpFromLine,
+  [ExtratoKind.Installments]: WalletCards,
+  [ExtratoKind.CashBox]: PiggyBank,
+  [ExtratoKind.FreeBalance]: CircleDollarSign,
+};
+
+function navIconForItem(to: string): typeof House {
+  const extratoKind = relatoriosExtratoNavKind(to);
+  if (extratoKind) {
+    return EXTRATO_KIND_NAV_ICONS[extratoKind];
+  }
+  return NAV_ICONS[to] ?? House;
+}
 
 function matchesPrefix(pathname: string, prefixes: readonly string[]): boolean {
   return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
@@ -48,21 +72,36 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="grid min-h-0 flex-1 lg:grid-cols-[17rem_1fr]">
         <aside className="hidden min-h-0 border-r border-border bg-card lg:flex lg:flex-col lg:overflow-y-auto lg:px-4 lg:py-6">
           <Logo />
-          <nav className="mt-8 grid gap-6" aria-label="Menu principal">
-            {DESKTOP_NAV_GROUPS.map((group) => (
-              <div key={group.title} className="grid gap-1">
-                <p className="px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{group.title}</p>
-                {group.items.map((item) => (
-                  <SideLink key={item.to} {...item} icon={NAV_ICONS[item.to] ?? House} />
-                ))}
-              </div>
-            ))}
+          <nav className="mt-8 flex min-h-0 flex-1 flex-col gap-6" aria-label="Menu principal">
+            <div className="grid gap-6">
+              {DESKTOP_NAV_GROUPS.map((group) => {
+                const showSectionTitle =
+                  group.items.length > 1 || group.items[0]?.label !== group.title;
+                return (
+                  <div key={group.title} className="grid gap-1">
+                    {showSectionTitle ? (
+                      <p className="px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        {group.title}
+                      </p>
+                    ) : null}
+                    {group.items.map((item) => (
+                      <SideLink key={item.to} {...item} icon={navIconForItem(item.to)} />
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-auto grid gap-1 border-t border-border pt-4">
+              <button
+                type="button"
+                className="press flex min-h-12 w-full items-center gap-3 rounded-lg px-3 text-left font-semibold text-foreground hover:bg-muted"
+                onClick={() => void signOut()}
+              >
+                <LogOut className="size-5 shrink-0" aria-hidden />
+                Sair
+              </button>
+            </div>
           </nav>
-          <div className="mt-auto pt-4">
-            <Button variant="soft" type="button" onClick={() => void signOut()}>
-              Sair
-            </Button>
-          </div>
         </aside>
         <div className="flex min-h-0 min-w-0 flex-col">
           <header className="z-10 flex shrink-0 items-center justify-between gap-3 border-b border-border bg-card px-4 py-2">
@@ -100,16 +139,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 }
 
 function SideLink({ to, label, icon: Icon }: ShellNavItem & { icon: typeof House }) {
+  const location = useLocation();
+  const extratoKind = relatoriosExtratoNavKind(to);
+
   return (
     <NavLink
       to={to}
-      end={!['/relatorios', '/parcelamentos', '/caixinhas'].includes(to)}
-      className={({ isActive }) =>
-        cx(
+      end={!['/parcelamentos', '/caixinhas'].includes(to.split('?')[0] ?? to)}
+      className={({ isActive }) => {
+        const active =
+          extratoKind !== null
+            ? isRelatoriosExtratoNavActive(location.pathname, location.search, to)
+            : isActive;
+        return cx(
           'flex min-h-12 items-center gap-3 rounded-lg px-3 font-semibold',
-          isActive ? 'bg-brand-soft text-primary' : 'text-foreground',
-        )
-      }
+          active ? 'bg-brand-soft text-primary' : 'text-foreground',
+        );
+      }}
     >
       <Icon className="size-5" aria-hidden />
       {label}
