@@ -1,15 +1,27 @@
 import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useBank } from '../components/bank-context';
-import { Card, EmptyState, money } from '../components/ui';
+import {
+  FinanceMovementList,
+  FinanceMovementRow,
+  ledgerDirectionToFlow,
+} from '../components/finance-movement-row';
+import { EmptyState } from '../components/ui';
 import { buildLedger, filterLedgerByExtratoKind } from '../domain/ledger/build-ledger';
 import { EXTRATO_KIND_OPTIONS, ExtratoKind, parseExtratoKind } from '../domain/ledger/extrato-kind';
+import { LedgerDirection } from '../domain/ledger/ledger-direction';
+import type { LedgerLine } from '../domain/ledger/ledger-line';
 
 function extratoKindLabel(kind: ExtratoKind): string {
   return EXTRATO_KIND_OPTIONS.find((option) => option.value === kind)?.label ?? 'Extrato';
 }
-import { LedgerDirection } from '../domain/ledger/ledger-direction';
-import { formatCalendarDateBr } from '../domain/pdf/format-calendar-date-br';
+
+function ledgerFlowLabel(line: LedgerLine): string | undefined {
+  if (line.kind === ExtratoKind.CashBox) {
+    return line.direction === LedgerDirection.In ? 'Aporte' : 'Resgate';
+  }
+  return undefined;
+}
 
 const KIND_HINTS: Record<ExtratoKind, string> = {
   [ExtratoKind.Payables]: 'Lançamentos de contas a pagar aparecerão aqui quando a área estiver ativa no Financeiro.',
@@ -43,26 +55,19 @@ export function ExtratoPage() {
         lines.length === 0 ? (
           <EmptyState title="Nenhum lançamento" text={KIND_HINTS[kind]} />
         ) : (
-          <ul className="grid gap-2">
+          <FinanceMovementList>
             {lines.map((line) => (
               <li key={line.id}>
-                <Card className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="font-semibold">{line.label}</p>
-                    <p className="text-sm text-muted-foreground">{formatCalendarDateBr(line.date)}</p>
-                  </div>
-                  <p
-                    className={`text-lg font-semibold tabular-nums ${
-                      line.direction === LedgerDirection.Out ? 'text-accent' : 'text-primary'
-                    }`}
-                  >
-                    {line.direction === LedgerDirection.Out ? '−' : '+'}
-                    {money(line.amountCents)}
-                  </p>
-                </Card>
+                <FinanceMovementRow
+                  title={line.label}
+                  date={line.date}
+                  flow={ledgerDirectionToFlow(line.direction)}
+                  amountCents={line.amountCents}
+                  flowLabel={ledgerFlowLabel(line)}
+                />
               </li>
             ))}
-          </ul>
+          </FinanceMovementList>
         )
       ) : (
         <EmptyState title="Extrato em desenvolvimento" text={KIND_HINTS[kind]} />

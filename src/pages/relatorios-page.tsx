@@ -25,7 +25,7 @@ const EXTRATO_HUB_DESCRIPTIONS: Record<ExtratoKind, string> = {
   [ExtratoKind.Receivables]: 'Contas a receber — em desenvolvimento.',
   [ExtratoKind.Installments]: 'Parcelas pagas e pendentes.',
   [ExtratoKind.CashBox]: 'Aportes e resgates das caixinhas.',
-  [ExtratoKind.FreeBalance]: 'Saídas registradas do saldo livre.',
+  [ExtratoKind.FreeBalance]: 'Entradas e saídas registradas do saldo livre.',
 };
 
 const extratoItems = EXTRATO_KIND_OPTIONS.map((option) => ({

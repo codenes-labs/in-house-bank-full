@@ -1,6 +1,15 @@
-import { CashBoxMovementType } from '../domain/enums/cash-box-movement-type';
 import type { CashBoxMovementMonthGroup } from '../domain/cash-boxes/group-cash-box-movements-by-month';
+import { CashBoxMovementType } from '../domain/enums/cash-box-movement-type';
+import { FinanceMovementList, FinanceMovementRow } from './finance-movement-row';
 import { money } from './ui';
+
+function cashBoxMovementTitle(type: CashBoxMovementType, note?: string): string {
+  const trimmed = note?.trim();
+  if (trimmed) {
+    return trimmed;
+  }
+  return type === CashBoxMovementType.Deposit ? 'Aporte na caixinha' : 'Resgate da caixinha';
+}
 
 export function CashBoxHistoryByMonth({ groups }: { groups: CashBoxMovementMonthGroup[] }) {
   if (groups.length === 0) {
@@ -19,17 +28,22 @@ export function CashBoxHistoryByMonth({ groups }: { groups: CashBoxMovementMonth
                 : 'Sem aportes no mês'}
             </span>
           </header>
-          <ul className="grid gap-1 text-sm">
-            {group.movements.map((movement) => (
-              <li key={movement.id} className="flex items-center justify-between gap-2 rounded-lg bg-muted px-3 py-2">
-                <span>
-                  {movement.type === CashBoxMovementType.Deposit ? 'Aporte' : 'Resgate'} ·{' '}
-                  {movement.date.split('-').reverse().join('/')}
-                </span>
-                <span className="font-semibold tabular-nums">{money(movement.amountCents)}</span>
-              </li>
-            ))}
-          </ul>
+          <FinanceMovementList>
+            {group.movements.map((movement) => {
+              const isDeposit = movement.type === CashBoxMovementType.Deposit;
+              return (
+                <li key={movement.id}>
+                  <FinanceMovementRow
+                    title={cashBoxMovementTitle(movement.type, movement.note)}
+                    date={movement.date}
+                    flow={isDeposit ? 'in' : 'out'}
+                    amountCents={movement.amountCents}
+                    flowLabel={isDeposit ? 'Aporte' : 'Resgate'}
+                  />
+                </li>
+              );
+            })}
+          </FinanceMovementList>
         </section>
       ))}
     </div>

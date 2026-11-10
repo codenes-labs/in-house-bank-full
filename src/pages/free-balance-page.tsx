@@ -1,6 +1,11 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useBank } from '../components/bank-context';
+import {
+  FinanceMovementList,
+  FinanceMovementRow,
+  type MovementFlow,
+} from '../components/finance-movement-row';
 import { MaskedMoneyInput } from '../components/masked-inputs';
 import { DepositActionButton, WithdrawalActionButton } from '../components/standard-action-buttons';
 import { Card, money } from '../components/ui';
@@ -10,12 +15,28 @@ import { applyFreeBalanceWithdrawal } from '../domain/finance/apply-free-balance
 import { milestonesOrDefault } from '../domain/finance/default-milestones';
 import { createId } from '../domain/ids/create-id';
 import { brlStringToCents } from '../domain/money/brl-input';
-import { formatCalendarDateBr } from '../domain/pdf/format-calendar-date-br';
+import type { CalendarDate } from '../domain/models/calendar-date';
 
 const MovementKind = {
   Deposit: 'DEPOSIT',
   Withdrawal: 'WITHDRAWAL',
 } as const;
+
+type RecentMovement = {
+  id: string;
+  date: CalendarDate;
+  amountCents: number;
+  flow: MovementFlow;
+  detail?: string;
+};
+
+function recentMovementTitle(movement: RecentMovement): string {
+  const detail = movement.detail?.trim();
+  if (detail) {
+    return detail;
+  }
+  return movement.flow === 'in' ? 'Entrada no saldo livre' : 'Resgate do saldo livre';
+}
 
 export function FreeBalancePage() {
   const bank = useBank();
@@ -25,20 +46,20 @@ export function FreeBalancePage() {
     ...bank.snapshot.settings,
     milestonesCents: milestonesOrDefault(bank.snapshot.settings.milestonesCents),
   };
-  const recentMovements = useMemo(() => {
-    const rows = [
+  const recentMovements = useMemo((): RecentMovement[] => {
+    const rows: RecentMovement[] = [
       ...bank.snapshot.freeBalanceDeposits.map((deposit) => ({
         id: `deposit:${deposit.id}`,
         date: deposit.date,
         amountCents: deposit.amountCents,
-        kind: 'Entrada' as const,
+        flow: 'in' as const,
         detail: deposit.note,
       })),
       ...bank.snapshot.freeBalanceWithdrawals.map((withdrawal) => ({
         id: `withdrawal:${withdrawal.id}`,
         date: withdrawal.date,
         amountCents: withdrawal.amountCents,
-        kind: 'Saída' as const,
+        flow: 'out' as const,
         detail: withdrawal.note,
       })),
     ];
@@ -121,21 +142,20 @@ export function FreeBalancePage() {
           </div>
         </form>
         {recentMovements.length > 0 ? (
-          <div className="grid gap-2 border-t border-border pt-3">
-            <h3 className="text-sm font-semibold">Últimos lançamentos</h3>
-            <ul className="grid gap-1 text-sm">
+          <div className="grid gap-2 border-t border-border pt-4">
+            <h3 className="text-sm font-semibold text-foreground">Últimos lançamentos</h3>
+            <FinanceMovementList>
               {recentMovements.map((movement) => (
-                <li key={movement.id} className="grid gap-0.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-muted-foreground">{formatCalendarDateBr(movement.date)}</span>
-                    <span className="tabular-nums">
-                      <span className="text-muted-foreground">{movement.kind}</span> · {money(movement.amountCents)}
-                    </span>
-                  </div>
-                  {movement.detail ? <p className="text-muted-foreground">{movement.detail}</p> : null}
+                <li key={movement.id}>
+                  <FinanceMovementRow
+                    title={recentMovementTitle(movement)}
+                    date={movement.date}
+                    flow={movement.flow}
+                    amountCents={movement.amountCents}
+                  />
                 </li>
               ))}
-            </ul>
+            </FinanceMovementList>
           </div>
         ) : null}
       </Card>
