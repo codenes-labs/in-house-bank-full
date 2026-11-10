@@ -95,14 +95,11 @@ export function TextArea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return <textarea className={cx(controlClass, 'min-h-28 py-3', props.className)} {...props} />;
 }
 
-/** Textarea com fundo brand-soft e cantos arredondados (carnê / mensagens). */
+/** Textarea arredondado para textos longos (carnê / mensagens), alinhado aos demais controles. */
 export function SoftTextArea({ className, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return (
     <textarea
-      className={cx(
-        'field-control min-h-28 w-full resize-none rounded-2xl border border-border/70 bg-brand-soft px-4 py-3 text-base text-foreground shadow-[var(--shadow-control)] outline-none transition-[box-shadow,border-color] focus:border-ring focus:ring-2 focus:ring-ring/25',
-        className,
-      )}
+      className={cx(controlClass, 'min-h-28 resize-none rounded-2xl py-3', className)}
       {...props}
     />
   );

@@ -113,7 +113,7 @@ export function SaveActionButton({
 
 export function CancelActionButton({ label = 'Cancelar', layout = 'inline', className, ...props }: StandardActionProps) {
   return (
-    <Button type="button" variant="ghost" className={cx(layoutClass(layout), className)} {...props}>
+    <Button type="button" variant="soft" className={cx(layoutClass(layout), className)} {...props}>
       <X className="size-4 shrink-0" aria-hidden />
       {actionLabel(label)}
     </Button>

@@ -58,9 +58,9 @@ export function CreateCashBoxPanel({
         <Field label="% do CDI"><MaskedRateInput name="cdi" defaultValue="100" /></Field>
         <Field label="Saldo inicial"><MaskedMoneyInput name="balance" defaultValue="0,00" /></Field>
         <Field label="Limite opcional"><MaskedMoneyInput name="limit" placeholder="0,00" /></Field>
-        <div className={formActionRowClassName}>
-          <CancelActionButton onClick={onClose} />
-          <SaveActionButton type="submit" label="Criar caixinha" />
+        <div className={`${formActionRowClassName} sm:justify-end`}>
+          <CancelActionButton className="flex-1 sm:flex-none" onClick={onClose} />
+          <SaveActionButton type="submit" label="Criar caixinha" className="flex-1 sm:flex-none" />
         </div>
       </form>
     </OverlayPanel>
