@@ -107,7 +107,7 @@ export function StatusPill({
   return (
     <span
       className={cx(
-        'inline-flex min-h-8 items-center rounded-full px-3 text-sm font-semibold',
+        'inline-flex min-h-8 shrink-0 items-center justify-center rounded-full px-3 text-sm font-semibold whitespace-nowrap',
         tone === 'pending' && 'bg-warning-soft text-status-pending',
         tone === 'paid' && 'bg-success-soft text-status-paid',
         tone === 'overdue' && 'bg-danger-soft text-status-overdue',

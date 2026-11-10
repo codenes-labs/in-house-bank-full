@@ -17,9 +17,7 @@ export function buildInstallmentPlanListRows(
     installmentsByPlanId.set(installment.planId, bucket);
   }
 
-  return [...plans]
-    .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
-    .map((plan) => {
+  return plans.map((plan) => {
       const planInstallments = [...(installmentsByPlanId.get(plan.id) ?? [])].sort(
         (left, right) => left.number - right.number,
       );

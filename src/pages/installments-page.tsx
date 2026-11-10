@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Plus, SlidersHorizontal } from 'lucide-react';
 import { useBank } from '../components/bank-context';
@@ -15,8 +15,19 @@ import {
   InstallmentPlanListSort,
   sortInstallmentPlanListRows,
 } from '../domain/installments/sort-installment-plan-list-rows';
+import {
+  formatCalendarDateBr,
+  nextOpenInstallmentDueDate,
+} from '../domain/installments/next-open-installment-due';
 import { planStatusLabel } from '../domain/installments/status-labels';
 import { PlanStatus } from '../domain/enums/plan-status';
+import {
+  clampPage,
+  INSTALLMENT_PLAN_LIST_PAGE_SIZE,
+  needsListPagination,
+  sliceListPage,
+  totalPages,
+} from '../domain/pagination/list-page';
 
 const filters = [
   [InstallmentPlanListStatusFilter.All, 'Todos'],
@@ -36,6 +47,7 @@ export function InstallmentsPage() {
   const [status, setStatus] = useState(initialStatus);
   const [dueDateRange, setDueDateRange] = useState<InstallmentDueDateRange | null>(null);
   const [sort, setSort] = useState<InstallmentPlanListSort>(defaultSort);
+  const [page, setPage] = useState(1);
   const today = todayCalendarDate();
   const rows = useMemo(() => {
     const built = buildInstallmentPlanListRows(
@@ -51,6 +63,23 @@ export function InstallmentsPage() {
     return sortInstallmentPlanListRows(filtered, sort);
   }, [bank.snapshot.installmentPlans, bank.snapshot.installments, dueDateRange, search, sort, status, today]);
 
+  const paginate = needsListPagination(rows.length, INSTALLMENT_PLAN_LIST_PAGE_SIZE);
+  const pageCount = totalPages(rows.length, INSTALLMENT_PLAN_LIST_PAGE_SIZE);
+  const currentPage = clampPage(page, rows.length, INSTALLMENT_PLAN_LIST_PAGE_SIZE);
+  const visibleRows = paginate
+    ? sliceListPage(rows, currentPage, INSTALLMENT_PLAN_LIST_PAGE_SIZE)
+    : rows;
+
+  useEffect(() => {
+    setPage(1);
+  }, [dueDateRange, search, sort, status]);
+
+  useEffect(() => {
+    if (page !== currentPage) {
+      setPage(currentPage);
+    }
+  }, [currentPage, page]);
+
   const filtersActive =
     search.trim() !== '' ||
     dueDateRange !== null ||
@@ -62,6 +91,7 @@ export function InstallmentsPage() {
     setDueDateRange(null);
     setStatus(defaultStatus);
     setSort(defaultSort);
+    setPage(1);
   }
 
   return (
@@ -148,44 +178,79 @@ export function InstallmentsPage() {
           ) : null}
         </div>
       ) : (
-        <div className="grid gap-2">
-          <div className="hidden grid-cols-[1.2fr_0.8fr_auto_auto_auto] gap-3 px-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground lg:grid">
-            <span>Pagador</span>
-            <span>Referência</span>
-            <span>Status</span>
-            <span>Retorno</span>
-            <span>Pagas</span>
-          </div>
-          {rows.map((row) => (
-            <Link key={row.plan.id} to={`/parcelamentos/${row.plan.id}`} className="block">
-              <Card className="press grid gap-2 transition-colors hover:border-primary/30 lg:grid-cols-[1.2fr_0.8fr_auto_auto_auto] lg:items-center lg:gap-3">
-                <div className="flex items-start justify-between gap-2 lg:contents">
-                  <div className="min-w-0">
-                    <p className="truncate font-semibold">{row.plan.borrowerName}</p>
-                    <p className="text-sm text-muted-foreground lg:hidden">{row.plan.reference}</p>
-                  </div>
-                  <StatusPill
-                    className="max-lg:shrink-0 lg:!hidden"
-                    label={planStatusLabel(row.planStatus)}
-                    tone={toneForPlan(row.planStatus)}
-                  />
-                </div>
-                <span className="hidden truncate text-muted-foreground lg:block">{row.plan.reference}</span>
-                <StatusPill
-                  className="max-lg:!hidden lg:inline-flex w-fit"
-                  label={planStatusLabel(row.planStatus)}
-                  tone={toneForPlan(row.planStatus)}
-                />
-                <div className="flex items-baseline justify-between gap-3 lg:contents">
-                  <span className="font-semibold tabular-nums">{money(row.plan.returnAmountCents)}</span>
-                  <span className="text-sm text-muted-foreground tabular-nums">
-                    {row.paidCount}/{row.installments.length}
-                  </span>
-                </div>
-              </Card>
-            </Link>
-          ))}
-        </div>
+        <Card className="min-w-0 overflow-hidden p-0">
+          <ul className="grid list-none gap-0 p-0 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)_6.25rem_5.5rem_minmax(4.75rem,auto)_3.75rem] lg:gap-x-3">
+            <li className="col-span-full hidden border-b border-border bg-muted/50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground lg:grid lg:grid-cols-subgrid lg:items-center">
+              <span>Pagador</span>
+              <span>Referência</span>
+              <span className="text-center">Status</span>
+              <span className="text-center">Próx. venc.</span>
+              <span className="text-end">Retorno</span>
+              <span className="text-end">Pagas</span>
+            </li>
+            {visibleRows.map((row) => {
+              const nextDue = nextOpenInstallmentDueDate(row.installments);
+              const nextDueLabel = nextDue ? formatCalendarDateBr(nextDue) : '—';
+              return (
+                <li
+                  key={row.plan.id}
+                  className={cx(
+                    'press col-span-full border-b border-border px-4 py-3 transition-colors',
+                    !paginate && 'last:border-b-0',
+                    'grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1.5',
+                    'hover:bg-muted/40 lg:grid-cols-subgrid lg:grid-rows-1 lg:items-center lg:gap-y-0 lg:hover:bg-muted/50',
+                  )}
+                >
+                  <Link to={`/parcelamentos/${row.plan.id}`} className="contents">
+                    <span className="min-w-0 truncate font-semibold max-lg:col-start-1 max-lg:row-start-1">
+                      {row.plan.borrowerName}
+                    </span>
+                    <span className="min-w-0 truncate text-sm text-muted-foreground max-lg:col-span-2 max-lg:col-start-1 max-lg:row-start-2">
+                      {row.plan.reference}
+                    </span>
+                    <span className="flex shrink-0 justify-end max-lg:col-start-2 max-lg:row-start-1 max-lg:justify-self-end lg:justify-center">
+                      <StatusPill label={planStatusLabel(row.planStatus)} tone={toneForPlan(row.planStatus)} />
+                    </span>
+                    <span className="text-sm text-muted-foreground tabular-nums max-lg:col-start-1 max-lg:row-start-3 lg:text-center">
+                      {nextDueLabel}
+                    </span>
+                    <span className="font-semibold tabular-nums max-lg:col-start-1 max-lg:row-start-4 lg:text-end">
+                      {money(row.plan.returnAmountCents)}
+                    </span>
+                    <span className="text-end text-sm text-muted-foreground tabular-nums max-lg:col-start-2 max-lg:row-start-4 max-lg:self-center">
+                      {row.paidCount}/{row.installments.length}
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+          {paginate ? (
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
+              <Button
+                type="button"
+                variant="soft"
+                className="min-h-10"
+                disabled={currentPage <= 1}
+                onClick={() => setPage((value) => Math.max(1, value - 1))}
+              >
+                Anterior
+              </Button>
+              <p className="text-sm text-muted-foreground">
+                Página {currentPage} de {pageCount}
+              </p>
+              <Button
+                type="button"
+                variant="soft"
+                className="min-h-10"
+                disabled={currentPage >= pageCount}
+                onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
+              >
+                Próxima
+              </Button>
+            </div>
+          ) : null}
+        </Card>
       )}
     </div>
   );

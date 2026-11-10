@@ -1,6 +1,6 @@
 import { compareCalendarDates } from '../calendar/compare-calendar-dates';
-import type { CalendarDate } from '../models/calendar-date';
 import type { InstallmentPlanListRow } from './installment-plan-list-row';
+import { nextOpenInstallmentDueDate } from './next-open-installment-due';
 
 export const InstallmentPlanListSort = {
   NextDue: 'NEXT_DUE',
@@ -10,14 +10,6 @@ export const InstallmentPlanListSort = {
 
 export type InstallmentPlanListSort =
   (typeof InstallmentPlanListSort)[keyof typeof InstallmentPlanListSort];
-
-function nextOpenDueDate(row: InstallmentPlanListRow): CalendarDate | null {
-  const dates = row.installments
-    .filter((installment) => !installment.paidDate)
-    .map((installment) => installment.dueDate)
-    .sort((left, right) => compareCalendarDates(left, right));
-  return dates[0] ?? null;
-}
 
 export function sortInstallmentPlanListRows(
   rows: InstallmentPlanListRow[],
@@ -31,10 +23,14 @@ export function sortInstallmentPlanListRows(
     return copy.sort((left, right) => right.plan.createdAt.localeCompare(left.plan.createdAt));
   }
   return copy.sort((left, right) => {
-    const leftDue = nextOpenDueDate(left);
-    const rightDue = nextOpenDueDate(right);
+    const leftDue = nextOpenInstallmentDueDate(left.installments);
+    const rightDue = nextOpenInstallmentDueDate(right.installments);
     if (leftDue && rightDue) {
-      return compareCalendarDates(leftDue, rightDue);
+      const byDue = compareCalendarDates(leftDue, rightDue);
+      if (byDue !== 0) {
+        return byDue;
+      }
+      return left.plan.borrowerName.localeCompare(right.plan.borrowerName, 'pt-BR');
     }
     if (leftDue) {
       return -1;
@@ -42,6 +38,6 @@ export function sortInstallmentPlanListRows(
     if (rightDue) {
       return 1;
     }
-    return right.plan.createdAt.localeCompare(left.plan.createdAt);
+    return left.plan.borrowerName.localeCompare(right.plan.borrowerName, 'pt-BR');
   });
 }
