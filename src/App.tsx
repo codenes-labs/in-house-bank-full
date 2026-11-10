@@ -19,7 +19,9 @@ import { RelatoriosPage } from './pages/relatorios-page';
 import { ReportsPage } from './pages/reports-page';
 import { SettingsAccountPage } from './pages/settings/settings-account-page';
 import { SettingsBackupPage } from './pages/settings/settings-backup-page';
+import { SettingsFinancialPage } from './pages/settings/settings-financial-page';
 import { SettingsGeneralPage } from './pages/settings/settings-general-page';
+import { SettingsUserPage } from './pages/settings/settings-user-page';
 import { SettingsHubPage } from './pages/settings/settings-hub-page';
 import { SettingsInstallmentsPage } from './pages/settings/settings-installments-page';
 import { SettingsLayout } from './pages/settings/settings-layout';
@@ -110,8 +112,10 @@ export default function App() {
         <Route path="/configuracoes">
           <Route index element={<SettingsHubPage />} />
           <Route element={<SettingsLayout />}>
+            <Route path="usuario" element={<SettingsUserPage />} />
             <Route path="conta" element={<SettingsAccountPage />} />
             <Route path="parcelamentos" element={<SettingsInstallmentsPage />} />
+            <Route path="financeiro" element={<SettingsFinancialPage />} />
             <Route path="gerais" element={<SettingsGeneralPage />} />
             <Route path="backup" element={<SettingsBackupPage />} />
           </Route>

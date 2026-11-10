@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom';
 import {
   ArrowDownUp,
+  Landmark,
   Settings2,
   User,
+  UserRound,
   WalletCards,
   type LucideIcon,
 } from 'lucide-react';
@@ -16,9 +18,15 @@ const hubItems: readonly {
   icon: LucideIcon;
 }[] = [
   {
+    to: '/configuracoes/usuario',
+    label: 'Usuário',
+    description: 'E-mail de login e alteração de senha.',
+    icon: UserRound,
+  },
+  {
     to: '/configuracoes/conta',
-    label: 'Conta',
-    description: 'Beneficiário, documento, cidade, instituição e Pix padrão.',
+    label: 'Beneficiário',
+    description: 'Nome, documento, cidade, instituição e Pix padrão do carnê.',
     icon: User,
   },
   {
@@ -28,15 +36,21 @@ const hubItems: readonly {
     icon: WalletCards,
   },
   {
-    to: '/configuracoes/gerais',
-    label: 'Ajustes gerais',
+    to: '/configuracoes/financeiro',
+    label: 'Ajustes financeiros',
     description: 'CDI das caixinhas e metas de patrimônio na home.',
+    icon: Landmark,
+  },
+  {
+    to: '/configuracoes/gerais',
+    label: 'Configurações gerais',
+    description: 'Tema claro ou escuro e tamanho do texto.',
     icon: Settings2,
   },
   {
     to: '/configuracoes/backup',
     label: 'Importação e exportação',
-    description: 'Backup completo da conta em JSON.',
+    description: 'Exportar e importar backup JSON da conta.',
     icon: ArrowDownUp,
   },
 ];
@@ -44,11 +58,7 @@ const hubItems: readonly {
 export function SettingsHubPage() {
   return (
     <div className="grid gap-4">
-      <SettingsPageHeader
-        title="Configurações"
-        showAccount
-        description="Escolha o que deseja ajustar. Alterar senha fica no menu da conta."
-      />
+      <SettingsPageHeader title="Configurações" description="Escolha o que deseja ajustar." />
       <div className="grid gap-2 lg:grid-cols-2">
         {hubItems.map((item) => (
           <Link key={item.to} to={item.to} className="block">

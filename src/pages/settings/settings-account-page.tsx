@@ -38,7 +38,7 @@ export function SettingsAccountPage() {
 
   return (
     <div className="grid gap-4">
-      <SettingsPageHeader title="Conta" description="Dados do beneficiário usados no carnê e no Pix." />
+      <SettingsPageHeader title="Beneficiário" description="Dados usados no carnê e no Pix padrão." />
       <SettingsAlerts notice={notice} error={error} />
       <form className="grid gap-3" onSubmit={(event) => void save(event)}>
         <Card className="grid gap-3 md:grid-cols-2">
