@@ -1,13 +1,24 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Pencil } from 'lucide-react';
 import { planWithInstallmentSum } from '../application/plan-with-installment-sum';
 import { useBank } from '../components/bank-context';
 import { MaskedMoneyInput } from '../components/masked-inputs';
 import { OverlayPanel } from '../components/overlay-panel';
 import { buildPlanInstallmentPixCode, PixCopyButton } from '../components/pix-copy-button';
 import { PlanEditForm } from '../components/plan-edit-form';
-import { Button, Card, EmptyState, money, StatusPill, TextInput } from '../components/ui';
+import {
+  actionBarRowClassName,
+  CancelActionButton,
+  CloseActionButton,
+  DeleteActionButton,
+  EditActionButton,
+  MarkPaidActionButton,
+  PrintActionButton,
+  SaveActionButton,
+  UndoActionButton,
+  WhatsAppActionButton,
+} from '../components/standard-action-buttons';
+import { Card, cx, EmptyState, Field, money, StatusPill, TextInput } from '../components/ui';
 import { todayCalendarDate } from '../domain/calendar/today-calendar-date';
 import { InstallmentStatus } from '../domain/enums/installment-status';
 import { PlanStatus } from '../domain/enums/plan-status';
@@ -34,6 +45,8 @@ import {
   ReprintSelectionMode,
   selectInstallmentsForReprint,
 } from '../domain/installments/select-installments-for-reprint';
+import { sortPlanInstallmentsForDisplay } from '../domain/installments/sort-plan-installments-for-display';
+import { formatCalendarDateBr } from '../domain/pdf/format-calendar-date-br';
 
 type InstallmentSelectionPurpose = 'delete' | 'download';
 
@@ -43,14 +56,15 @@ export function PlanDetailPage() {
   const bank = useBank();
   const today = todayCalendarDate();
   const planFromStore = bank.snapshot.installmentPlans.find((item) => item.id === planId);
-  const installments = bank.snapshot.installments
-    .filter((item) => item.planId === planId)
-    .sort((left, right) => left.number - right.number);
+  const installments = sortPlanInstallmentsForDisplay(
+    bank.snapshot.installments.filter((item) => item.planId === planId),
+  );
   const [notice, setNotice] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(() => new Set());
   const [selectionPurpose, setSelectionPurpose] = useState<InstallmentSelectionPurpose | null>(null);
   const [carneBusy, setCarneBusy] = useState(false);
+  const [adjustingInstallmentId, setAdjustingInstallmentId] = useState<string | null>(null);
   const merchantCity = bank.snapshot.settings.city || 'SAO PAULO';
   const installmentIds = useMemo(() => installments.map((item) => item.id), [installments]);
   const allSelected = installmentIds.length > 0 && installmentIds.every((id) => selectedIds.has(id));
@@ -195,7 +209,7 @@ export function PlanDetailPage() {
     await persistInstallmentChange(installment, result.installment);
   }
 
-  async function changeAmount(installmentId: string, amount: string, dueDate: string) {
+  async function saveInstallmentAdjust(installmentId: string, amount: string, dueDate: string, paidDate?: string) {
     const installment = installments.find((item) => item.id === installmentId);
     if (!installment) {
       return;
@@ -208,8 +222,12 @@ export function PlanDetailPage() {
       setNotice(result.error === 'INVALID_AMOUNT' ? 'Informe um valor maior que zero.' : 'Data inválida.');
       return;
     }
-    const nextInstallments = installments.map((item) => (item.id === installmentId ? result.installment : item));
-    await persistInstallmentChange(installment, result.installment);
+    let next = result.installment;
+    if (installment.paidDate && paidDate && paidDate !== installment.paidDate) {
+      next = { ...next, paidDate };
+    }
+    const nextInstallments = installments.map((item) => (item.id === installmentId ? next : item));
+    await persistInstallmentChange(installment, next);
     await bank.savePlan(planWithInstallmentSum(plan, nextInstallments));
     setNotice('Parcela atualizada.');
   }
@@ -286,7 +304,7 @@ export function PlanDetailPage() {
             </div>
             <p className="text-sm text-muted-foreground">
               {plan.reference} · retorno {money(plan.returnAmountCents)} · {installments.length} parcela
-              {installments.length === 1 ? '' : 's'}
+              {installments.length === 1 ? '' : 's'} · operação em {formatCalendarDateBr(plan.issueDate)}
             </p>
             {plan.payerPhone ? (
               <p className="text-sm text-muted-foreground">
@@ -297,17 +315,14 @@ export function PlanDetailPage() {
             )}
           </div>
           <div className="flex w-full min-w-0 flex-col gap-2 lg:w-auto lg:items-end">
-            <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="soft" onClick={() => setEditOpen(true)}>
-                <Pencil className="size-4" aria-hidden />
-                Editar
-              </Button>
-              <Button type="button" variant="soft" disabled={carneBusy} onClick={onBaixarCarneClick}>
-                {carneBusy ? 'Reimprimindo…' : 'Reimprimir'}
-              </Button>
-              <Button type="button" variant="danger" onClick={onExcluirClick}>
-                {selectionPurpose === 'delete' ? 'Confirmar exclusão' : 'Excluir'}
-              </Button>
+            <div className={actionBarRowClassName}>
+              <EditActionButton layout="bar" onClick={() => setEditOpen(true)} label="Editar" />
+              <PrintActionButton layout="bar" busy={carneBusy} onClick={onBaixarCarneClick} />
+              <DeleteActionButton
+                layout="bar"
+                onClick={onExcluirClick}
+                label={selectionPurpose === 'delete' ? 'Confirmar exclusão' : 'Excluir'}
+              />
             </div>
             {showSelectionCheckboxes ? (
               <div className="flex flex-wrap items-center gap-2 border-t border-border pt-2">
@@ -321,9 +336,7 @@ export function PlanDetailPage() {
                   />
                   Selecionar todas
                 </label>
-                <Button type="button" variant="ghost" className="min-h-10 px-2" onClick={cancelSelection}>
-                  Cancelar
-                </Button>
+                <CancelActionButton className="min-h-10 px-2" onClick={cancelSelection} />
               </div>
             ) : null}
           </div>
@@ -349,79 +362,113 @@ export function PlanDetailPage() {
                       aria-label={`Selecionar parcela ${installment.number}`}
                     />
                   ) : null}
-                <div className="min-w-0">
-                  <p className="text-sm text-muted-foreground">Parcela {installment.number}</p>
-                  <p className="text-xl font-semibold tabular-nums">{money(installment.amountCents)}</p>
+                  <div className="min-w-0">
+                    <p className="text-sm text-muted-foreground">Parcela {installment.number}</p>
+                    <p className="text-xl font-semibold tabular-nums">{money(installment.amountCents)}</p>
                   <p className="text-sm text-muted-foreground">
-                    Vencimento {installment.dueDate.split('-').reverse().join('/')}
+                    Vencimento {formatCalendarDateBr(installment.dueDate)}
+                    {installment.paidDate ? ` · pago em ${formatCalendarDateBr(installment.paidDate)}` : ''}
                   </p>
-                </div>
+                  </div>
                 </div>
                 <StatusPill label={installmentStatusLabel(status)} tone={tone} />
               </div>
 
-              <div className="grid gap-3 p-4">
+              <div className="flex w-full flex-wrap items-stretch gap-2 p-4 sm:flex-nowrap">
                 {installment.paidDate ? (
-                  <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-                    <TextInput
-                      type="date"
-                      defaultValue={installment.paidDate}
-                      aria-label="Data de pagamento"
-                      onChange={(event) =>
-                        void persistInstallmentChange(installment, {
-                          ...installment,
-                          paidDate: event.target.value,
-                        })
-                      }
-                    />
-                    <Button type="button" variant="ghost" onClick={() => void undo(installment.id)}>
-                      Desfazer pagamento
-                    </Button>
-                  </div>
+                  <>
+                    <UndoActionButton layout="compact" onClick={() => void undo(installment.id)} />
+                    {adjustingInstallmentId === installment.id ? (
+                      <CloseActionButton
+                        layout="compact"
+                        onClick={() => setAdjustingInstallmentId(null)}
+                      />
+                    ) : (
+                      <EditActionButton
+                        layout="compact"
+                        onClick={() => setAdjustingInstallmentId(installment.id)}
+                      />
+                    )}
+                  </>
                 ) : (
                   <>
-                    <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
-                      <TextInput type="date" defaultValue={today} id={`paid-${installment.id}`} aria-label="Data do pagamento" />
-                      <Button
-                        type="button"
-                        onClick={() => {
-                          const input = document.getElementById(`paid-${installment.id}`) as HTMLInputElement | null;
-                          void markPaid(installment.id, input?.value || today);
-                        }}
-                      >
-                        Marcar paga
-                      </Button>
-                      <Button type="button" variant="soft" onClick={() => void charge(installment.id)}>
-                        Cobrar WhatsApp
-                      </Button>
-                    </div>
-                    <PixCopyButton code={pix.code} disabledReason={pix.error} />
+                    <MarkPaidActionButton layout="compact" onClick={() => void markPaid(installment.id, today)} />
+                    <WhatsAppActionButton layout="compact" onClick={() => void charge(installment.id)} />
+                    <PixCopyButton
+                      code={pix.code}
+                      disabledReason={pix.error}
+                      className="min-h-10 min-w-0 flex-1 basis-[calc(50%-0.25rem)] sm:basis-0"
+                    />
+                    {adjustingInstallmentId === installment.id ? (
+                      <CloseActionButton
+                        layout="compact"
+                        onClick={() => setAdjustingInstallmentId(null)}
+                      />
+                    ) : (
+                      <EditActionButton
+                        layout="compact"
+                        onClick={() => setAdjustingInstallmentId(installment.id)}
+                      />
+                    )}
                   </>
                 )}
               </div>
 
-              <div className="grid gap-3 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Ajustar parcela</p>
-                <form
-                  className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    const data = new FormData(event.currentTarget);
-                    void changeAmount(installment.id, String(data.get('amount')), String(data.get('due')));
-                  }}
-                >
-                  <MaskedMoneyInput
-                    key={installment.id}
-                    name="amount"
-                    defaultValue={formatCentsAsBrl(installment.amountCents)}
-                    aria-label="Valor da parcela"
-                  />
-                  <TextInput name="due" type="date" defaultValue={installment.dueDate} aria-label="Vencimento" />
-                  <Button type="submit" variant="soft">
-                    Salvar
-                  </Button>
-                </form>
-              </div>
+              {adjustingInstallmentId === installment.id ? (
+                <div className="grid gap-3 border-t border-border p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Ajustar parcela</p>
+                  <form
+                    className={cx(
+                      'grid w-full gap-2 sm:items-end',
+                      installment.paidDate
+                        ? 'sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]'
+                        : 'sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]',
+                    )}
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      const data = new FormData(event.currentTarget);
+                      void saveInstallmentAdjust(
+                        installment.id,
+                        String(data.get('amount')),
+                        String(data.get('due')),
+                        installment.paidDate ? String(data.get('paidDate') ?? '') : undefined,
+                      ).then(() => setAdjustingInstallmentId(null));
+                    }}
+                  >
+                    <Field label="Valor">
+                      <MaskedMoneyInput
+                        key={`${installment.id}-amount`}
+                        name="amount"
+                        className="min-h-10"
+                        defaultValue={formatCentsAsBrl(installment.amountCents)}
+                      />
+                    </Field>
+                    <Field label="Vencimento">
+                      <TextInput
+                        name="due"
+                        type="date"
+                        className="min-h-10 text-sm"
+                        defaultValue={installment.dueDate}
+                      />
+                    </Field>
+                    {installment.paidDate ? (
+                      <Field label="Data do pagamento">
+                        <TextInput
+                          name="paidDate"
+                          type="date"
+                          className="min-h-10 text-sm"
+                          defaultValue={installment.paidDate}
+                        />
+                      </Field>
+                    ) : null}
+                    <SaveActionButton
+                      type="submit"
+                      variant="soft"
+                      className="min-h-10 w-full sm:w-auto sm:min-w-[6.75rem]"
+                    />
+                  </form>
+                </div>
+              ) : null}
             </Card>
           );
         })}
