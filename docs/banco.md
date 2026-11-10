@@ -17,6 +17,6 @@ Cadastro público fechado. Contas criadas pelo seed em `src/server/account-seed.
 | Conta | Login | Senha inicial | Comportamento |
 | --- | --- | --- | --- |
 | Admin | `admin@codenes.com.br` | `CodenesTemp1` | Dados reais; trocar senha em `/alterar-senha` no primeiro acesso |
-| Demo | `teste` ou `teste@teste.com` | `teste` | Dados fictícios; ao sair e entrar de novo, volta ao mock |
+| Demo | `teste` ou `teste@teste.com` | `teste` | Dados fictícios; mutações ficam só na sessão (memória no app). O banco não grava alterações; cada login restaura o mock |
 
 Recuperação de senha: `/recuperar-senha` (e-mail + nova senha). Não vale para a conta demo.

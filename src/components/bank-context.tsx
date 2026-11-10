@@ -9,6 +9,7 @@ import type { Settings } from '../domain/models/settings';
 import type { GeneratedInstallmentPlanBundle } from '../domain/quick-generator/create-installment-plan-from-generator';
 import { createEmptySnapshot, type BankSnapshot } from '../repositories/bank-repository';
 import { createHttpBankRepository } from '../repositories/http-bank-repository';
+import { createMemoryBankRepository } from '../repositories/memory-bank-repository';
 import type { BankRepository } from '../repositories/bank-repository';
 import { useAuth } from './auth-context';
 import { useTheme } from './theme';
@@ -35,6 +36,7 @@ const BankContext = createContext<BankContextValue | null>(null);
 
 export function BankProvider({ children }: { children: ReactNode }) {
   const { session } = useAuth();
+  const isDemo = session?.user.isDemo ?? false;
   const { setMode } = useTheme();
   const [snapshot, setSnapshot] = useState<BankSnapshot>(createEmptySnapshot());
   const [ready, setReady] = useState(false);
@@ -81,8 +83,9 @@ export function BankProvider({ children }: { children: ReactNode }) {
       if (!repository) {
         throw new Error('Entre na conta para salvar.');
       }
-      await work(repository);
-      setSnapshot(await repository.load());
+      const writer: BankRepository = isDemo ? createMemoryBankRepository(snapshot) : repository;
+      await work(writer);
+      setSnapshot(await writer.load());
     }
 
     return {
@@ -109,7 +112,7 @@ export function BankProvider({ children }: { children: ReactNode }) {
         run((repo) => repo.saveFreeBalanceWithdrawal(withdrawal, settings)),
       importBackup: (backup) => run((repo) => repo.importBackup(backup)),
     };
-  }, [error, ready, snapshot, userId]);
+  }, [error, isDemo, ready, snapshot, userId]);
 
   return <BankContext.Provider value={value}>{children}</BankContext.Provider>;
 }

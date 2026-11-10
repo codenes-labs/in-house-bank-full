@@ -26,6 +26,7 @@ import {
   mapSettings,
   type Row,
 } from './rows';
+import { DEMO_PERSISTENCE_ERROR, rejectsDemoPersistence } from './demo-persistence';
 import { buildOpenApiDocument } from './openapi-document';
 import {
   deleteCashBox,
@@ -120,6 +121,9 @@ async function route(sql: Sql, request: Request, jwtSecret: string): Promise<Res
   }
   if (account.mustChangePassword) {
     return json({ error: 'Defina uma nova senha para continuar.' }, 403);
+  }
+  if (rejectsDemoPersistence(account.isDemo, request.method, pathname)) {
+    return json({ error: DEMO_PERSISTENCE_ERROR }, 403);
   }
 
   if (pathname === '/api/bank' && request.method === 'GET') {
