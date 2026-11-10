@@ -42,8 +42,8 @@ Rotas públicas extras: `/docs` (hub técnico: stack, arquitetura, Neon, CI/CD, 
 ## Outras telas (resumo)
 
 - **Início:** dashboard (SPEC-08 pendente em parte).
-- **Financeiro:** KPIs clicáveis (saldo livre, caixinhas), patrimônio e rendimento estimado; cards **Contas a receber** e **Contas a pagar** só visuais (não clicáveis, SPEC-10). **Saldo livre** → `/financeiro/saldo-livre` (entrada/saída; histórico de entradas auditáveis e saídas). Ao **excluir caixinha**, o saldo vira entrada no saldo livre com nota `Resgate da caixinha {nome}`. Parcela paga credita o saldo livre. Conta **demo:** até 3 caixinhas com movimentos e saldo livre fictício no snapshot de código (`demo-cash-box-data.ts`).
-- **Relatórios / Extrato:** filtro **Saldo livre** e **Caixinha** listam linhas de `buildLedger`; demais tipos ainda em desenvolvimento. Resumo: gráficos Recharts (SPEC-10 prevê extrato em texto no resumo — não implementado).
+- **Financeiro:** KPIs clicáveis (saldo livre, caixinhas), patrimônio e rendimento estimado; cards **Contas a receber** e **Contas a pagar** só visuais (não clicáveis, SPEC-10). **Saldo livre** → `/financeiro/saldo-livre` (entrada/saída; card **Histórico** por mês, últimos 30 dias). Ao **excluir caixinha**, o saldo vira entrada no saldo livre com nota `Resgate da caixinha {nome}`. Parcela paga credita o saldo livre. Conta **demo:** até 3 caixinhas com movimentos e saldo livre fictício no snapshot (`demo-cash-box-data.ts`); extrato e histórico mostram **todos os meses** das movimentações fictícias (contas reais usam mês atual / 30 dias).
+- **Relatórios / Extrato:** **Saldo livre** e **Caixinha** com período do mês (PDF, limpar filtro, card **Histórico** por mês); demais tipos ainda em desenvolvimento. Resumo: gráficos Recharts (SPEC-10 prevê extrato em texto no resumo — não implementado).
 - **Configurações:** hub com Usuário, Beneficiário, Parcelamentos, Financeiro, Gerais e Backup (SPEC-12).
 
 ## Contas e seed

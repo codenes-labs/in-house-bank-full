@@ -63,6 +63,12 @@ A parcela usa o vencimento porque o modelo não tem data de criação. Não acre
 
 Cada linha tem `id` estável (`origem:id`), data, rótulo em português, `amountCents` e o sentido. A tela `/extrato` lista isso. Não edita nem apaga por ali.
 
+Extrato **Caixinha** (`tipo=caixinha`): filtro de período com padrão do **1º ao último dia do mês atual**; a pessoa pode escolher outro intervalo no calendário, voltar ao mês atual com **Limpar filtro** (abaixo do calendário) e baixar **PDF** do período filtrado (nome `extrato-caixinha-{de}_{ate}.pdf`).
+
+Saldo livre em **Relatórios → Saldo livre** (`tipo=saldo-livre`): mesmo padrão do extrato Caixinha (período do mês atual, **Limpar filtro**, PDF, **Card** com histórico agrupado por mês).
+
+Em `/financeiro/saldo-livre`: **Card Histórico** com agrupamento mensal dos **últimos 30 dias** (lançamentos ficam em card separado do formulário de entrada/saída).
+
 Aceite: um aporte, uma parcela paga e uma conta paga aparecem com as datas certas e a ordem da mais nova para a mais antiga. Apagar o aporte some a linha, porque ela é derivada.
 
 ### 4. Caixinhas
