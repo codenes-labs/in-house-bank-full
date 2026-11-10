@@ -5,7 +5,8 @@ import {
   MaskedInstallmentCountInput,
 } from '../../components/masked-inputs';
 import { SaveActionButton } from '../../components/standard-action-buttons';
-import { Card, Field, SelectInput, SoftTextArea, TextInput } from '../../components/ui';
+import { IconFileInput } from '../../components/icon-file-input';
+import { Card, Field, SelectInput, SoftTextArea } from '../../components/ui';
 import { DefaultInterestType } from '../../domain/enums/default-interest-type';
 import { validateSettings } from '../../domain/settings/validate-settings';
 import {
@@ -83,37 +84,43 @@ export function SettingsInstallmentsPage() {
           <Field label="Termo de responsabilidade">
             <SoftTextArea name="responsibilityTerm" rows={5} defaultValue={settings.responsibilityTerm ?? ''} />
           </Field>
-          <div className="grid gap-1.5">
-            <p className="text-xs leading-snug text-muted-foreground">
-              Tags disponíveis:{' '}
-              {WHATSAPP_MESSAGE_TAGS.map((tag) => (
-                <code key={tag} className="mr-1 font-mono text-[11px] text-foreground">
-                  {`{${tag}}`}
-                </code>
-              ))}
-            </p>
-            <Field label="Mensagem do WhatsApp">
-              <SoftTextArea
-                name="whatsappMessageTemplate"
-                rows={5}
-                defaultValue={settings.whatsappMessageTemplate ?? DEFAULT_WHATSAPP_MESSAGE}
-              />
-            </Field>
-          </div>
+          <Field label="Mensagem do WhatsApp">
+            <div className="grid gap-1.5 font-normal">
+              <p className="text-xs leading-snug text-muted-foreground">Tags disponíveis</p>
+              <div className="flex flex-wrap gap-1.5">
+                {WHATSAPP_MESSAGE_TAGS.map((tag) => (
+                  <code
+                    key={tag}
+                    className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[11px] leading-none text-foreground"
+                  >
+                    {`{${tag}}`}
+                  </code>
+                ))}
+              </div>
+            </div>
+            <SoftTextArea
+              name="whatsappMessageTemplate"
+              rows={5}
+              defaultValue={settings.whatsappMessageTemplate ?? DEFAULT_WHATSAPP_MESSAGE}
+            />
+          </Field>
           <Field label="Logotipo do carnê">
-            <TextInput
-              type="file"
+            <IconFileInput
               accept="image/png,image/jpeg"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (!file) {
-                  return;
-                }
-                void resizeLogoFile(file).then((logoDataUrl) => {
-                  void bank.saveSettings({ ...settings, logoDataUrl });
-                  setNotice('Logotipo atualizado.');
-                  setError(null);
-                });
+              ariaLabel="Enviar logotipo do carnê"
+              title="Arraste a imagem aqui"
+              hint="PNG ou JPG — até 10 MB"
+              onReject={(message) => setError(message)}
+              onFileSelected={(file) => {
+                void resizeLogoFile(file)
+                  .then((logoDataUrl) => {
+                    void bank.saveSettings({ ...settings, logoDataUrl });
+                    setNotice('Logotipo atualizado.');
+                    setError(null);
+                  })
+                  .catch((cause) => {
+                    setError(cause instanceof Error ? cause.message : 'Não foi possível enviar a imagem.');
+                  });
               }}
             />
           </Field>
