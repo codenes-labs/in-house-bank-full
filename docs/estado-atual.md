@@ -44,7 +44,7 @@ Rotas públicas extras: `/docs` (hub técnico: stack, arquitetura, Neon, CI/CD, 
 - **Início:** dashboard (SPEC-08 pendente em parte).
 - **Financeiro:** KPIs clicáveis (saldo livre, caixinhas), patrimônio e rendimento estimado; cards **Contas a receber** e **Contas a pagar** só visuais (não clicáveis, SPEC-10). **Saldo livre** → `/financeiro/saldo-livre` (entrada/saída). Parcela paga credita o saldo livre.
 - **Relatórios / Extrato:** filtro **Saldo livre** e **Caixinha** listam linhas de `buildLedger`; demais tipos ainda em desenvolvimento. Resumo: gráficos Recharts (SPEC-10 prevê extrato em texto no resumo — não implementado).
-- **Configurações:** negócio, Pix padrão, CDI, metas, backup.
+- **Configurações:** hub com Conta, Parcelamentos, Ajustes gerais e Backup (SPEC-12).
 
 ## Contas e seed
 

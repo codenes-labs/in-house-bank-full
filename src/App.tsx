@@ -17,7 +17,12 @@ import { NewInstallmentPage } from './pages/new-installment-page';
 import { RelatoriosLayout } from './pages/relatorios-layout';
 import { RelatoriosPage } from './pages/relatorios-page';
 import { ReportsPage } from './pages/reports-page';
-import { SettingsPage } from './pages/settings-page';
+import { SettingsAccountPage } from './pages/settings/settings-account-page';
+import { SettingsBackupPage } from './pages/settings/settings-backup-page';
+import { SettingsGeneralPage } from './pages/settings/settings-general-page';
+import { SettingsHubPage } from './pages/settings/settings-hub-page';
+import { SettingsInstallmentsPage } from './pages/settings/settings-installments-page';
+import { SettingsLayout } from './pages/settings/settings-layout';
 import { AccountChangePasswordPage } from './pages/account-change-password-page';
 import { DocsLayout } from './pages/docs/docs-layout';
 import { DocsApiPage } from './pages/docs/docs-api-page';
@@ -102,7 +107,15 @@ export default function App() {
             <Route path="resumo" element={<ReportsPage />} />
           </Route>
         </Route>
-        <Route path="/configuracoes" element={<SettingsPage />} />
+        <Route path="/configuracoes">
+          <Route index element={<SettingsHubPage />} />
+          <Route element={<SettingsLayout />}>
+            <Route path="conta" element={<SettingsAccountPage />} />
+            <Route path="parcelamentos" element={<SettingsInstallmentsPage />} />
+            <Route path="gerais" element={<SettingsGeneralPage />} />
+            <Route path="backup" element={<SettingsBackupPage />} />
+          </Route>
+        </Route>
         <Route path="/conta/alterar-senha" element={<AccountChangePasswordPage />} />
         <Route path="/mais" element={<Navigate to="/patrimonio" replace />} />
         <Route path="/a-receber" element={<Navigate to="/relatorios/extrato?tipo=RECEIVABLES" replace />} />
