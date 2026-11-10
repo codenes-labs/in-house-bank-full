@@ -119,7 +119,7 @@ export function DueDateRangePicker({
       <button
         type="button"
         className={cx(
-          'field-control flex min-h-12 w-full items-center justify-between gap-2 rounded-xl border border-border bg-card px-4 text-left text-base outline-none transition-[box-shadow,border-color] focus:border-ring focus:ring-2 focus:ring-ring/25',
+          'field-control flex min-h-12 w-full items-center rounded-xl border border-border bg-card px-4 pr-11 text-left text-base outline-none transition-[box-shadow,border-color] focus:border-ring focus:ring-2 focus:ring-ring/25',
           !label && 'text-muted-foreground',
         )}
         aria-label={ariaLabel}
@@ -128,8 +128,11 @@ export function DueDateRangePicker({
         onClick={() => setOpen((current) => !current)}
       >
         <span className="truncate">{label || placeholder}</span>
-        <Calendar className="size-5 shrink-0 text-muted-foreground" aria-hidden />
       </button>
+      <Calendar
+        className="pointer-events-none absolute top-1/2 right-3 size-5 -translate-y-1/2 text-muted-foreground"
+        aria-hidden
+      />
 
       {open
         ? createPortal(

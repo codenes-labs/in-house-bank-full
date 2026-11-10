@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Plus, SlidersHorizontal } from 'lucide-react';
 import { useBank } from '../components/bank-context';
 import { DueDateRangePicker } from '../components/due-date-range-picker';
+import { FilterField } from '../components/filter-field';
 import { Button, Card, cx, EmptyState, money, SelectInput, StatusPill, TextInput } from '../components/ui';
 import type { InstallmentDueDateRange } from '../domain/installments/installment-due-date-range';
 import { todayCalendarDate } from '../domain/calendar/today-calendar-date';
@@ -267,15 +268,6 @@ function parseStatusParam(raw: string | null): (typeof filters)[number][0] {
     return InstallmentPlanListStatusFilter.Paid;
   }
   return defaultStatus;
-}
-
-function FilterField({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
-  return (
-    <label className={cx('grid min-w-0 gap-1', className)}>
-      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</span>
-      {children}
-    </label>
-  );
 }
 
 function toneForPlan(status: PlanStatus): 'paid' | 'overdue' | 'pending' {
