@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useAuth } from '../components/auth-context';
 import { useBank } from '../components/bank-context';
 import { CashBoxHistoryByMonth } from '../components/cash-box-history-by-month';
 import { DeleteCashBoxPanel } from '../components/delete-cash-box-panel';
@@ -8,7 +9,7 @@ import { MaskedMoneyInput } from '../components/masked-inputs';
 import { Card, EmptyState, money } from '../components/ui';
 import { applyCashBoxMovement } from '../domain/cash-boxes/apply-cash-box-movement';
 import { groupCashBoxMovementsByMonth } from '../domain/cash-boxes/group-cash-box-movements-by-month';
-import { todayCalendarDate } from '../domain/calendar/today-calendar-date';
+import { effectiveTodayForPresentation } from '../domain/demo/demo-presentation-reference-date';
 import { CashBoxMovementType } from '../domain/enums/cash-box-movement-type';
 import { computeFinancialOverview } from '../domain/finance/compute-financial-overview';
 import { milestonesOrDefault } from '../domain/finance/default-milestones';
@@ -18,7 +19,10 @@ import { brlStringToCents } from '../domain/money/brl-input';
 export function CashBoxDetailPage() {
   const { cashBoxId = '' } = useParams();
   const navigate = useNavigate();
+  const auth = useAuth();
   const bank = useBank();
+  const isDemo = auth.session?.user.isDemo ?? false;
+  const today = effectiveTodayForPresentation(isDemo);
   const [notice, setNotice] = useState<string | null>(null);
   const [amountFieldKey, setAmountFieldKey] = useState(0);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -32,7 +36,7 @@ export function CashBoxDetailPage() {
     installments: bank.snapshot.installments,
     settings,
     cashBoxes: bank.snapshot.cashBoxes,
-    today: todayCalendarDate(),
+    today,
   });
   const yieldRow = overview.yieldByCashBox.find((item) => item.cashBoxId === cashBoxId);
   const movements = useMemo(
@@ -63,7 +67,7 @@ export function CashBoxDetailPage() {
       cashBoxId: cashBox.id,
       type,
       amountCents,
-      date: todayCalendarDate(),
+      date: today,
     });
     setNotice(type === CashBoxMovementType.Deposit ? 'Aporte registrado.' : 'Resgate registrado.');
     return true;

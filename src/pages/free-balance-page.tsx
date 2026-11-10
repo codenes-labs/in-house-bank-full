@@ -1,72 +1,54 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../components/auth-context';
 import { useBank } from '../components/bank-context';
-import {
-  FinanceMovementList,
-  FinanceMovementRow,
-  type MovementFlow,
-} from '../components/finance-movement-row';
+import { LedgerHistoryByMonth } from '../components/ledger-history-by-month';
 import { MaskedMoneyInput } from '../components/masked-inputs';
 import { DepositActionButton, WithdrawalActionButton } from '../components/standard-action-buttons';
 import { Card, money } from '../components/ui';
-import { todayCalendarDate } from '../domain/calendar/today-calendar-date';
+import { calendarDateWithinLastDays } from '../domain/calendar/calendar-date-within-last-days';
+import { effectiveTodayForPresentation } from '../domain/demo/demo-presentation-reference-date';
 import { applyFreeBalanceDeposit } from '../domain/finance/apply-free-balance-deposit';
 import { applyFreeBalanceWithdrawal } from '../domain/finance/apply-free-balance-withdrawal';
 import { milestonesOrDefault } from '../domain/finance/default-milestones';
 import { createId } from '../domain/ids/create-id';
 import { brlStringToCents } from '../domain/money/brl-input';
-import type { CalendarDate } from '../domain/models/calendar-date';
+import { buildLedger, filterLedgerByExtratoKind } from '../domain/ledger/build-ledger';
+import { ExtratoKind } from '../domain/ledger/extrato-kind';
+import { groupLedgerLinesByMonth } from '../domain/ledger/group-ledger-lines-by-month';
 
 const MovementKind = {
   Deposit: 'DEPOSIT',
   Withdrawal: 'WITHDRAWAL',
 } as const;
 
-type RecentMovement = {
-  id: string;
-  date: CalendarDate;
-  amountCents: number;
-  flow: MovementFlow;
-  detail?: string;
-};
-
-function recentMovementTitle(movement: RecentMovement): string {
-  const detail = movement.detail?.trim();
-  if (detail) {
-    return detail;
-  }
-  return movement.flow === 'in' ? 'Entrada no saldo livre' : 'Resgate do saldo livre';
-}
+const LAST_MOVEMENTS_DAYS = 30;
 
 export function FreeBalancePage() {
+  const auth = useAuth();
   const bank = useBank();
+  const isDemo = auth.session?.user.isDemo ?? false;
   const [notice, setNotice] = useState<string | null>(null);
   const [amountFieldKey, setAmountFieldKey] = useState(0);
   const settings = {
     ...bank.snapshot.settings,
     milestonesCents: milestonesOrDefault(bank.snapshot.settings.milestonesCents),
   };
-  const recentMovements = useMemo((): RecentMovement[] => {
-    const rows: RecentMovement[] = [
-      ...bank.snapshot.freeBalanceDeposits.map((deposit) => ({
-        id: `deposit:${deposit.id}`,
-        date: deposit.date,
-        amountCents: deposit.amountCents,
-        flow: 'in' as const,
-        detail: deposit.note,
-      })),
-      ...bank.snapshot.freeBalanceWithdrawals.map((withdrawal) => ({
-        id: `withdrawal:${withdrawal.id}`,
-        date: withdrawal.date,
-        amountCents: withdrawal.amountCents,
-        flow: 'out' as const,
-        detail: withdrawal.note,
-      })),
-    ];
-    return rows
-      .sort((left, right) => (left.date < right.date ? 1 : left.date > right.date ? -1 : 0))
-      .slice(0, 8);
-  }, [bank.snapshot.freeBalanceDeposits, bank.snapshot.freeBalanceWithdrawals]);
+  const today = effectiveTodayForPresentation(isDemo);
+
+  const historyGroups = useMemo(() => {
+    const ledger = buildLedger({
+      cashBoxes: bank.snapshot.cashBoxes,
+      cashBoxMovements: bank.snapshot.cashBoxMovements,
+      freeBalanceWithdrawals: bank.snapshot.freeBalanceWithdrawals,
+      freeBalanceDeposits: bank.snapshot.freeBalanceDeposits,
+    });
+    let lines = filterLedgerByExtratoKind(ledger, ExtratoKind.FreeBalance);
+    if (!isDemo) {
+      lines = lines.filter((line) => calendarDateWithinLastDays(line.date, today, LAST_MOVEMENTS_DAYS));
+    }
+    return groupLedgerLinesByMonth(lines);
+  }, [bank.snapshot, isDemo, today]);
 
   return (
     <div className="grid gap-4">
@@ -119,7 +101,7 @@ export function FreeBalancePage() {
                   {
                     id: createId(),
                     amountCents,
-                    date: todayCalendarDate(),
+                    date: today,
                   },
                   { ...bank.snapshot.settings, freeBalanceCents: result.freeBalanceCents },
                 );
@@ -141,23 +123,19 @@ export function FreeBalancePage() {
             <WithdrawalActionButton name="kind" value={MovementKind.Withdrawal} />
           </div>
         </form>
-        {recentMovements.length > 0 ? (
-          <div className="grid gap-2 border-t border-border pt-4">
-            <h3 className="text-sm font-semibold text-foreground">Últimos lançamentos</h3>
-            <FinanceMovementList>
-              {recentMovements.map((movement) => (
-                <li key={movement.id}>
-                  <FinanceMovementRow
-                    title={recentMovementTitle(movement)}
-                    date={movement.date}
-                    flow={movement.flow}
-                    amountCents={movement.amountCents}
-                  />
-                </li>
-              ))}
-            </FinanceMovementList>
-          </div>
-        ) : null}
+      </Card>
+      <Card className="grid gap-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="font-semibold">Histórico</h2>
+          <p className="text-xs text-muted-foreground">
+            {isDemo ? 'Movimentações de demonstração' : `Últimos ${LAST_MOVEMENTS_DAYS} dias`}
+          </p>
+        </div>
+        {historyGroups.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhum lançamento nos últimos {LAST_MOVEMENTS_DAYS} dias.</p>
+        ) : (
+          <LedgerHistoryByMonth groups={historyGroups} />
+        )}
       </Card>
     </div>
   );
