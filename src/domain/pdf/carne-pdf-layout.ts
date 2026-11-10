@@ -4,7 +4,7 @@ export const CARNE_PDF_PAGE_WIDTH_PT = 595.28;
 export const CARNE_PDF_PAGE_HEIGHT_PT = 841.89;
 
 export const CARNE_PDF_PAGE_MARGIN_PT = 24;
-export const CARNE_PDF_HEADER_BLOCK_HEIGHT_PT = 52;
+export const CARNE_PDF_HEADER_BLOCK_HEIGHT_PT = 58;
 export const CARNE_PDF_FOOTER_HEIGHT_PT = 18;
 export const CARNE_PDF_ROW_GAP_PT = 5;
 
@@ -21,17 +21,25 @@ export function computeCarneInstallmentRowHeightPt(
 }
 
 export const CARNE_PDF_COLORS = {
+  headerBar: '#1E3A8A',
+  headerSubtext: '#DBEAFE',
+  stubBg: '#ECFDF5',
+  pixBoxBg: '#FFFFFF',
+  valueBoxBg: '#1E3A8A',
+  valueBoxLabel: '#DBEAFE',
+  valueBoxAmount: '#FFFFFF',
   primary700: '#1E3A8A',
   primary600: '#1D4ED8',
   primary50: '#DBEAFE',
   accent: '#0F766E',
-  valueBoxBg: '#CCFBF1',
+  accentBright: '#14B8A6',
   text: '#0F172A',
   muted: '#475569',
   label: '#64748B',
   pixCode: '#334155',
   border: '#E2E8F0',
-  stubDivider: '#93C5FD',
+  stubDivider: '#CBD5E1',
+  cardShadow: '#E2E8F0',
   white: '#FFFFFF',
 } as const;
 
