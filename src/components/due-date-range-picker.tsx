@@ -1,4 +1,5 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState, type CSSProperties, type RefObject } from 'react';
+import { createPortal } from 'react-dom';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   addCalendarMonths,
@@ -30,7 +31,9 @@ export function DueDateRangePicker({
 }) {
   const listboxId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
+  const [rangeMode, setRangeMode] = useState(false);
   const [view, setView] = useState(() => monthViewFrom(value?.from ?? todayCalendarDate()));
   const [anchor, setAnchor] = useState<CalendarDate | null>(null);
   const [hoverDate, setHoverDate] = useState<CalendarDate | null>(null);
@@ -40,17 +43,15 @@ export function DueDateRangePicker({
       return;
     }
     function onPointerDown(event: MouseEvent) {
-      if (!rootRef.current?.contains(event.target as Node)) {
-        setOpen(false);
-        setAnchor(null);
-        setHoverDate(null);
+      const target = event.target as Node;
+      if (rootRef.current?.contains(target) || popoverRef.current?.contains(target)) {
+        return;
       }
+      closePopover();
     }
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
-        setOpen(false);
-        setAnchor(null);
-        setHoverDate(null);
+        closePopover();
       }
     }
     document.addEventListener('mousedown', onPointerDown);
@@ -71,6 +72,13 @@ export function DueDateRangePicker({
   const label = formatInstallmentDueDateRangeLabel(value);
 
   function pickDay(date: CalendarDate) {
+    const useSingleTap = isCoarsePointer() && !rangeMode;
+    if (useSingleTap) {
+      onChange({ from: date, to: date });
+      closePopover();
+      return;
+    }
+
     if (!anchor) {
       setAnchor(date);
       setHoverDate(null);
@@ -78,29 +86,30 @@ export function DueDateRangePicker({
     }
     const next = normalizeInstallmentDueDateRange(anchor, date);
     onChange(next);
-    setAnchor(null);
-    setHoverDate(null);
-    setOpen(false);
+    closePopover();
   }
 
   function clear() {
     onChange(null);
-    setAnchor(null);
-    setHoverDate(null);
-    setOpen(false);
+    closePopover();
   }
 
   function selectToday() {
     const today = todayCalendarDate();
     onChange({ from: today, to: today });
-    setAnchor(null);
-    setHoverDate(null);
     setView(monthViewFrom(today));
-    setOpen(false);
+    closePopover();
   }
 
   function closePopover() {
     setOpen(false);
+    setRangeMode(false);
+    setAnchor(null);
+    setHoverDate(null);
+  }
+
+  function beginRangeMode() {
+    setRangeMode(true);
     setAnchor(null);
     setHoverDate(null);
   }
@@ -122,24 +131,27 @@ export function DueDateRangePicker({
         <Calendar className="size-5 shrink-0 text-muted-foreground" aria-hidden />
       </button>
 
-      {open ? (
-        <>
-          <button
-            type="button"
-            className="fixed inset-0 z-20 bg-foreground/20 sm:hidden"
-            aria-label="Fechar calendário"
-            onClick={closePopover}
-          />
-          <div
-            id={listboxId}
-            role="dialog"
-            aria-label={ariaLabel}
-            className={cx(
-              'z-30 rounded-xl border border-border bg-card p-3 shadow-[var(--shadow-card)]',
-              'max-sm:fixed max-sm:top-1/2 max-sm:left-4 max-sm:right-4 max-sm:max-h-[min(85dvh,calc(100dvh-6rem))] max-sm:-translate-y-1/2 max-sm:overflow-y-auto',
-              'sm:absolute sm:top-[calc(100%+0.5rem)] sm:left-0 sm:w-full sm:max-w-[20rem]',
-            )}
-          >
+      {open
+        ? createPortal(
+            <div ref={popoverRef}>
+              <button
+                type="button"
+                className="fixed inset-0 z-[60] bg-foreground/20 sm:hidden"
+                aria-label="Fechar calendário"
+                onClick={closePopover}
+              />
+              <div
+                id={listboxId}
+                role="dialog"
+                aria-label={ariaLabel}
+                className={cx(
+                  'z-[70] rounded-xl border border-border bg-card p-3 shadow-[var(--shadow-card)]',
+                  'max-sm:fixed max-sm:top-1/2 max-sm:left-4 max-sm:right-4 max-sm:max-h-[min(85dvh,calc(100dvh-6rem))] max-sm:-translate-y-1/2 max-sm:overflow-y-auto',
+                  'sm:fixed sm:top-[var(--due-date-popover-top,4rem)] sm:left-[var(--due-date-popover-left,1rem)] sm:w-[min(20rem,calc(100vw-2rem))]',
+                )}
+                style={popoverPositionStyle(rootRef)}
+                onMouseDown={(event) => event.stopPropagation()}
+              >
           <div className="mb-2 flex items-center justify-between gap-2">
             <button
               type="button"
@@ -191,6 +203,7 @@ export function DueDateRangePicker({
                       'bg-brand-soft font-semibold text-primary ring-2 ring-primary ring-inset',
                   )}
                   onClick={() => pickDay(cell.date)}
+                  style={{ touchAction: 'manipulation' }}
                   onMouseEnter={() => {
                     if (anchor) {
                       setHoverDate(cell.date);
@@ -199,9 +212,7 @@ export function DueDateRangePicker({
                   onDoubleClick={(event) => {
                     event.preventDefault();
                     onChange({ from: cell.date, to: cell.date });
-                    setAnchor(null);
-                    setHoverDate(null);
-                    setOpen(false);
+                    closePopover();
                   }}
                 >
                   {parseCalendarDate(cell.date).day}
@@ -210,25 +221,56 @@ export function DueDateRangePicker({
             })}
           </div>
 
-          {anchor ? (
+          {anchor || (rangeMode && isCoarsePointer()) ? (
             <p className="mt-2 text-xs text-muted-foreground">
-              Escolha o fim do período ou o mesmo dia para filtrar só esse vencimento.
+              {anchor
+                ? 'Escolha o fim do período ou o mesmo dia para filtrar só esse vencimento.'
+                : 'Toque no primeiro e depois no último dia do período.'}
             </p>
+          ) : isCoarsePointer() ? (
+            <p className="mt-2 text-xs text-muted-foreground">Toque em um dia para filtrar. Use Período para intervalo.</p>
           ) : null}
 
-          <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-2">
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2">
             <Button type="button" variant="ghost" className="min-h-10 px-2 text-sm" onClick={clear}>
               Limpar
             </Button>
-            <Button type="button" variant="ghost" className="min-h-10 px-2 text-sm" onClick={selectToday}>
-              Hoje
-            </Button>
+            <div className="flex flex-wrap items-center gap-1">
+              {isCoarsePointer() && !rangeMode ? (
+                <Button type="button" variant="ghost" className="min-h-10 px-2 text-sm" onClick={beginRangeMode}>
+                  Período
+                </Button>
+              ) : null}
+              <Button type="button" variant="ghost" className="min-h-10 px-2 text-sm" onClick={selectToday}>
+                Hoje
+              </Button>
+            </div>
           </div>
-          </div>
-        </>
-      ) : null}
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
+}
+
+function isCoarsePointer(): boolean {
+  return typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
+}
+
+function popoverPositionStyle(triggerRef: RefObject<HTMLDivElement | null>): CSSProperties | undefined {
+  if (typeof window === 'undefined' || window.innerWidth < 640) {
+    return undefined;
+  }
+  const rect = triggerRef.current?.getBoundingClientRect();
+  if (!rect) {
+    return undefined;
+  }
+  return {
+    ['--due-date-popover-top' as string]: `${rect.bottom + 8}px`,
+    ['--due-date-popover-left' as string]: `${Math.min(rect.left, window.innerWidth - 320 - 16)}px`,
+  };
 }
 
 function monthViewFrom(date: CalendarDate): { year: number; month: number } {
