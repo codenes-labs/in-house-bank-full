@@ -108,6 +108,8 @@ Sem dados de parcelamento e de caixinha, um texto “Sem dados ainda”. Sem ilu
 
 Arquivo: `src/pages/reports-page.tsx`.
 
+Exportação CSV (futuro): em cada tela de relatório/extrato, botão que exporta só o que está visível (filtros e colunas daquela tela). Backup completo da conta permanece JSON em Configurações.
+
 Aceite: a página não renderiza gráfico. Com um mês de fluxo e um tipo de plano, mês, valores e tipo aparecem como texto. O vazio não menciona gráfico.
 
 ### Backup e isolamento
