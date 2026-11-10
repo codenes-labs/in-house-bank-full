@@ -51,6 +51,9 @@ describe('buildFreeBalanceExtratoHtml', () => {
     expect(html).toContain('Extrato do saldo livre');
     expect(html).toContain('background:#1E3A8A');
     expect(html).not.toContain('print-footer');
+    expect(html).not.toContain('EXT-SL-');
+    expect(html).toContain('Saldo final do período');
+    expect(html).toContain('movimentações no período');
     expect(html).toContain('Total de entradas');
     expect(html).toContain('R$ 325,00');
     expect(html).toContain('R$ 450,00');
