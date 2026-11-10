@@ -18,13 +18,27 @@ export const PRODUCT_CHANGELOG: readonly ChangelogRelease[] = [
       {
         title: 'Adicionado',
         items: [
-          'PDF do extrato de saldo livre com resumo do período, saldo por linha e rodapé paginado (html2pdf.js).',
+          'Hub Relatórios com Extrato por tipo (Saldo livre, Caixinha) e Resumo.',
+          'Extrato: período, Limpar filtro, histórico por mês e Baixar PDF (caixinha e saldo livre).',
+          'PDF do extrato de saldo livre com resumo, saldo por linha e rodapé paginado (html2pdf.js).',
+          'Conta demo com snapshot fictício e extrato alinhado às datas de exemplo.',
+          'Entrada no saldo livre ao excluir caixinha (nota Resgate da caixinha).',
+          'Hub Configurações (SPEC-12): usuário, beneficiário, carnê, financeiro, backup JSON.',
+          'Simulador de juros no carnê; Docker de desenvolvimento (.docker/).',
         ],
       },
       {
         title: 'Alterado',
         items: [
-          'PDF do extrato de caixinha e carnê com utilitários compartilhados em src/pdf/ e cabeçalho visual atualizado.',
+          'PDF do carnê e extrato de caixinha com utilitários compartilhados em src/pdf/ e layout atualizado.',
+          'Parcelamentos: paginação, vencimento e botões padronizados; Início com próximas parcelas.',
+          'Saldo livre: lançamento em linha única; menu mobile com Configurações.',
+        ],
+      },
+      {
+        title: 'Corrigido',
+        items: [
+          'Calendário de vencimento no mobile; demo sem persistência no Neon; tema claro/escuro persistente.',
         ],
       },
     ],

@@ -50,7 +50,7 @@ export const DOCS_SEARCH_INDEX: readonly DocsSearchEntry[] = [
   {
     to: '/docs/changelog',
     label: 'Changelog',
-    keywords: ['versão', 'release', 'novidades', 'histórico', '0.2.0'],
+    keywords: ['versão', 'release', 'novidades', 'histórico', '0.2.1', '0.2.0'],
   },
 ];
 
