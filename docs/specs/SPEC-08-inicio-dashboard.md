@@ -25,10 +25,12 @@ Deixar o dashboard coerente com os dados já calculados em `computeDashboardMetr
 
 ### Próximas parcelas
 
-- Cabeçalho do card com link **Ver todas** → `/parcelamentos`.
+- Cabeçalho do card com link **Ver todas** → `/parcelamentos` quando existir mais de 6 parcelas pendentes.
+- Lista até **6** parcelas pendentes, ordenadas por **vencimento** (mais antigo primeiro).
 - Cada item navega para `/parcelamentos/:planId`.
 - Status com `StatusPill` (mesmas labels/tons da lista de parcelamentos).
-- Em viewport abaixo de `sm`: layout em duas linhas (pagador + status; vencimento + valor), sem fileira única apertada.
+- Em viewport abaixo de `lg`: layout em duas linhas (pagador + status; vencimento + valor), lista contínua com divisórias (sem “cards” soltos entre linhas).
+- Em `lg+`, mesma apresentação tabular da lista de parcelamentos: cabeçalho `bg-muted/50`, colunas Pagador · Status · Próx. venc. · Valor e subgrade nas linhas.
 
 ### KPIs (quatro cards)
 

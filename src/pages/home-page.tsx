@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { useBank } from '../components/bank-context';
-import { Button, Card, EmptyState, StatusPill } from '../components/ui';
+import { SaveActionButton } from '../components/standard-action-buttons';
+import { Card, EmptyState, StatusPill, cx } from '../components/ui';
 import { installmentStatusLabel } from '../domain/installments/status-labels';
 import { computeDashboardMetrics } from '../domain/dashboard/compute-dashboard-metrics';
 import {
@@ -16,6 +17,7 @@ import { InstallmentStatus } from '../domain/enums/installment-status';
 import { readPendingBundle, writePendingBundle } from '../lib/guest-draft';
 import { formatCalendarMonthKeyBr } from '../domain/calendar/format-calendar-month-key-br';
 import { formatCentsAsBrl } from '../domain/money/brl-input';
+import { formatCalendarDateBr } from '../domain/pdf/format-calendar-date-br';
 import { useDashboardValuesVisible } from '../lib/use-dashboard-values-visible';
 
 export function HomePage() {
@@ -32,10 +34,11 @@ export function HomePage() {
     cashBoxes: bank.snapshot.cashBoxes,
     today,
   });
-  const upcoming = bank.snapshot.installments
+  const pendingInstallments = bank.snapshot.installments
     .filter((installment) => !installment.paidDate)
-    .sort((left, right) => left.dueDate.localeCompare(right.dueDate))
-    .slice(0, 5);
+    .sort((left, right) => left.dueDate.localeCompare(right.dueDate));
+  const upcoming = pendingInstallments.slice(0, 6);
+  const showUpcomingSeeAll = pendingInstallments.length > 6;
 
   const receivable = formatDashboardBrl(formatCentsAsBrl(metrics.totalEmittedCents - metrics.totalReceivedCents), valuesVisible);
   const overdueLabel =
@@ -74,7 +77,7 @@ export function HomePage() {
       {pending ? (
         <Card className="grid gap-3">
           <p>Existe um carnê gerado nesta sessão para {pending.plan.borrowerName}.</p>
-          <Button type="button" onClick={() => void saveDraft()}>Salvar na conta</Button>
+          <SaveActionButton type="button" label="Salvar na conta" onClick={() => void saveDraft()} />
         </Card>
       ) : null}
       {notice ? <p className="text-sm text-accent">{notice}</p> : null}
@@ -84,13 +87,31 @@ export function HomePage() {
         <Metric label="Lucro previsto" value={formatDashboardBrl(formatCentsAsBrl(metrics.expectedProfitCents), valuesVisible)} />
         <Metric label="Recebido" value={formatDashboardBrl(formatCentsAsBrl(metrics.totalReceivedCents), valuesVisible)} />
       </div>
-      <Card>
-        <h2 className="font-semibold">Próximas parcelas</h2>
+      <Card className={upcoming.length === 0 ? 'grid gap-3' : 'grid gap-0 overflow-hidden p-0'}>
+        <div
+          className={cx(
+            'flex items-center justify-between gap-2',
+            upcoming.length === 0 ? '' : 'border-b border-border px-4 py-4',
+          )}
+        >
+          <h2 className="font-semibold">Próximas parcelas</h2>
+          {showUpcomingSeeAll ? (
+            <Link to="/parcelamentos" className="shrink-0 text-sm font-semibold text-primary">
+              Ver todas
+            </Link>
+          ) : null}
+        </div>
         {upcoming.length === 0 ? (
           <EmptyState title="Nada pendente" text="Gere um carnê na página inicial ou registre um parcelamento." />
         ) : (
-          <ul className="mt-3 grid gap-2">
-            {upcoming.map((installment) => {
+          <ul className="grid list-none gap-0 p-0 lg:grid-cols-[minmax(0,1.15fr)_6.25rem_5.5rem_minmax(4.75rem,auto)] lg:gap-x-3">
+            <li className="col-span-full hidden border-b border-border bg-muted/50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground lg:grid lg:grid-cols-subgrid lg:items-center">
+              <span>Pagador</span>
+              <span className="text-center">Status</span>
+              <span className="text-center">Próx. venc.</span>
+              <span className="text-end">Valor</span>
+            </li>
+            {upcoming.map((installment, index) => {
               const plan = bank.snapshot.installmentPlans.find((item) => item.id === installment.planId);
               const status = deriveInstallmentStatus(installment, today);
               const tone =
@@ -99,27 +120,34 @@ export function HomePage() {
                   : status === InstallmentStatus.Overdue
                     ? 'overdue'
                     : 'pending';
-              const dueLabel = installment.dueDate.split('-').reverse().join('/');
+              const dueLabel = formatCalendarDateBr(installment.dueDate);
               const amountLabel = formatDashboardBrl(formatCentsAsBrl(installment.amountCents), valuesVisible);
               if (!plan) {
                 return null;
               }
               return (
-                <li key={installment.id}>
-                  <Link
-                    to={`/parcelamentos/${plan.id}`}
-                    className="press grid gap-2 rounded-lg bg-muted px-3 py-2.5 sm:flex sm:items-center sm:justify-between sm:gap-3"
-                  >
-                    <div className="flex items-start justify-between gap-2 sm:contents">
-                      <span className="min-w-0 font-medium">
-                        {plan.borrowerName} · {installment.number}
-                      </span>
+                <li
+                  key={installment.id}
+                  className={cx(
+                    'press col-span-full border-b border-border px-4 py-3 transition-colors',
+                    index === upcoming.length - 1 && 'last:border-b-0',
+                    'grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1.5',
+                    'hover:bg-muted/40 lg:grid-cols-subgrid lg:grid-rows-1 lg:items-center lg:gap-y-0 lg:hover:bg-muted/50',
+                  )}
+                >
+                  <Link to={`/parcelamentos/${plan.id}`} className="contents">
+                    <span className="min-w-0 truncate font-semibold max-lg:col-start-1 max-lg:row-start-1">
+                      {plan.borrowerName} · {installment.number}
+                    </span>
+                    <span className="flex shrink-0 justify-end max-lg:col-start-2 max-lg:row-start-1 max-lg:justify-self-end lg:justify-center">
                       <StatusPill label={installmentStatusLabel(status)} tone={tone} />
-                    </div>
-                    <div className="flex items-center justify-between gap-3 sm:contents">
-                      <span className="text-sm text-muted-foreground">{dueLabel}</span>
-                      <strong className="tabular-nums">{amountLabel}</strong>
-                    </div>
+                    </span>
+                    <span className="text-sm text-muted-foreground tabular-nums max-lg:col-start-1 max-lg:row-start-2 lg:text-center">
+                      {dueLabel}
+                    </span>
+                    <span className="font-semibold tabular-nums max-lg:col-start-2 max-lg:row-start-2 max-lg:justify-self-end max-lg:self-center lg:text-end">
+                      {amountLabel}
+                    </span>
                   </Link>
                 </li>
               );
