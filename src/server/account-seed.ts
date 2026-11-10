@@ -1,7 +1,5 @@
 import type { NeonQueryFunction } from '@neondatabase/serverless';
-import { createDemoAppBackup } from './demo-backup';
 import { hashPassword } from './password';
-import { replaceUserBackup } from './user-backup';
 
 export const ADMIN_USER_ID = '11111111-1111-4111-8111-111111111111';
 export const DEMO_USER_ID = '22222222-2222-4222-8222-222222222222';
@@ -69,7 +67,3 @@ async function seedAccounts(sql: NeonQueryFunction<false, false>): Promise<void>
   `;
 }
 
-export async function restoreDemoSnapshot(sql: NeonQueryFunction<false, false>, userId: string): Promise<void> {
-  const backup = createDemoAppBackup();
-  await replaceUserBackup(sql, userId, backup);
-}

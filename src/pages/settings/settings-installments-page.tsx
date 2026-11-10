@@ -1,4 +1,5 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
+import { useAuth } from '../../components/auth-context';
 import { useBank } from '../../components/bank-context';
 import {
   MaskedDueDayInput,
@@ -8,6 +9,12 @@ import { SaveActionButton } from '../../components/standard-action-buttons';
 import { IconFileInput } from '../../components/icon-file-input';
 import { Card, Field, SelectInput, SoftTextArea } from '../../components/ui';
 import { DefaultInterestType } from '../../domain/enums/default-interest-type';
+import {
+  demoPresentationCarneTexts,
+  demoPresentationInstallmentDefaults,
+  settingsNeedDemoInstallmentDefaults,
+  settingsNeedDemoPresentationTexts,
+} from '../../domain/demo/demo-presentation-texts';
 import { validateSettings } from '../../domain/settings/validate-settings';
 import {
   DEFAULT_WHATSAPP_MESSAGE,
@@ -17,10 +24,32 @@ import { resizeLogoFile } from '../../pdf/resize-logo';
 import { SettingsAlerts, SettingsPageHeader } from './settings-page-header';
 
 export function SettingsInstallmentsPage() {
+  const auth = useAuth();
   const bank = useBank();
+  const isDemo = auth.session?.user.isDemo ?? false;
   const settings = bank.snapshot.settings;
+  const demoTexts = demoPresentationCarneTexts();
+  const demoDefaults = demoPresentationInstallmentDefaults();
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isDemo || !bank.ready) {
+      return;
+    }
+    const needsTexts = settingsNeedDemoPresentationTexts(settings);
+    const needsDefaults = settingsNeedDemoInstallmentDefaults(settings);
+    const needsLogoCleared = Boolean(settings.logoDataUrl);
+    if (!needsTexts && !needsDefaults && !needsLogoCleared) {
+      return;
+    }
+    void bank.saveSettings({
+      ...settings,
+      ...demoTexts,
+      ...demoDefaults,
+      logoDataUrl: undefined,
+    });
+  }, [bank, demoDefaults, demoTexts, isDemo, settings]);
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -33,10 +62,14 @@ export function SettingsInstallmentsPage() {
         String(data.get('defaultInterestType')) === DefaultInterestType.Compound
           ? DefaultInterestType.Compound
           : DefaultInterestType.Simple,
-      paymentInstructions: String(data.get('paymentInstructions') ?? ''),
-      responsibilityTerm: String(data.get('responsibilityTerm') ?? ''),
-      whatsappMessageTemplate: String(data.get('whatsappMessageTemplate') ?? ''),
-      pdfFooterText: String(data.get('paymentInstructions') ?? ''),
+      ...(isDemo
+        ? { ...demoTexts, ...demoDefaults }
+        : {
+            paymentInstructions: String(data.get('paymentInstructions') ?? ''),
+            responsibilityTerm: String(data.get('responsibilityTerm') ?? ''),
+            whatsappMessageTemplate: String(data.get('whatsappMessageTemplate') ?? ''),
+            pdfFooterText: String(data.get('paymentInstructions') ?? ''),
+          }),
     };
     const validation = validateSettings(next);
     if (!validation.valid) {
@@ -55,19 +88,35 @@ export function SettingsInstallmentsPage() {
         description="Padrões do gerador de carnê, textos do PDF e mensagem do WhatsApp."
       />
       <SettingsAlerts notice={notice} error={error} />
+      {isDemo ? (
+        <p className="rounded-lg bg-warning-soft px-3 py-2 text-sm text-status-pending">
+          Conta de demonstração: padrões (4 parcelas, vencimento dia 10) e textos do carnê ficam fixos.
+        </p>
+      ) : null}
       <form className="grid gap-3" onSubmit={(event) => void save(event)}>
         <Card className="grid gap-3 md:grid-cols-3">
           <Field label="Parcelas padrão">
-            <MaskedInstallmentCountInput name="defaultInstallments" defaultValue={String(settings.defaultInstallments)} />
+            <MaskedInstallmentCountInput
+              name="defaultInstallments"
+              readOnly={isDemo}
+              defaultValue={String(isDemo ? demoDefaults.defaultInstallments : settings.defaultInstallments)}
+            />
           </Field>
           <Field label="Dia de vencimento">
             <MaskedDueDayInput
               name="defaultDueDay"
-              defaultValue={settings.defaultDueDay ? String(settings.defaultDueDay) : ''}
+              readOnly={isDemo}
+              defaultValue={String(
+                isDemo ? demoDefaults.defaultDueDay : (settings.defaultDueDay ? String(settings.defaultDueDay) : ''),
+              )}
             />
           </Field>
           <Field label="Juros padrão">
-            <SelectInput name="defaultInterestType" defaultValue={settings.defaultInterestType}>
+            <SelectInput
+              name="defaultInterestType"
+              disabled={isDemo}
+              defaultValue={isDemo ? demoDefaults.defaultInterestType : settings.defaultInterestType}
+            >
               <option value={DefaultInterestType.Simple}>Simples</option>
               <option value={DefaultInterestType.Compound}>Composto</option>
             </SelectInput>
@@ -78,11 +127,21 @@ export function SettingsInstallmentsPage() {
             <SoftTextArea
               name="paymentInstructions"
               rows={5}
-              defaultValue={settings.paymentInstructions ?? settings.pdfFooterText ?? ''}
+              readOnly={isDemo}
+              defaultValue={
+                isDemo
+                  ? demoTexts.paymentInstructions
+                  : (settings.paymentInstructions ?? settings.pdfFooterText ?? '')
+              }
             />
           </Field>
           <Field label="Termo de responsabilidade">
-            <SoftTextArea name="responsibilityTerm" rows={5} defaultValue={settings.responsibilityTerm ?? ''} />
+            <SoftTextArea
+              name="responsibilityTerm"
+              rows={5}
+              readOnly={isDemo}
+              defaultValue={isDemo ? demoTexts.responsibilityTerm : (settings.responsibilityTerm ?? '')}
+            />
           </Field>
           <Field label="Mensagem do WhatsApp">
             <div className="grid gap-1.5 font-normal">
@@ -101,10 +160,17 @@ export function SettingsInstallmentsPage() {
             <SoftTextArea
               name="whatsappMessageTemplate"
               rows={5}
-              defaultValue={settings.whatsappMessageTemplate ?? DEFAULT_WHATSAPP_MESSAGE}
+              readOnly={isDemo}
+              defaultValue={
+                isDemo ? demoTexts.whatsappMessageTemplate : (settings.whatsappMessageTemplate ?? DEFAULT_WHATSAPP_MESSAGE)
+              }
             />
           </Field>
           <Field label="Logotipo do carnê">
+            {isDemo ? (
+              <p className="text-sm text-muted-foreground">Sem logotipo na demonstração.</p>
+            ) : null}
+            {!isDemo ? (
             <IconFileInput
               accept="image/png,image/jpeg"
               ariaLabel="Enviar logotipo do carnê"
@@ -123,8 +189,9 @@ export function SettingsInstallmentsPage() {
                   });
               }}
             />
+            ) : null}
           </Field>
-          {settings.logoDataUrl ? (
+          {!isDemo && settings.logoDataUrl ? (
             <img src={settings.logoDataUrl} alt="Logotipo atual" className="h-16 w-16 rounded-lg object-contain" />
           ) : null}
           <SaveActionButton type="submit" />
