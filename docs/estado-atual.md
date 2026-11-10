@@ -61,3 +61,5 @@ GitHub Actions: lint (oxlint), testes (Vitest). Deploy em `master` para Cloudfla
 | 2026-03-20 | Lista de parcelamentos: colunas Referência vs Status corrigidas no layout `lg`. |
 | 2026-03-20 | Detalhe: checkboxes só após Reimprimir ou Excluir; confirmação no 2º toque; botão **Reimprimir**. |
 | 2026-03-20 | Specs devem ser atualizadas junto com cada mudança; estado geral neste arquivo. |
+| 2026-11-09 | Ações repetidas (editar, excluir, salvar, cancelar, parcela, etc.) usam `src/components/standard-action-buttons.tsx` (ícones Lucide + variantes `primary` / `soft` / `danger` / `ghost`). |
+| 2026-11-09 | Tema escuro/claro logado: toggle na área logada grava `settings.theme` (antes só `localStorage`, sobrescrito ao carregar a conta). |

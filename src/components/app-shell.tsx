@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from './auth-context';
 import { DemoBanner } from './demo-banner';
-import { useTheme } from './theme';
+import { useAccountThemeToggle } from '../lib/use-account-theme-toggle';
 import { UserAccountMenu } from './user-account-menu';
 import { Button, cx, Logo } from './ui';
 import {
@@ -38,7 +38,7 @@ function matchesPrefix(pathname: string, prefixes: readonly string[]): boolean {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { signOut, session } = useAuth();
-  const { mode, toggle } = useTheme();
+  const { mode, toggle } = useAccountThemeToggle();
   const location = useLocation();
   const themeLabel = mode === 'dark' ? 'Usar tema claro' : 'Usar tema escuro';
 
