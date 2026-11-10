@@ -85,7 +85,7 @@ Lateral, nesta ordem, em três grupos só visuais:
 - Patrimônio: Caixinhas `/caixinhas`, Financeiro `/financeiro`
 - Análise: Relatórios `/relatorios`, Ajustes `/configuracoes`
 
-No celular, a barra mostra Início, Parcelas, A receber, A pagar e Mais. Mais abre `/mais`, com Caixinhas, Extrato, Financeiro, Relatórios e Ajustes. `MAIN_NAV_ITEMS` em `src/domain/navigation/main-nav-items.ts` passa a listar as mesmas rotas e rótulos da lateral, na mesma ordem. No modo portfolio, só Relatórios continua desabilitado, com o aviso “Em desenvolvimento”.
+No celular, a barra e a lateral derivam de `src/domain/navigation/logged-shell-nav.ts` (grupos desktop e três itens na barra inferior).
 
 Aceite: os cinco itens da barra e os oito da lateral batem com esta lista. `/mais` não aparece na lateral. Portfolio não desabilita as rotas novas.
 
