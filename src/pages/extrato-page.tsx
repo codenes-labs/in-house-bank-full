@@ -27,6 +27,8 @@ import { buildCashBoxExtratoPdfFilename } from '../domain/pdf/build-cash-box-ext
 import { buildFreeBalanceExtratoPdfFilename } from '../domain/pdf/build-free-balance-extrato-pdf-filename';
 import { downloadPdfBytes } from '../pdf/download-pdf-bytes';
 import { generateCashBoxExtratoPdf } from '../pdf/generate-cash-box-extrato-pdf';
+import { generateFreeBalanceExtratoPdf } from '../pdf/generate-free-balance-extrato-pdf';
+import { resolveExtratoPdfSettings } from '../pdf/resolve-extrato-pdf-settings';
 
 type LedgerPeriodExtratoKind = typeof ExtratoKind.CashBox | typeof ExtratoKind.FreeBalance;
 
@@ -109,12 +111,23 @@ export function ExtratoPage() {
     }
     setPdfBusy(true);
     try {
-      const bytes = await generateCashBoxExtratoPdf({
-        title: extratoKindLabel(kind),
-        period: activeRange,
-        lines,
-        settings: bank.snapshot.settings,
-      });
+      const pdfSettings = await resolveExtratoPdfSettings(bank.snapshot.settings);
+      const bytes =
+        kind === ExtratoKind.FreeBalance
+          ? await generateFreeBalanceExtratoPdf({
+              period: activeRange,
+              periodLines: lines,
+              allLines: ledgerLinesForKind,
+              currentBalanceCents: bank.snapshot.settings.freeBalanceCents,
+              settings: pdfSettings,
+              issuedAt: new Date(),
+            })
+          : await generateCashBoxExtratoPdf({
+              title: extratoKindLabel(kind),
+              period: activeRange,
+              lines,
+              settings: pdfSettings,
+            });
       downloadPdfBytes(extratoPdfFilename(kind, activeRange), bytes);
     } finally {
       setPdfBusy(false);
@@ -145,7 +158,7 @@ export function ExtratoPage() {
               <DownloadPdfActionButton
                 label="Baixar extrato"
                 busy={pdfBusy}
-                disabled={lines.length === 0}
+                disabled={lines.length === 0 && kind !== ExtratoKind.FreeBalance}
                 onClick={() => void downloadExtrato()}
                 className="min-h-10 w-full shrink-0 sm:w-auto"
               />

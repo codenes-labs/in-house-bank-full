@@ -67,6 +67,10 @@ Extrato **Caixinha** (`tipo=caixinha`): filtro de período com padrão do **1º 
 
 Saldo livre em **Relatórios → Saldo livre** (`tipo=saldo-livre`): mesmo padrão do extrato Caixinha (período do mês atual, **Limpar filtro**, PDF, **Card** com histórico agrupado por mês).
 
+PDF **Caixinha** (e demais que reutilizarem `generateCashBoxExtratoPdf`): cabeçalho verde-claro arredondado (como o carnê), logotipo ou marca **IH**, título e período; blocos mensais em cartões com bordas arredondadas, rótulo do mês em pílula verde, colunas Data / Descrição / Valor com cabeçalho em pílula azul e valores em pílulas (entrada verde, saída vermelha); rodapé de conferência.
+
+PDF **Saldo livre** (`generateFreeBalanceExtratoPdf`, HTML + CSS A4): cabeçalho azul-marinho com marca, título “Extrato do saldo livre”, período em pílula, data de emissão e ID do extrato; quatro cards de resumo (saldo inicial, entradas, saídas, saldo final) e contagem de movimentações; movimentações por mês (mais recente primeiro) com subtotal do mês, tabela Data / Descrição / Valor / Saldo (saldo após cada linha, calculado a partir do saldo atual e do histórico, sem alterar `buildLedger`); entradas verdes, saídas vermelhas; rodapé fixo com paginação ao imprimir; nota legal no fim.
+
 Em `/financeiro/saldo-livre`: **Card Histórico** com agrupamento mensal dos **últimos 30 dias** (lançamentos ficam em card separado do formulário de entrada/saída).
 
 Aceite: um aporte, uma parcela paga e uma conta paga aparecem com as datas certas e a ordem da mais nova para a mais antiga. Apagar o aporte some a linha, porque ela é derivada.
