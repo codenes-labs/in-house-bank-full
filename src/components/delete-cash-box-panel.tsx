@@ -1,5 +1,6 @@
 import { OverlayPanel } from './overlay-panel';
-import { Button, money } from './ui';
+import { CancelActionButton, DeleteActionButton, formActionRowClassName } from './standard-action-buttons';
+import { money } from './ui';
 import type { CashBox } from '../domain/models/cash-box';
 
 export function DeleteCashBoxPanel({
@@ -23,13 +24,9 @@ export function DeleteCashBoxPanel({
           <p className="text-sm text-muted-foreground">
             O saldo de {money(cashBox.balanceCents)} será transferido automaticamente para o saldo livre.
           </p>
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="ghost" onClick={onClose}>
-              Cancelar
-            </Button>
-            <Button type="button" onClick={onConfirm}>
-              Confirmar exclusão
-            </Button>
+          <div className={formActionRowClassName}>
+            <CancelActionButton onClick={onClose} />
+            <DeleteActionButton label="Confirmar exclusão" onClick={onConfirm} />
           </div>
         </div>
       ) : null}

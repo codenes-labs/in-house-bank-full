@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useBank } from '../components/bank-context';
 import { MaskedMoneyInput } from '../components/masked-inputs';
-import { Button, Card, money } from '../components/ui';
+import { DepositActionButton, WithdrawalActionButton } from '../components/standard-action-buttons';
+import { Card, money } from '../components/ui';
 import { todayCalendarDate } from '../domain/calendar/today-calendar-date';
 import { applyFreeBalanceDeposit } from '../domain/finance/apply-free-balance-deposit';
 import { applyFreeBalanceWithdrawal } from '../domain/finance/apply-free-balance-withdrawal';
@@ -47,7 +48,7 @@ export function FreeBalancePage() {
       <Card className="grid gap-3">
         <h2 className="font-semibold">Lançamento</h2>
         <form
-          className="grid gap-2 sm:grid-cols-[1fr_auto_auto]"
+          className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]"
           onSubmit={(event) => {
             void (async () => {
               event.preventDefault();
@@ -96,15 +97,14 @@ export function FreeBalancePage() {
           <MaskedMoneyInput
             key={amountFieldKey}
             name="amount"
+            className="min-h-10"
             placeholder="0,00"
             aria-label="Valor do lançamento"
           />
-          <Button type="submit" name="kind" value={MovementKind.Deposit}>
-            Entrada
-          </Button>
-          <Button type="submit" name="kind" value={MovementKind.Withdrawal} variant="soft">
-            Saída
-          </Button>
+          <div className="flex w-full gap-2 sm:contents">
+            <DepositActionButton name="kind" value={MovementKind.Deposit} />
+            <WithdrawalActionButton name="kind" value={MovementKind.Withdrawal} />
+          </div>
         </form>
         {recentWithdrawals.length > 0 ? (
           <div className="grid gap-2 border-t border-border pt-3">

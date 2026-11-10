@@ -2,7 +2,8 @@ import { useState, type FormEvent } from 'react';
 import { useBank } from './bank-context';
 import { MaskedMoneyInput, MaskedRateInput } from './masked-inputs';
 import { OverlayPanel } from './overlay-panel';
-import { Button, Field, TextInput } from './ui';
+import { CancelActionButton, formActionRowClassName, SaveActionButton } from './standard-action-buttons';
+import { Field, TextInput } from './ui';
 import { createId } from '../domain/ids/create-id';
 import { validateCashBoxInput } from '../domain/cash-boxes/validate-cash-box';
 import { brlStringToCents } from '../domain/money/brl-input';
@@ -57,11 +58,9 @@ export function CreateCashBoxPanel({
         <Field label="% do CDI"><MaskedRateInput name="cdi" defaultValue="100" /></Field>
         <Field label="Saldo inicial"><MaskedMoneyInput name="balance" defaultValue="0,00" /></Field>
         <Field label="Limite opcional"><MaskedMoneyInput name="limit" placeholder="0,00" /></Field>
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="ghost" onClick={onClose}>
-            Cancelar
-          </Button>
-          <Button type="submit">Criar caixinha</Button>
+        <div className={formActionRowClassName}>
+          <CancelActionButton onClick={onClose} />
+          <SaveActionButton type="submit" label="Criar caixinha" />
         </div>
       </form>
     </OverlayPanel>

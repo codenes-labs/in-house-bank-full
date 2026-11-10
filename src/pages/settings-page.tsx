@@ -6,6 +6,7 @@ import {
   MaskedRateInput,
 } from '../components/masked-inputs';
 import { useTheme } from '../components/theme';
+import { SaveActionButton } from '../components/standard-action-buttons';
 import { Button, Card, Field, SelectInput, TextArea, TextInput } from '../components/ui';
 import { APP_DATA_BACKUP_VERSION } from '../domain/models/app-data-backup';
 import { DefaultInterestType } from '../domain/enums/default-interest-type';
@@ -136,7 +137,7 @@ export function SettingsPage() {
             }} />
           </Field>
           {settings.logoDataUrl ? <img src={settings.logoDataUrl} alt="Logotipo atual" className="h-16 w-16 rounded-lg object-contain" /> : null}
-          <Button type="submit">Salvar</Button>
+          <SaveActionButton type="submit" />
         </Card>
       </form>
       <Card className="grid gap-3">

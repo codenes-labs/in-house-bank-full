@@ -2,7 +2,8 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { User } from 'lucide-react';
 import { useAuth } from './auth-context';
-import { Button, Field, TextInput, cx } from './ui';
+import { SaveActionButton } from './standard-action-buttons';
+import { Field, TextInput, cx } from './ui';
 
 export function UserAccountMenu() {
   const { session, signOut } = useAuth();
@@ -144,7 +145,7 @@ export function ChangePasswordForm({
           <TextInput type="password" autoComplete="new-password" value={confirm} onChange={(event) => setConfirm(event.target.value)} />
         </Field>
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
-        <Button type="submit">Salvar senha</Button>
+        <SaveActionButton type="submit" label="Salvar senha" />
       </form>
     </div>
   );

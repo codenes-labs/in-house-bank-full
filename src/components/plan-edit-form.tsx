@@ -9,7 +9,8 @@ import {
 } from '../domain/plan/plan-carne-texts';
 import { validateBrazilianPhone, maskBrazilianPhone } from '../domain/whatsapp/validate-brazilian-phone';
 import { useBank } from './bank-context';
-import { Button, Field, TextArea, TextInput } from './ui';
+import { SaveActionButton } from './standard-action-buttons';
+import { Field, TextArea, TextInput } from './ui';
 
 export function PlanEditForm({
   plan,
@@ -168,9 +169,7 @@ export function PlanEditForm({
       </div>
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
-      <Button type="submit" disabled={busy}>
-        {busy ? 'Salvando…' : 'Salvar alterações'}
-      </Button>
+      <SaveActionButton type="submit" busy={busy} disabled={busy} label="Salvar alterações" />
     </form>
   );
 }

@@ -3,8 +3,9 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useBank } from '../components/bank-context';
 import { CashBoxHistoryByMonth } from '../components/cash-box-history-by-month';
 import { DeleteCashBoxPanel } from '../components/delete-cash-box-panel';
+import { DeleteActionButton, DepositActionButton, WithdrawalActionButton } from '../components/standard-action-buttons';
 import { MaskedMoneyInput } from '../components/masked-inputs';
-import { Button, Card, EmptyState, money } from '../components/ui';
+import { Card, EmptyState, money } from '../components/ui';
 import { applyCashBoxMovement } from '../domain/cash-boxes/apply-cash-box-movement';
 import { groupCashBoxMovementsByMonth } from '../domain/cash-boxes/group-cash-box-movements-by-month';
 import { todayCalendarDate } from '../domain/calendar/today-calendar-date';
@@ -102,14 +103,7 @@ export function CashBoxDetailPage() {
         <Link to="/caixinhas" className="text-sm font-semibold text-primary">
           Voltar para todas as caixinhas
         </Link>
-        <Button
-          type="button"
-          variant="ghost"
-          className="min-h-0 px-0 py-0 text-sm font-semibold"
-          onClick={() => setDeleteOpen(true)}
-        >
-          Excluir caixinha
-        </Button>
+        <DeleteActionButton label="Excluir caixinha" onClick={() => setDeleteOpen(true)} />
       </div>
       {notice ? <p className="text-sm text-accent">{notice}</p> : null}
       <Card className="grid gap-2">
@@ -132,7 +126,7 @@ export function CashBoxDetailPage() {
       <Card className="grid gap-3">
         <h2 className="font-semibold">Lançamento</h2>
         <form
-          className="grid gap-2 sm:grid-cols-[1fr_auto_auto]"
+          className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]"
           onSubmit={(event) => {
             void (async () => {
               event.preventDefault();
@@ -156,15 +150,14 @@ export function CashBoxDetailPage() {
           <MaskedMoneyInput
             key={amountFieldKey}
             name="amount"
+            className="min-h-10"
             placeholder="0,00"
             aria-label="Valor do lançamento"
           />
-          <Button type="submit" name="type" value={CashBoxMovementType.Deposit}>
-            Aportar
-          </Button>
-          <Button type="submit" name="type" value={CashBoxMovementType.Withdrawal} variant="soft">
-            Resgatar
-          </Button>
+          <div className="flex w-full gap-2 sm:contents">
+            <DepositActionButton name="type" value={CashBoxMovementType.Deposit} label="Aportar" />
+            <WithdrawalActionButton name="type" value={CashBoxMovementType.Withdrawal} label="Resgatar" />
+          </div>
         </form>
       </Card>
       <Card className="grid gap-3">

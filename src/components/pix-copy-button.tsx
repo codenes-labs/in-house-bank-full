@@ -1,8 +1,17 @@
 import { useState } from 'react';
 import { Copy, Check } from 'lucide-react';
-import { Button } from './ui';
+import { compactActionButtonClassName } from './standard-action-buttons';
+import { Button, cx } from './ui';
 
-export function PixCopyButton({ code, disabledReason }: { code: string; disabledReason?: string }) {
+export function PixCopyButton({
+  code,
+  disabledReason,
+  className,
+}: {
+  code: string;
+  disabledReason?: string;
+  className?: string;
+}) {
   const [copied, setCopied] = useState(false);
   const unavailable = Boolean(disabledReason);
 
@@ -20,13 +29,19 @@ export function PixCopyButton({ code, disabledReason }: { code: string; disabled
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <Button type="button" variant="soft" className="min-h-10" disabled={unavailable} onClick={() => void copy()}>
+    <>
+      <Button
+        type="button"
+        variant="soft"
+        className={cx(compactActionButtonClassName, className)}
+        disabled={unavailable}
+        onClick={() => void copy()}
+      >
         {copied ? <Check className="size-4" aria-hidden /> : <Copy className="size-4" aria-hidden />}
-        {copied ? 'Pix copiado' : 'Copiar Pix'}
+        <span className="truncate">{copied ? 'Pix copiado' : 'Copiar Pix'}</span>
       </Button>
-      {unavailable ? <span className="text-sm text-muted-foreground">{disabledReason}</span> : null}
-    </div>
+      {unavailable ? <p className="w-full basis-full text-sm text-muted-foreground">{disabledReason}</p> : null}
+    </>
   );
 }
 

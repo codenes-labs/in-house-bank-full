@@ -17,6 +17,7 @@ import { formatCentsAsBrl } from '../domain/money/brl-input';
 import type { GeneratedInstallmentPlanBundle } from '../domain/quick-generator/create-installment-plan-from-generator';
 import { writePendingBundle } from '../lib/guest-draft';
 import { generateCarnePdf } from '../pdf/generate-carne-pdf';
+import { SaveActionButton } from './standard-action-buttons';
 import { Button, Card, Field, money, SelectInput, TextInput } from './ui';
 
 const today = todayCalendarDate();
@@ -269,9 +270,13 @@ export function CarneGenerator({
           Gerar parcelas
         </Button>
         {onSaveBundle ? (
-          <Button type="button" variant="primary" disabled={!bundle || saving} onClick={() => void saveToAccount()}>
-            {saving ? 'Salvando…' : 'Salvar na conta'}
-          </Button>
+          <SaveActionButton
+            type="button"
+            disabled={!bundle || saving}
+            busy={saving}
+            label="Salvar na conta"
+            onClick={() => void saveToAccount()}
+          />
         ) : null}
         {pdfFile ? (
           <a
