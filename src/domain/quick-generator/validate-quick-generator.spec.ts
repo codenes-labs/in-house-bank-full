@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { InstallmentPlanType } from '../enums/installment-plan-type';
-import { validateQuickGenerator } from './validate-quick-generator';
+import {
+  isQuickGeneratorReadyToApplyInterest,
+  isQuickGeneratorReadyToGenerate,
+  simulationInstallmentCountFor,
+  validateQuickGenerator,
+} from './validate-quick-generator';
 import type { QuickGeneratorInput } from './quick-generator-input';
 
 const validInput: QuickGeneratorInput = {
@@ -43,5 +48,19 @@ describe('validateQuickGenerator', () => {
 
     expect(result.valid).toBe(true);
     expect(result.warnings.expectedProfit).toBeTruthy();
+  });
+
+  it('applies interest simulation with principal and rate', () => {
+    expect(isQuickGeneratorReadyToApplyInterest(90_000, 4, 9.95)).toBe(true);
+    expect(isQuickGeneratorReadyToApplyInterest(90_000, 0, 9.95)).toBe(true);
+    expect(isQuickGeneratorReadyToApplyInterest(0, 4, 9.95)).toBe(false);
+    expect(isQuickGeneratorReadyToApplyInterest(90_000, 4, Number.NaN)).toBe(false);
+    expect(simulationInstallmentCountFor(90_000, 0, 9.95)).toBe(4);
+    expect(simulationInstallmentCountFor(90_000, 12, 9.95)).toBe(12);
+  });
+
+  it('requires positive return to generate installments', () => {
+    expect(isQuickGeneratorReadyToGenerate(validInput, 'SAO PAULO')).toBe(true);
+    expect(isQuickGeneratorReadyToGenerate({ ...validInput, returnAmountCents: 0 }, 'SAO PAULO')).toBe(false);
   });
 });

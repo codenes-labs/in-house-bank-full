@@ -26,7 +26,7 @@ export function LandingPage() {
         <h2 className="text-xl font-semibold">Exemplo</h2>
         <p className="mt-2 text-muted-foreground">
           Principal de R$ 540,00, 3% ao mês, em 4 parcelas: juros simples fecham em R$ 604,80.
-          Na tabela Price, a parcela fica em R$ 145,27 e o total em R$ 581,08.
+          Nos juros compostos, a parcela fica em R$ 145,27 e o total em R$ 581,08.
         </p>
       </Card>
       <Card className="mt-6">

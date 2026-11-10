@@ -3,6 +3,8 @@ import {
   ArrowDownToLine,
   ArrowUpFromLine,
   CheckCircle2,
+  FileDown,
+  ListChecks,
   Loader2,
   MessageCircle,
   Pencil,
@@ -165,6 +167,62 @@ export function DepositActionButton({
     <Button type={type} variant="primary" className={cx(layoutClass(layout), className)} {...props}>
       <ArrowDownToLine className="size-4 shrink-0" aria-hidden />
       {actionLabel(label)}
+    </Button>
+  );
+}
+
+export function GenerateInstallmentsActionButton({
+  label = 'Gerar parcelas',
+  layout = 'inline',
+  className,
+  ...props
+}: StandardActionProps) {
+  return (
+    <Button type="button" className={cx(layoutClass(layout), className)} {...props}>
+      <ListChecks className="size-4 shrink-0" aria-hidden />
+      {actionLabel(label)}
+    </Button>
+  );
+}
+
+export function DownloadPdfActionButton({
+  label = 'Baixar PDF',
+  busy = false,
+  busyLabel = 'Preparando PDF…',
+  href,
+  download,
+  layout = 'inline',
+  className,
+  ...props
+}: StandardActionProps & {
+  busy?: boolean;
+  busyLabel?: ReactNode;
+  href?: string;
+  download?: string;
+}) {
+  const classes = cx(
+    'press inline-flex min-h-12 items-center justify-center gap-2 rounded-lg px-4 text-base font-semibold disabled:cursor-not-allowed disabled:opacity-50',
+    'bg-brand-soft text-secondary-foreground',
+    layoutClass(layout),
+    className,
+  );
+  const content = (
+    <>
+      {busy ? <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden /> : <FileDown className="size-4 shrink-0" aria-hidden />}
+      {actionLabel(busy ? busyLabel : label)}
+    </>
+  );
+  if (href) {
+    return (
+      <a href={href} download={download} className={classes}>
+        {content}
+      </a>
+    );
+  }
+  return (
+    <Button type="button" variant="soft" className={cx(layoutClass(layout), className)} disabled={busy || props.disabled} {...props}>
+      {busy ? <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden /> : <FileDown className="size-4 shrink-0" aria-hidden />}
+      {actionLabel(busy ? busyLabel : label)}
     </Button>
   );
 }

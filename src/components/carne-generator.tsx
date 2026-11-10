@@ -4,7 +4,13 @@ import { brlStringToCents } from '../domain/money/brl-input';
 import { todayCalendarDate } from '../domain/calendar/today-calendar-date';
 import { computeDefaultFirstDueDate } from '../domain/quick-generator/compute-default-first-due-date';
 import { createInstallmentPlanBundle } from '../domain/quick-generator/create-installment-plan-from-generator';
-import { validateQuickGenerator } from '../domain/quick-generator/validate-quick-generator';
+import {
+  isQuickGeneratorReadyToApplyInterest,
+  isQuickGeneratorReadyToGenerate,
+  resolveSimulationInstallmentCount,
+  simulationInstallmentCountFor,
+  validateQuickGenerator,
+} from '../domain/quick-generator/validate-quick-generator';
 import { InstallmentPlanType } from '../domain/enums/installment-plan-type';
 import { INSTALLMENT_PLAN_TYPE_LABELS } from '../domain/quick-generator/installment-plan-type-labels';
 import { validatePixKey } from '../domain/pix/validate-pix-key';
@@ -17,7 +23,11 @@ import { formatCentsAsBrl } from '../domain/money/brl-input';
 import type { GeneratedInstallmentPlanBundle } from '../domain/quick-generator/create-installment-plan-from-generator';
 import { writePendingBundle } from '../lib/guest-draft';
 import { generateCarnePdf } from '../pdf/generate-carne-pdf';
-import { SaveActionButton } from './standard-action-buttons';
+import {
+  DownloadPdfActionButton,
+  GenerateInstallmentsActionButton,
+  SaveActionButton,
+} from './standard-action-buttons';
 import { Button, Card, Field, money, SelectInput, TextInput } from './ui';
 
 const today = todayCalendarDate();
@@ -45,7 +55,7 @@ export function CarneGenerator({
   const [borrowerName, setBorrowerName] = useState('');
   const [issueDate, setIssueDate] = useState(today);
   const [firstDueDate, setFirstDueDate] = useState(computeDefaultFirstDueDate(today));
-  const [installmentsCount, setInstallmentsCount] = useState('');
+  const [installmentsCount, setInstallmentsCount] = useState('4');
   const [pixKey, setPixKey] = useState(prefill?.pixKey ?? '');
   const [beneficiary, setBeneficiary] = useState(prefill?.beneficiary ?? '');
   const [institution, setInstitution] = useState(prefill?.institution ?? '');
@@ -75,12 +85,44 @@ export function CarneGenerator({
   const principal = brlStringToCents(usedAmount) ?? 0;
   const count = Number(installmentsCount);
   const rate = ratePercent.trim() ? Number(ratePercent.replace(',', '.')) : Number.NaN;
+  const generatorInput = useMemo(() => buildInput(), [
+    beneficiary,
+    borrowerName,
+    firstDueDate,
+    installmentsCount,
+    institution,
+    issueDate,
+    pixKey,
+    reference,
+    returnAmount,
+    type,
+    usedAmount,
+  ]);
+
+  const readyToApplySimulation = useMemo(
+    () => isQuickGeneratorReadyToApplyInterest(principal, count, rate),
+    [count, principal, rate],
+  );
+
+  const simulationInstallmentCount = useMemo(
+    () => simulationInstallmentCountFor(principal, count, rate),
+    [count, principal, rate],
+  );
+
+  const readyToGenerate = useMemo(
+    () => isQuickGeneratorReadyToGenerate(generatorInput, city),
+    [city, generatorInput],
+  );
+
+  const usesDefaultInstallmentCount =
+    readyToApplySimulation && resolveSimulationInstallmentCount(count) === null;
+
   const simulation = useMemo(() => {
-    if (principal <= 0 || !Number.isInteger(count) || count < 1 || !Number.isFinite(rate) || rate < 0) {
+    if (simulationInstallmentCount === null || principal <= 0) {
       return null;
     }
-    return simulateReturnAmounts(principal, rate, count);
-  }, [count, principal, rate]);
+    return simulateReturnAmounts(principal, rate, simulationInstallmentCount);
+  }, [principal, rate, simulationInstallmentCount]);
 
   function rememberPdf(next: { filename: string; url: string } | null) {
     const previous = pdfUrl.current;
@@ -177,9 +219,11 @@ export function CarneGenerator({
   }
 
   function applySimulation(amountCents: number) {
+    if (!readyToApplySimulation) {
+      return;
+    }
     const formatted = formatCentsAsBrl(amountCents);
-    setReturnAmount(formatted);
-    generate(formatted);
+    edit(() => setReturnAmount(formatted));
   }
 
   async function saveToAccount() {
@@ -249,48 +293,59 @@ export function CarneGenerator({
         </Field>
       </div>
       {warning ? <p className="rounded-lg bg-warning-soft px-3 py-2 text-sm text-status-pending">{warning}</p> : null}
-      <div className="grid gap-2 sm:grid-cols-[8rem_1fr_1fr]">
-        <Field label="Taxa ao mês (%)">
-          <TextInput inputMode="decimal" value={ratePercent} onChange={(event) => edit(() => setRatePercent(maskMonthlyRate(event.target.value)))} placeholder="3" maxLength={6} />
-        </Field>
-        <SimulatorColumn
-          title="Juros simples"
-          total={simulation?.simpleReturnAmountCents}
-          onApply={() => simulation && applySimulation(simulation.simpleReturnAmountCents)}
-        />
-        <SimulatorColumn
-          title="Price"
-          total={simulation?.compoundReturnAmountCents}
-          installment={simulation?.compoundInstallmentAmountCents}
-          onApply={() => simulation && applySimulation(simulation.compoundReturnAmountCents)}
-        />
+      <div className="grid gap-2">
+        <div className="grid gap-2 sm:grid-cols-[8rem_1fr_1fr]">
+          <Field label="Taxa ao mês (%)">
+            <TextInput inputMode="decimal" value={ratePercent} onChange={(event) => edit(() => setRatePercent(maskMonthlyRate(event.target.value)))} placeholder="3" maxLength={6} />
+          </Field>
+          <SimulatorColumn
+            title="Juros simples"
+            total={simulation?.simpleReturnAmountCents}
+            canApply={readyToApplySimulation}
+            onApply={() => simulation && applySimulation(simulation.simpleReturnAmountCents)}
+          />
+          <SimulatorColumn
+            title="Juros compostos"
+            total={simulation?.compoundReturnAmountCents}
+            installment={simulation?.compoundInstallmentAmountCents}
+            canApply={readyToApplySimulation}
+            onApply={() => simulation && applySimulation(simulation.compoundReturnAmountCents)}
+          />
+        </div>
+        {usesDefaultInstallmentCount ? (
+          <p className="text-sm text-muted-foreground">
+            Parcelas em branco: a simulação usa 4 parcelas. Ajuste o campo Parcelas se precisar.
+          </p>
+        ) : null}
+        {!simulation ? (
+          <p className="text-sm text-muted-foreground">
+            Informe valor utilizado e taxa ao mês para simular e aplicar no retorno total.
+          </p>
+        ) : null}
       </div>
       <div className="grid gap-2 sm:grid-cols-2">
-        <Button type="button" onClick={() => generate()} disabled={!pixValid}>
-          Gerar parcelas
-        </Button>
+        <GenerateInstallmentsActionButton
+          type="button"
+          className={onSaveBundle ? '' : 'sm:col-span-2'}
+          disabled={!readyToGenerate}
+          onClick={() => generate()}
+        />
         {onSaveBundle ? (
           <SaveActionButton
             type="button"
-            disabled={!bundle || saving}
+            disabled={!bundle || saving || !readyToGenerate}
             busy={saving}
             label="Salvar na conta"
             onClick={() => void saveToAccount()}
           />
         ) : null}
-        {pdfFile ? (
-          <a
-            href={pdfFile.url}
-            download={pdfFile.filename}
-            className="press inline-flex min-h-12 items-center justify-center rounded-lg bg-brand-soft px-4 text-base font-semibold text-secondary-foreground sm:col-span-2"
-          >
-            Baixar PDF
-          </a>
-        ) : (
-          <Button type="button" variant="soft" disabled className={onSaveBundle ? '' : 'sm:col-span-1'}>
-            {busy ? 'Preparando PDF…' : 'Baixar PDF'}
-          </Button>
-        )}
+        <DownloadPdfActionButton
+          className={onSaveBundle ? 'sm:col-span-2' : 'sm:col-span-2'}
+          href={pdfFile?.url}
+          download={pdfFile?.filename}
+          busy={busy}
+          disabled={!pdfFile && !busy}
+        />
       </div>
       {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
       {bundle ? (
@@ -312,11 +367,13 @@ function SimulatorColumn({
   title,
   total,
   installment,
+  canApply,
   onApply,
 }: {
   title: string;
   total?: number;
   installment?: number;
+  canApply: boolean;
   onApply: () => void;
 }) {
   return (
@@ -326,7 +383,13 @@ function SimulatorColumn({
         <p className="text-sm font-semibold">{total === undefined ? '—' : money(total)}</p>
         {installment !== undefined ? <p className="text-xs text-muted-foreground">Parcela {money(installment)}</p> : null}
       </div>
-      <Button type="button" variant="ghost" className="min-h-9 shrink-0 px-2" onClick={onApply} disabled={total === undefined}>
+      <Button
+        type="button"
+        variant="ghost"
+        className="min-h-9 shrink-0 px-2"
+        onClick={onApply}
+        disabled={!canApply || total === undefined}
+      >
         Aplicar
       </Button>
     </div>

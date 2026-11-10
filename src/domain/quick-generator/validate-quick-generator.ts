@@ -16,6 +16,19 @@ export interface QuickGeneratorValidationResult {
 const INSTALLMENTS_MIN = 1;
 const INSTALLMENTS_MAX = 60;
 
+export const DEFAULT_SIMULATION_INSTALLMENT_COUNT = 4;
+
+export function resolveSimulationInstallmentCount(installmentsCount: number): number | null {
+  if (
+    Number.isInteger(installmentsCount) &&
+    installmentsCount >= INSTALLMENTS_MIN &&
+    installmentsCount <= INSTALLMENTS_MAX
+  ) {
+    return installmentsCount;
+  }
+  return null;
+}
+
 export function validateQuickGenerator(input: QuickGeneratorInput): QuickGeneratorValidationResult {
   const errors: QuickGeneratorErrors = {};
   const warnings: QuickGeneratorWarnings = {};
@@ -78,6 +91,42 @@ export function validateQuickGenerator(input: QuickGeneratorInput): QuickGenerat
     errors,
     warnings,
   };
+}
+
+export function isQuickGeneratorReadyToApplyInterest(
+  usedAmountCents: number,
+  installmentsCount: number,
+  monthlyRatePercent: number,
+): boolean {
+  if (!Number.isInteger(usedAmountCents) || usedAmountCents <= 0) {
+    return false;
+  }
+  if (!Number.isFinite(monthlyRatePercent) || monthlyRatePercent < 0) {
+    return false;
+  }
+  if (resolveSimulationInstallmentCount(installmentsCount) !== null) {
+    return true;
+  }
+  return installmentsCount === 0;
+}
+
+export function simulationInstallmentCountFor(
+  usedAmountCents: number,
+  installmentsCount: number,
+  monthlyRatePercent: number,
+): number | null {
+  if (!isQuickGeneratorReadyToApplyInterest(usedAmountCents, installmentsCount, monthlyRatePercent)) {
+    return null;
+  }
+  return resolveSimulationInstallmentCount(installmentsCount) ?? DEFAULT_SIMULATION_INSTALLMENT_COUNT;
+}
+
+export function isQuickGeneratorReadyToGenerate(input: QuickGeneratorInput, beneficiaryCity: string): boolean {
+  const city = beneficiaryCity.trim();
+  if (!city || city.length > 15) {
+    return false;
+  }
+  return validateQuickGenerator(input).valid;
 }
 
 function isValidCalendarDate(value: string): boolean {
