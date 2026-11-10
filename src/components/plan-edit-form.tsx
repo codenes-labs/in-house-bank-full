@@ -10,7 +10,7 @@ import {
 import { validateBrazilianPhone, maskBrazilianPhone } from '../domain/whatsapp/validate-brazilian-phone';
 import { useBank } from './bank-context';
 import { SaveActionButton } from './standard-action-buttons';
-import { Field, TextArea, TextInput } from './ui';
+import { Field, SoftTextArea, TextInput } from './ui';
 
 export function PlanEditForm({
   plan,
@@ -132,20 +132,10 @@ export function PlanEditForm({
         {customTexts ? (
           <>
             <Field label="Instruções de pagamento">
-              <TextArea
-                name="paymentInstructions"
-                defaultValue={initialTexts.paymentInstructions}
-                className="min-h-28 resize-y"
-                rows={5}
-              />
+              <SoftTextArea name="paymentInstructions" defaultValue={initialTexts.paymentInstructions} rows={5} />
             </Field>
             <Field label="Termo de responsabilidade">
-              <TextArea
-                name="responsibilityTerm"
-                defaultValue={initialTexts.responsibilityTerm}
-                className="min-h-28 resize-y"
-                rows={5}
-              />
+              <SoftTextArea name="responsibilityTerm" defaultValue={initialTexts.responsibilityTerm} rows={5} />
             </Field>
           </>
         ) : (
