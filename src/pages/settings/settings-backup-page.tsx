@@ -1,10 +1,13 @@
 import { useState } from 'react';
+import { FileJson } from 'lucide-react';
 import { useBank } from '../../components/bank-context';
 import { useTheme } from '../../components/theme';
-import { Button, Card, Field, TextInput } from '../../components/ui';
+import { IconFileInput } from '../../components/icon-file-input';
+import { Button, Card, Field } from '../../components/ui';
 import { APP_DATA_BACKUP_VERSION } from '../../domain/models/app-data-backup';
 import { parseAppDataBackupJson } from '../../domain/backup/assert-app-data-backup';
 import { serializeAppDataBackup } from '../../domain/backup/serialize-app-data-backup';
+import { downloadTextFile } from '../../lib/download-text-file';
 import { SettingsAlerts, SettingsPageHeader } from './settings-page-header';
 
 export function SettingsBackupPage() {
@@ -14,14 +17,9 @@ export function SettingsBackupPage() {
   const [error, setError] = useState<string | null>(null);
 
   function exportBackup() {
+    const exportDate = new Date().toISOString().slice(0, 10);
     const json = serializeAppDataBackup({ version: APP_DATA_BACKUP_VERSION, ...bank.snapshot });
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = `in-house-bank-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    anchor.click();
-    URL.revokeObjectURL(url);
+    downloadTextFile(`in-house-bank-backup-${exportDate}.json`, json, 'application/json');
     setNotice('Backup exportado.');
     setError(null);
   }
@@ -45,22 +43,23 @@ export function SettingsBackupPage() {
     <div className="grid gap-4">
       <SettingsPageHeader
         title="Importação e exportação"
-        description="Cópia completa dos planos, parcelas, caixinhas e configurações."
+        description="Cópia completa da conta em JSON. A importação aceita apenas esse formato."
       />
       <SettingsAlerts notice={notice} error={error} />
       <Card className="grid gap-3">
-        <Button type="button" variant="soft" onClick={exportBackup}>
+        <Button type="button" variant="soft" className="w-full sm:w-auto" onClick={exportBackup}>
+          <FileJson className="size-4 shrink-0" aria-hidden />
           Exportar JSON
         </Button>
         <Field label="Importar backup">
-          <TextInput
-            type="file"
-            accept="application/json"
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              if (file) {
-                void importBackup(file);
-              }
+          <IconFileInput
+            accept="application/json,.json"
+            ariaLabel="Importar arquivo de backup JSON"
+            title="Arraste o arquivo aqui"
+            hint="JSON — até 10 MB"
+            onReject={(message) => setError(message)}
+            onFileSelected={(file) => {
+              void importBackup(file);
             }}
           />
         </Field>
