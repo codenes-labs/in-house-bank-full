@@ -8,6 +8,7 @@ const tables = [
   'cash_boxes',
   'cash_box_movements',
   'free_balance_withdrawals',
+  'free_balance_deposits',
 ];
 
 const sql = schemaStatements.join('\n');

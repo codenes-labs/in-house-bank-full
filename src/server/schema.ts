@@ -86,12 +86,20 @@ export const schemaStatements = [
     withdrawal_date date not null,
     note text
   )`,
+  `create table if not exists public.free_balance_deposits (
+    id uuid primary key,
+    user_id uuid not null references public.users (id) on delete cascade,
+    amount_cents bigint not null,
+    deposit_date date not null,
+    note text
+  )`,
   `create index if not exists installment_plans_user_id_idx on public.installment_plans (user_id)`,
   `create index if not exists installments_user_id_idx on public.installments (user_id)`,
   `create index if not exists installments_plan_id_idx on public.installments (plan_id)`,
   `create index if not exists cash_boxes_user_id_idx on public.cash_boxes (user_id)`,
   `create index if not exists cash_box_movements_user_id_idx on public.cash_box_movements (user_id)`,
   `create index if not exists free_balance_withdrawals_user_id_idx on public.free_balance_withdrawals (user_id)`,
+  `create index if not exists free_balance_deposits_user_id_idx on public.free_balance_deposits (user_id)`,
 ];
 
 const dataTables = [
@@ -101,6 +109,7 @@ const dataTables = [
   'cash_boxes',
   'cash_box_movements',
   'free_balance_withdrawals',
+  'free_balance_deposits',
 ] as const;
 
 for (const table of dataTables) {

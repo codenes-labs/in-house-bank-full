@@ -1,6 +1,7 @@
 import { CashBoxMovementType } from '../enums/cash-box-movement-type';
 import type { CashBox } from '../models/cash-box';
 import type { CashBoxMovement } from '../models/cash-box-movement';
+import type { FreeBalanceDeposit } from '../models/free-balance-deposit';
 import type { FreeBalanceWithdrawal } from '../models/free-balance-withdrawal';
 import { ExtratoKind } from './extrato-kind';
 import { LedgerDirection } from './ledger-direction';
@@ -10,11 +11,23 @@ export interface BuildLedgerInput {
   cashBoxes: CashBox[];
   cashBoxMovements: CashBoxMovement[];
   freeBalanceWithdrawals: FreeBalanceWithdrawal[];
+  freeBalanceDeposits: FreeBalanceDeposit[];
 }
 
 export function buildLedger(input: BuildLedgerInput): LedgerLine[] {
   const cashBoxById = new Map(input.cashBoxes.map((cashBox) => [cashBox.id, cashBox]));
   const lines: LedgerLine[] = [];
+
+  for (const deposit of input.freeBalanceDeposits) {
+    lines.push({
+      id: `free-balance-deposit:${deposit.id}`,
+      date: deposit.date,
+      label: deposit.note ?? 'Entrada no saldo livre',
+      amountCents: deposit.amountCents,
+      direction: LedgerDirection.In,
+      kind: ExtratoKind.FreeBalance,
+    });
+  }
 
   for (const withdrawal of input.freeBalanceWithdrawals) {
     lines.push({

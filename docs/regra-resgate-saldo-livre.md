@@ -18,7 +18,9 @@ Permitir que a pessoa registre **saída de dinheiro do saldo livre** (uso fora d
 - Valor deve ser **maior que zero** e **não pode exceder** o `free_balance_cents` atual; se exceder, mensagem de saldo insuficiente (equivalente a `INSUFFICIENT_BALANCE` nas caixinhas).
 - Opcional em implementação futura: confirmação para valores acima de um teto (alinhar à SPEC-08 para saldo livre).
 
-**Fora desta regra:** transferência automática ao excluir caixinha (já existe). **Aporte de caixinha** não debita saldo livre nesta proposta.
+**Fora desta regra:** **Aporte de caixinha** não debita saldo livre nesta proposta.
+
+**Excluir caixinha:** o saldo da caixinha soma ao `free_balance_cents` e grava **`FreeBalanceDeposit`** com observação `Resgate da caixinha {nome}` (aparece no extrato e em **Últimos lançamentos** em `/financeiro/saldo-livre`).
 
 ---
 
@@ -33,9 +35,9 @@ Permitir que a pessoa registre **saída de dinheiro do saldo livre** (uso fora d
 
 ---
 
-## Movimento registrado
+## Movimentos registrados
 
-Introduzir fato persistido (nome técnico a definir na spec de implementação), por exemplo **`FreeBalanceWithdrawal`**:
+### Saída — `FreeBalanceWithdrawal`
 
 | Campo | Regra |
 | --- | --- |
@@ -49,6 +51,17 @@ Introduzir fato persistido (nome técnico a definir na spec de implementação),
 - Tabela com `user_id` e RLS `user_id = current_setting('app.user_id')::uuid`; inclusão no backup (`AppDataBackup` versão futura).
 
 Não reutilizar `cash_box_movements` — o saldo livre não é caixinha.
+
+### Entrada auditável — `FreeBalanceDeposit`
+
+| Campo | Regra |
+| --- | --- |
+| `id` | UUID |
+| `amountCents` | inteiro > 0 |
+| `date` | `YYYY-MM-DD` |
+| `note` | texto curto (ex.: `Resgate da caixinha Reserva`) |
+
+Usado ao **excluir caixinha** com saldo > 0 e para entradas fictícias na demo; entradas manuais pelo botão **Entrada** ainda só alteram `free_balance_cents` (registro de depósito manual é evolução futura).
 
 ---
 

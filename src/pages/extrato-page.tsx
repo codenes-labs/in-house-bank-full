@@ -16,7 +16,7 @@ const KIND_HINTS: Record<ExtratoKind, string> = {
   [ExtratoKind.Receivables]: 'Lançamentos de contas a receber aparecerão aqui quando a área estiver ativa no Financeiro.',
   [ExtratoKind.Installments]: 'Extrato de parcelas pagas e pendentes (SPEC-10: integração com buildLedger).',
   [ExtratoKind.CashBox]: 'Movimentos de aporte e resgate das caixinhas.',
-  [ExtratoKind.FreeBalance]: 'Saídas registradas do saldo livre.',
+  [ExtratoKind.FreeBalance]: 'Entradas e saídas registradas do saldo livre.',
 };
 
 export function ExtratoPage() {
@@ -29,6 +29,7 @@ export function ExtratoPage() {
       cashBoxes: bank.snapshot.cashBoxes,
       cashBoxMovements: bank.snapshot.cashBoxMovements,
       freeBalanceWithdrawals: bank.snapshot.freeBalanceWithdrawals,
+      freeBalanceDeposits: bank.snapshot.freeBalanceDeposits,
     });
     return filterLedgerByExtratoKind(ledger, kind);
   }, [bank.snapshot, kind]);

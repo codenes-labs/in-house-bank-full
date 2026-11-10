@@ -112,6 +112,13 @@ export function serializeSnapshotCsv(snapshot: SnapshotCsvInput, today = todayCa
   }
 
   lines.push('');
+  lines.push(csvRow(['Entradas no saldo livre']));
+  lines.push(csvRow(['Data', 'Valor (R$)', 'Observação']));
+  for (const deposit of snapshot.freeBalanceDeposits ?? []) {
+    lines.push(csvRow([deposit.date, formatCentsAsBrl(deposit.amountCents), deposit.note ?? '']));
+  }
+
+  lines.push('');
   lines.push(csvRow(['Resgates do saldo livre']));
   lines.push(csvRow(['Data', 'Valor (R$)', 'Observação']));
   for (const withdrawal of snapshot.freeBalanceWithdrawals) {

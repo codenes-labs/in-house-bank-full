@@ -1,6 +1,7 @@
 import type { AppDataBackup } from '../domain/models/app-data-backup';
 import type { CashBox } from '../domain/models/cash-box';
 import type { CashBoxMovement } from '../domain/models/cash-box-movement';
+import type { FreeBalanceDeposit } from '../domain/models/free-balance-deposit';
 import type { FreeBalanceWithdrawal } from '../domain/models/free-balance-withdrawal';
 import type { Installment } from '../domain/models/installment';
 import type { InstallmentPlan } from '../domain/models/installment-plan';
@@ -14,6 +15,7 @@ export interface BankSnapshot {
   cashBoxes: CashBox[];
   cashBoxMovements: CashBoxMovement[];
   freeBalanceWithdrawals: FreeBalanceWithdrawal[];
+  freeBalanceDeposits: FreeBalanceDeposit[];
 }
 
 export function createEmptySnapshot(): BankSnapshot {
@@ -24,6 +26,7 @@ export function createEmptySnapshot(): BankSnapshot {
     cashBoxes: [],
     cashBoxMovements: [],
     freeBalanceWithdrawals: [],
+    freeBalanceDeposits: [],
   };
 }
 
@@ -35,6 +38,7 @@ export function snapshotFromBackup(backup: AppDataBackup): BankSnapshot {
     cashBoxes: backup.cashBoxes,
     cashBoxMovements: backup.cashBoxMovements,
     freeBalanceWithdrawals: backup.freeBalanceWithdrawals,
+    freeBalanceDeposits: backup.freeBalanceDeposits ?? [],
   };
 }
 

@@ -12,6 +12,7 @@ describe('assertAppDataBackup', () => {
     cashBoxes: [],
     cashBoxMovements: [],
     freeBalanceWithdrawals: [],
+    freeBalanceDeposits: [],
   };
 
   it('accepts a valid backup shape', () => {
@@ -22,6 +23,12 @@ describe('assertAppDataBackup', () => {
     const legacy = { ...validBackup };
     delete (legacy as { freeBalanceWithdrawals?: unknown }).freeBalanceWithdrawals;
     expect(assertAppDataBackup(legacy).freeBalanceWithdrawals).toEqual([]);
+  });
+
+  it('fills missing freeBalanceDeposits for version 1 backups', () => {
+    const legacy = { ...validBackup };
+    delete (legacy as { freeBalanceDeposits?: unknown }).freeBalanceDeposits;
+    expect(assertAppDataBackup(legacy).freeBalanceDeposits).toEqual([]);
   });
 
   it('rejects unsupported versions and malformed payloads', () => {
@@ -41,6 +48,7 @@ describe('parseAppDataBackupJson', () => {
       cashBoxes: [],
       cashBoxMovements: [],
       freeBalanceWithdrawals: [],
+      freeBalanceDeposits: [],
     };
 
     expect(parseAppDataBackupJson(JSON.stringify(backup))).toEqual(backup);

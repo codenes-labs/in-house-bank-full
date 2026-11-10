@@ -30,6 +30,7 @@ describe('createMemoryBankRepository', () => {
       cashBoxes: [],
       cashBoxMovements: [],
       freeBalanceWithdrawals: [],
+      freeBalanceDeposits: [],
     });
 
     const snapshot = await repository.load();
@@ -53,6 +54,12 @@ describe('createMemoryBankRepository', () => {
     const snapshot = await repository.load();
     expect(snapshot.cashBoxes).toEqual([]);
     expect(snapshot.settings.freeBalanceCents).toBe(1_500_00);
+    expect(snapshot.freeBalanceDeposits).toEqual([
+      expect.objectContaining({
+        amountCents: 500_00,
+        note: 'Resgate da caixinha Reserva',
+      }),
+    ]);
   });
 
   it('records a free balance withdrawal and updates settings together', async () => {

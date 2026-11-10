@@ -2,7 +2,12 @@ import type { NeonQueryFunction } from '@neondatabase/serverless';
 import type { AppDataBackup } from '../domain/models/app-data-backup';
 import type { CashBox } from '../domain/models/cash-box';
 import type { CashBoxMovement } from '../domain/models/cash-box-movement';
+import { buildCashBoxTransferDeposit } from '../domain/cash-boxes/build-cash-box-transfer-deposit';
+import { todayCalendarDate } from '../domain/calendar/today-calendar-date';
+import { createId } from '../domain/ids/create-id';
+import type { FreeBalanceDeposit } from '../domain/models/free-balance-deposit';
 import type { FreeBalanceWithdrawal } from '../domain/models/free-balance-withdrawal';
+import { mapCashBox, type Row } from './rows';
 import type { Installment } from '../domain/models/installment';
 import type { InstallmentPlan } from '../domain/models/installment-plan';
 import type { Settings } from '../domain/models/settings';
@@ -12,6 +17,7 @@ type Sql = NeonQueryFunction<false, false>;
 export async function replaceUserBackup(sql: Sql, userId: string, backup: AppDataBackup): Promise<void> {
   await sql.transaction([
     sql`select set_config('app.user_id', ${userId}, true)`,
+    sql`delete from free_balance_deposits where user_id = ${userId}::uuid`,
     sql`delete from free_balance_withdrawals where user_id = ${userId}::uuid`,
     sql`delete from cash_box_movements where user_id = ${userId}::uuid`,
     sql`delete from installments where user_id = ${userId}::uuid`,
@@ -33,6 +39,9 @@ export async function replaceUserBackup(sql: Sql, userId: string, backup: AppDat
   }
   for (const withdrawal of backup.freeBalanceWithdrawals) {
     await insertFreeBalanceWithdrawal(sql, userId, withdrawal);
+  }
+  for (const deposit of backup.freeBalanceDeposits ?? []) {
+    await insertFreeBalanceDeposit(sql, userId, deposit);
   }
 }
 
@@ -176,6 +185,27 @@ export async function saveFreeBalanceWithdrawal(
   ]);
 }
 
+async function insertFreeBalanceDeposit(sql: Sql, userId: string, deposit: FreeBalanceDeposit): Promise<void> {
+  await sql.transaction([
+    sql`select set_config('app.user_id', ${userId}, true)`,
+    sql`
+      insert into free_balance_deposits (id, user_id, amount_cents, deposit_date, note)
+      values (
+        ${deposit.id}::uuid,
+        ${userId}::uuid,
+        ${deposit.amountCents},
+        ${deposit.date},
+        ${deposit.note ?? null}
+      )
+      on conflict (id) do update set
+        amount_cents = excluded.amount_cents,
+        deposit_date = excluded.deposit_date,
+        note = excluded.note
+      where free_balance_deposits.user_id = ${userId}::uuid
+    `,
+  ]);
+}
+
 async function insertFreeBalanceWithdrawal(
   sql: Sql,
   userId: string,
@@ -219,8 +249,34 @@ export async function saveMovement(sql: Sql, userId: string, movement: CashBoxMo
 }
 
 export async function deleteCashBox(sql: Sql, userId: string, cashBoxId: string): Promise<void> {
+  const lookup = await sql.transaction([
+    sql`select set_config('app.user_id', ${userId}, true)`,
+    sql`
+      select id, name, institution, cdi_percent, limit_cents, balance_cents
+      from cash_boxes
+      where id = ${cashBoxId}::uuid and user_id = ${userId}::uuid
+    `,
+  ]);
+  const row = (lookup[1] as Row[])[0];
+  const cashBox = row ? mapCashBox(row) : undefined;
+  const deposit = cashBox ? buildCashBoxTransferDeposit(cashBox, createId(), todayCalendarDate()) : null;
+
   await sql.transaction([
     sql`select set_config('app.user_id', ${userId}, true)`,
+    ...(deposit
+      ? [
+          sql`
+            insert into free_balance_deposits (id, user_id, amount_cents, deposit_date, note)
+            values (
+              ${deposit.id}::uuid,
+              ${userId}::uuid,
+              ${deposit.amountCents},
+              ${deposit.date},
+              ${deposit.note ?? null}
+            )
+          `,
+        ]
+      : []),
     sql`
       update settings
       set
@@ -231,6 +287,7 @@ export async function deleteCashBox(sql: Sql, userId: string, cashBoxId: string)
         updated_at = now()
       where user_id = ${userId}::uuid
     `,
+    sql`delete from cash_box_movements where cash_box_id = ${cashBoxId}::uuid and user_id = ${userId}::uuid`,
     sql`delete from cash_boxes where id = ${cashBoxId}::uuid and user_id = ${userId}::uuid`,
   ]);
 }

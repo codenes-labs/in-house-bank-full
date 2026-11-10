@@ -40,6 +40,7 @@ describe('serializeSnapshotCsv', () => {
         cashBoxes: [],
         cashBoxMovements: [],
         freeBalanceWithdrawals: [],
+        freeBalanceDeposits: [],
       },
       '2026-03-01',
     );

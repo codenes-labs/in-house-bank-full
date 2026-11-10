@@ -1,6 +1,7 @@
 import { DefaultInterestType } from '../domain/enums/default-interest-type';
 import type { CashBox } from '../domain/models/cash-box';
 import type { CashBoxMovement } from '../domain/models/cash-box-movement';
+import type { FreeBalanceDeposit } from '../domain/models/free-balance-deposit';
 import type { FreeBalanceWithdrawal } from '../domain/models/free-balance-withdrawal';
 import type { Installment } from '../domain/models/installment';
 import type { InstallmentPlan } from '../domain/models/installment-plan';
@@ -118,6 +119,15 @@ export function mapFreeBalanceWithdrawal(row: Row): FreeBalanceWithdrawal {
     id: String(row['id']),
     amountCents: asNumber(row['amount_cents']),
     date: asDate(row['withdrawal_date']),
+    note: optionalText(row['note']),
+  };
+}
+
+export function mapFreeBalanceDeposit(row: Row): FreeBalanceDeposit {
+  return {
+    id: String(row['id']),
+    amountCents: asNumber(row['amount_cents']),
+    date: asDate(row['deposit_date']),
     note: optionalText(row['note']),
   };
 }

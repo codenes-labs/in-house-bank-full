@@ -1,4 +1,7 @@
+import { buildCashBoxTransferDeposit } from '../domain/cash-boxes/build-cash-box-transfer-deposit';
 import { settingsAfterDeletingCashBox } from '../domain/cash-boxes/settings-after-deleting-cash-box';
+import { todayCalendarDate } from '../domain/calendar/today-calendar-date';
+import { createId } from '../domain/ids/create-id';
 import type { AppDataBackup } from '../domain/models/app-data-backup';
 import type { CashBox } from '../domain/models/cash-box';
 import type { CashBoxMovement } from '../domain/models/cash-box-movement';
@@ -50,11 +53,17 @@ export function createMemoryBankRepository(initial?: BankSnapshot): BankReposito
     },
     async deleteCashBox(cashBoxId: string) {
       const deletedCashBox = snapshot.cashBoxes.find((cashBox) => cashBox.id === cashBoxId);
+      const deposit = deletedCashBox
+        ? buildCashBoxTransferDeposit(deletedCashBox, createId(), todayCalendarDate())
+        : null;
       snapshot = {
         ...snapshot,
         settings: settingsAfterDeletingCashBox(snapshot.settings, deletedCashBox),
         cashBoxes: snapshot.cashBoxes.filter((cashBox) => cashBox.id !== cashBoxId),
         cashBoxMovements: snapshot.cashBoxMovements.filter((movement) => movement.cashBoxId !== cashBoxId),
+        freeBalanceDeposits: deposit
+          ? upsert(snapshot.freeBalanceDeposits, deposit)
+          : snapshot.freeBalanceDeposits,
       };
     },
     async saveMovement(movement: CashBoxMovement) {

@@ -9,6 +9,7 @@ describe('buildLedger', () => {
     const lines = buildLedger({
       cashBoxes: [],
       cashBoxMovements: [],
+      freeBalanceDeposits: [],
       freeBalanceWithdrawals: [
         { id: 'w1', amountCents: 5_000, date: '2026-11-01' },
         { id: 'w2', amountCents: 2_000, date: '2026-11-05' },
@@ -53,20 +54,49 @@ describe('buildLedger', () => {
           date: '2026-11-04',
         },
       ],
+      freeBalanceDeposits: [],
       freeBalanceWithdrawals: [],
     });
     expect(lines.map((line) => line.label)).toEqual(['Resgate de Reserva', 'Aporte em Reserva']);
+  });
+
+  it('includes free balance deposits with note as label', () => {
+    const lines = buildLedger({
+      cashBoxes: [],
+      cashBoxMovements: [],
+      freeBalanceDeposits: [
+        {
+          id: 'd1',
+          amountCents: 50_000,
+          date: '2026-11-02',
+          note: 'Resgate da caixinha Reserva',
+        },
+      ],
+      freeBalanceWithdrawals: [],
+    });
+    expect(lines).toEqual([
+      {
+        id: 'free-balance-deposit:d1',
+        date: '2026-11-02',
+        label: 'Resgate da caixinha Reserva',
+        amountCents: 50_000,
+        direction: LedgerDirection.In,
+        kind: ExtratoKind.FreeBalance,
+      },
+    ]);
   });
 
   it('drops a line when the underlying withdrawal is removed', () => {
     const full = buildLedger({
       cashBoxes: [],
       cashBoxMovements: [],
+      freeBalanceDeposits: [],
       freeBalanceWithdrawals: [{ id: 'w1', amountCents: 1_000, date: '2026-11-01' }],
     });
     const empty = buildLedger({
       cashBoxes: [],
       cashBoxMovements: [],
+      freeBalanceDeposits: [],
       freeBalanceWithdrawals: [],
     });
     expect(full).toHaveLength(1);
@@ -86,6 +116,7 @@ describe('filterLedgerByExtratoKind', () => {
         date: '2026-11-01',
       },
     ],
+    freeBalanceDeposits: [],
     freeBalanceWithdrawals: [{ id: 'w1', amountCents: 50, date: '2026-11-02' }],
   });
 

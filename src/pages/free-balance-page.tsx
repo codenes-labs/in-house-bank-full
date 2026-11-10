@@ -25,13 +25,27 @@ export function FreeBalancePage() {
     ...bank.snapshot.settings,
     milestonesCents: milestonesOrDefault(bank.snapshot.settings.milestonesCents),
   };
-  const recentWithdrawals = useMemo(
-    () =>
-      [...bank.snapshot.freeBalanceWithdrawals]
-        .sort((left, right) => (left.date < right.date ? 1 : left.date > right.date ? -1 : 0))
-        .slice(0, 5),
-    [bank.snapshot.freeBalanceWithdrawals],
-  );
+  const recentMovements = useMemo(() => {
+    const rows = [
+      ...bank.snapshot.freeBalanceDeposits.map((deposit) => ({
+        id: `deposit:${deposit.id}`,
+        date: deposit.date,
+        amountCents: deposit.amountCents,
+        kind: 'Entrada' as const,
+        detail: deposit.note,
+      })),
+      ...bank.snapshot.freeBalanceWithdrawals.map((withdrawal) => ({
+        id: `withdrawal:${withdrawal.id}`,
+        date: withdrawal.date,
+        amountCents: withdrawal.amountCents,
+        kind: 'Saída' as const,
+        detail: withdrawal.note,
+      })),
+    ];
+    return rows
+      .sort((left, right) => (left.date < right.date ? 1 : left.date > right.date ? -1 : 0))
+      .slice(0, 8);
+  }, [bank.snapshot.freeBalanceDeposits, bank.snapshot.freeBalanceWithdrawals]);
 
   return (
     <div className="grid gap-4">
@@ -106,14 +120,19 @@ export function FreeBalancePage() {
             <WithdrawalActionButton name="kind" value={MovementKind.Withdrawal} />
           </div>
         </form>
-        {recentWithdrawals.length > 0 ? (
+        {recentMovements.length > 0 ? (
           <div className="grid gap-2 border-t border-border pt-3">
-            <h3 className="text-sm font-semibold">Últimas saídas</h3>
+            <h3 className="text-sm font-semibold">Últimos lançamentos</h3>
             <ul className="grid gap-1 text-sm">
-              {recentWithdrawals.map((withdrawal) => (
-                <li key={withdrawal.id} className="flex items-center justify-between gap-2">
-                  <span className="text-muted-foreground">{formatCalendarDateBr(withdrawal.date)}</span>
-                  <span className="tabular-nums">{money(withdrawal.amountCents)}</span>
+              {recentMovements.map((movement) => (
+                <li key={movement.id} className="grid gap-0.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-muted-foreground">{formatCalendarDateBr(movement.date)}</span>
+                    <span className="tabular-nums">
+                      <span className="text-muted-foreground">{movement.kind}</span> · {money(movement.amountCents)}
+                    </span>
+                  </div>
+                  {movement.detail ? <p className="text-muted-foreground">{movement.detail}</p> : null}
                 </li>
               ))}
             </ul>

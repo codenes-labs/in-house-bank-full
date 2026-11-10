@@ -12,13 +12,13 @@ import {
   DEMO_PASSWORD,
   ensureSeededAccounts,
   normalizeLoginEmail,
-  restoreDemoSnapshot,
 } from './account-seed';
 import { signAccessToken, verifyAccessToken } from './jwt';
 import { hashPassword, verifyPassword } from './password';
 import { schemaStatements } from './schema';
 import {
   mapCashBox,
+  mapFreeBalanceDeposit,
   mapFreeBalanceWithdrawal,
   mapInstallment,
   mapMovement,
@@ -26,6 +26,7 @@ import {
   mapSettings,
   type Row,
 } from './rows';
+import { demoBankSnapshot } from './demo-backup';
 import { DEMO_PERSISTENCE_ERROR, rejectsDemoPersistence } from './demo-persistence';
 import { buildOpenApiDocument } from './openapi-document';
 import {
@@ -127,6 +128,9 @@ async function route(sql: Sql, request: Request, jwtSecret: string): Promise<Res
   }
 
   if (pathname === '/api/bank' && request.method === 'GET') {
+    if (account.isDemo) {
+      return json(demoBankSnapshot());
+    }
     return json(await loadBank(sql, account.id));
   }
   if (pathname === '/api/bank/settings' && request.method === 'PUT') {
@@ -198,9 +202,6 @@ async function signIn(sql: Sql, request: Request, jwtSecret: string): Promise<Re
     return json({ error: 'E-mail ou senha incorretos.' }, 400);
   }
   const id = String(row.id);
-  if (row.account_kind === AccountKind.Demo) {
-    await restoreDemoSnapshot(sql, id);
-  }
   return json({
     user: toSessionUser(row),
     accessToken: await issueAccessToken(jwtSecret, id, row.email),
@@ -315,6 +316,7 @@ async function loadBank(sql: Sql, userId: string) {
     sql`select * from cash_boxes where user_id = ${userId}::uuid`,
     sql`select * from cash_box_movements where user_id = ${userId}::uuid`,
     sql`select * from free_balance_withdrawals where user_id = ${userId}::uuid`,
+    sql`select * from free_balance_deposits where user_id = ${userId}::uuid`,
   ]);
   const settings = (results[1] as Row[])[0];
   return {
@@ -324,6 +326,7 @@ async function loadBank(sql: Sql, userId: string) {
     cashBoxes: (results[4] as Row[]).map(mapCashBox),
     cashBoxMovements: (results[5] as Row[]).map(mapMovement),
     freeBalanceWithdrawals: (results[6] as Row[]).map(mapFreeBalanceWithdrawal),
+    freeBalanceDeposits: (results[7] as Row[]).map(mapFreeBalanceDeposit),
   };
 }
 
