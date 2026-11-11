@@ -13,7 +13,6 @@ import { createHttpBankRepository } from '../repositories/http-bank-repository';
 import { createMemoryBankRepository } from '../repositories/memory-bank-repository';
 import type { BankRepository } from '../repositories/bank-repository';
 import { useAuth } from './auth-context';
-import { useTheme } from './theme';
 
 interface BankContextValue {
   ready: boolean;
@@ -40,7 +39,6 @@ const BankContext = createContext<BankContextValue | null>(null);
 export function BankProvider({ children }: { children: ReactNode }) {
   const { session } = useAuth();
   const isDemo = session?.user.isDemo ?? false;
-  const { setMode } = useTheme();
   const [snapshot, setSnapshot] = useState<BankSnapshot>(createEmptySnapshot());
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,7 +61,6 @@ export function BankProvider({ children }: { children: ReactNode }) {
           return;
         }
         setSnapshot(loaded);
-        setMode(loaded.settings.theme);
         setError(null);
         setReady(true);
       })
@@ -77,7 +74,7 @@ export function BankProvider({ children }: { children: ReactNode }) {
     return () => {
       active = false;
     };
-  }, [setMode, userId]);
+  }, [userId]);
 
   const value = useMemo<BankContextValue>(() => {
     const repository: BankRepository | null = userId ? createHttpBankRepository() : null;

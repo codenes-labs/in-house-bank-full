@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { FileJson } from 'lucide-react';
 import { useBank } from '../../components/bank-context';
-import { useTheme } from '../../components/theme';
 import { IconFileInput } from '../../components/icon-file-input';
 import { Button, Card, Field } from '../../components/ui';
 import { APP_DATA_BACKUP_VERSION } from '../../domain/models/app-data-backup';
@@ -12,7 +11,6 @@ import { SettingsAlerts, SettingsPageHeader } from './settings-page-header';
 
 export function SettingsBackupPage() {
   const bank = useBank();
-  const theme = useTheme();
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,7 +29,6 @@ export function SettingsBackupPage() {
         return;
       }
       await bank.importBackup(backup);
-      theme.setMode(backup.settings.theme);
       setNotice('Backup importado.');
       setError(null);
     } catch {

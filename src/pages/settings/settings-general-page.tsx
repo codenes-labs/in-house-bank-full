@@ -29,7 +29,6 @@ export function SettingsGeneralPage() {
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     try {
-      theme.setMode(themeMode);
       applyUiFontScale(fontScale);
       if (auth.session?.user.id && bank.ready) {
         await bank.saveSettings({ ...settings, theme: themeMode });

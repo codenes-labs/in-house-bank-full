@@ -23,5 +23,5 @@ Organizar `/configuracoes` em hub e subrotas, no mesmo padrão de Patrimônio e 
 3. Dados de negócio e aparência salvam com `bank.saveSettings` quando aplicável; escala de fonte persiste em `localStorage`.
 4. Menu da conta no mobile aponta para o hub `/configuracoes`.
 5. Em financeiro, metas de patrimônio são lista editável: digitar valor em reais (só números) e Enter para incluir; cada meta pode ser removida.
-6. Em gerais, o select de tema reflete o tema aplicado (localStorage), não o valor padrão do snapshot antes de carregar o banco.
+6. Em gerais, o select de tema reflete `settings.theme` da conta (banco); fora da conta, landing/docs usam preferência pública em `localStorage` (padrão claro).
 7. Em backup, botão de exportação JSON com ícone; importação usa a mesma zona de upload (arrastar ou clicar) do logotipo; aceita JSON até 10 MB.

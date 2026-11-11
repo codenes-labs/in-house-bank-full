@@ -13,13 +13,13 @@ applyUiFontScale(readStoredUiFontScale())
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
-      <ThemeProvider>
-        <AuthProvider>
-          <BankProvider>
+      <AuthProvider>
+        <BankProvider>
+          <ThemeProvider>
             <App />
-          </BankProvider>
-        </AuthProvider>
-      </ThemeProvider>
+          </ThemeProvider>
+        </BankProvider>
+      </AuthProvider>
     </BrowserRouter>
   </StrictMode>,
 )
