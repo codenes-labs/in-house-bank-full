@@ -116,9 +116,6 @@ export function AuthPage({ mode }: { mode: 'sign-in' | 'recover' }) {
               onChange={(event) => setEmail(event.target.value)}
             />
           </Field>
-          {mode === 'sign-in' ? (
-            <p className="text-xs text-muted-foreground">Demo: usuário <strong className="font-semibold">teste</strong> e senha <strong className="font-semibold">teste</strong>.</p>
-          ) : null}
           <Field label={mode === 'recover' ? 'Nova senha' : 'Senha'}>
             <TextInput
               id="auth-password"
