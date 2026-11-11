@@ -104,11 +104,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </nav>
         </aside>
         <div className="flex min-h-0 min-w-0 flex-col">
-          <header className="z-10 flex w-full min-w-0 shrink-0 items-center justify-between gap-2 border-b border-border bg-card px-4 py-2">
-            <div className="min-w-0 flex-1 lg:hidden">
-              <Logo compactBelowSm />
+          <header className="z-10 flex shrink-0 items-center justify-between gap-3 border-b border-border bg-card px-4 py-2">
+            <div className="min-w-0 lg:hidden">
+              <Logo />
             </div>
-            <div className="flex shrink-0 items-center gap-1">
+            <div className="ml-auto flex shrink-0 items-center gap-1">
               <button
                 type="button"
                 className="press inline-flex size-12 items-center justify-center rounded-lg text-muted-foreground"
