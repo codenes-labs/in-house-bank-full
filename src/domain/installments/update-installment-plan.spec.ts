@@ -26,11 +26,14 @@ describe('applyInstallmentPlanUpdate', () => {
       beneficiary: 'João Silva',
       pixKey: '390.533.447-05',
       institution: 'Inter',
+      usedAmountCents: 60_000,
     });
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.plan.reference).toBe('Cadeira');
       expect(result.plan.institution).toBe('Inter');
+      expect(result.plan.usedAmountCents).toBe(60_000);
+      expect(result.plan.returnAmountCents).toBe(59_900);
       expect(result.pixFieldsChanged).toBe(true);
     }
   });
@@ -42,7 +45,23 @@ describe('applyInstallmentPlanUpdate', () => {
       beneficiary: 'Maria LTDA',
       pixKey: 'invalida',
       institution: 'Nubank',
+      usedAmountCents: 54_000,
     });
     expect(result.ok).toBe(false);
+  });
+
+  it('rejects invalid used amount', () => {
+    const result = applyInstallmentPlanUpdate(plan, {
+      reference: 'Notebook',
+      borrowerName: 'Maria',
+      beneficiary: 'Maria LTDA',
+      pixKey: '390.533.447-05',
+      institution: 'Nubank',
+      usedAmountCents: 0,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors.usedAmountCents).toBeTruthy();
+    }
   });
 });

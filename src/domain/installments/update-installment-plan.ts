@@ -7,6 +7,7 @@ export interface InstallmentPlanUpdateInput {
   beneficiary: string;
   pixKey: string;
   institution: string;
+  usedAmountCents: number;
   payerPhone?: string;
   paymentInstructions?: string;
   responsibilityTerm?: string;
@@ -17,7 +18,8 @@ export type InstallmentPlanUpdateError =
   | 'EMPTY_BORROWER'
   | 'EMPTY_BENEFICIARY'
   | 'EMPTY_INSTITUTION'
-  | 'INVALID_PIX_KEY';
+  | 'INVALID_PIX_KEY'
+  | 'INVALID_USED_AMOUNT';
 
 export type InstallmentPlanUpdateResult =
   | { ok: true; plan: InstallmentPlan; pixFieldsChanged: boolean }
@@ -46,6 +48,9 @@ export function applyInstallmentPlanUpdate(
   if (!institution) {
     errors.institution = 'Informe a instituição.';
   }
+  if (!Number.isInteger(input.usedAmountCents) || input.usedAmountCents <= 0) {
+    errors.usedAmountCents = 'Informe um valor utilizado maior que zero.';
+  }
 
   const pixValidation = validatePixKey(pixKeyRaw);
   if (!pixValidation.valid) {
@@ -68,6 +73,7 @@ export function applyInstallmentPlanUpdate(
       beneficiary,
       pixKey,
       institution,
+      usedAmountCents: input.usedAmountCents,
       payerPhone: input.payerPhone !== undefined ? input.payerPhone.trim() : plan.payerPhone,
       paymentInstructions:
         input.paymentInstructions !== undefined

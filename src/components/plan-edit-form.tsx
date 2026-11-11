@@ -7,8 +7,10 @@ import {
   planCarneTextsForEdit,
   settingsCarneTextDefaults,
 } from '../domain/plan/plan-carne-texts';
+import { brlStringToCents, formatCentsAsBrl } from '../domain/money/brl-input';
 import { validateBrazilianPhone, maskBrazilianPhone } from '../domain/whatsapp/validate-brazilian-phone';
 import { useBank } from './bank-context';
+import { MaskedMoneyInput } from './masked-inputs';
 import { SaveActionButton } from './standard-action-buttons';
 import { Field, SoftTextArea, TextInput } from './ui';
 
@@ -40,12 +42,14 @@ export function PlanEditForm({
       ? planCarneTextOverride(String(data.get('responsibilityTerm') ?? ''), defaults.responsibilityTerm)
       : undefined;
 
+    const usedAmountCents = brlStringToCents(String(data.get('usedAmount') ?? '')) ?? 0;
     const result = applyInstallmentPlanUpdate(plan, {
       reference: String(data.get('reference') ?? ''),
       borrowerName: String(data.get('borrowerName') ?? ''),
       beneficiary: String(data.get('beneficiary') ?? ''),
       pixKey: String(data.get('pixKey') ?? ''),
       institution: String(data.get('institution') ?? ''),
+      usedAmountCents,
       payerPhone: String(data.get('payerPhone') ?? ''),
       paymentInstructions: customTexts ? paymentInstructions ?? '' : '',
       responsibilityTerm: customTexts ? responsibilityTerm ?? '' : '',
@@ -91,6 +95,20 @@ export function PlanEditForm({
         </Field>
         <Field label="Referência">
           <TextInput name="reference" defaultValue={plan.reference} />
+        </Field>
+        <Field label="Valor utilizado">
+          <MaskedMoneyInput name="usedAmount" defaultValue={formatCentsAsBrl(plan.usedAmountCents)} />
+        </Field>
+        <Field label="Valor de retorno">
+          <TextInput
+            readOnly
+            value={`R$ ${formatCentsAsBrl(plan.returnAmountCents)}`}
+            className="bg-muted/60"
+            aria-readonly
+          />
+          <span className="text-xs font-normal text-muted-foreground">
+            Soma das parcelas; altere em Ajustar parcela no detalhe.
+          </span>
         </Field>
         <Field label="Beneficiário">
           <TextInput name="beneficiary" defaultValue={plan.beneficiary} />
