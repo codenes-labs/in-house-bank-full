@@ -75,9 +75,9 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
-      <Route path="/entrar" element={<AuthPage mode="sign-in" />} />
+      <Route path="/entrar" element={<AuthPage key="sign-in" mode="sign-in" />} />
       <Route path="/cadastro" element={<Navigate to="/entrar" replace />} />
-      <Route path="/recuperar-senha" element={<AuthPage mode="recover" />} />
+      <Route path="/recuperar-senha" element={<AuthPage key="recover" mode="recover" />} />
       <Route path="/docs" element={<DocsLayout />}>
         <Route index element={<DocsOverviewPage />} />
         <Route path="stack" element={<DocsStackPage />} />
