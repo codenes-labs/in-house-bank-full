@@ -8,6 +8,7 @@ describe('access token policy', () => {
   });
 
   it('uses idle timeout shorter than absolute ttl', () => {
+    expect(SESSION_IDLE_TIMEOUT_MS).toBe(2 * 60 * 60 * 1000);
     expect(SESSION_IDLE_TIMEOUT_MS).toBeLessThan(ACCESS_TOKEN_TTL_SECONDS * 1000);
   });
 });
