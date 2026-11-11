@@ -1,7 +1,16 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildCashBoxTransferDeposit } from './build-cash-box-transfer-deposit';
 
 describe('buildCashBoxTransferDeposit', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-03-01T12:00:00.000Z'));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('creates deposit with note naming the cash box', () => {
     const deposit = buildCashBoxTransferDeposit(
       {
@@ -19,6 +28,7 @@ describe('buildCashBoxTransferDeposit', () => {
       amountCents: 12_000,
       date: '2026-03-01',
       note: 'Resgate da caixinha Reserva',
+      recordedAt: '2026-03-01T12:00:00.000Z',
     });
   });
 
