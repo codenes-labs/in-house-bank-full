@@ -8,4 +8,5 @@ export interface CashBoxMovement {
   amountCents: number;
   date: CalendarDate;
   note?: string;
+  recordedAt?: string;
 }

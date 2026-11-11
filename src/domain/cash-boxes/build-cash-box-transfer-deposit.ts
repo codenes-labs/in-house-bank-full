@@ -15,5 +15,6 @@ export function buildCashBoxTransferDeposit(
     amountCents: cashBox.balanceCents,
     date,
     note: `Resgate da caixinha ${cashBox.name}`,
+    recordedAt: new Date().toISOString(),
   };
 }

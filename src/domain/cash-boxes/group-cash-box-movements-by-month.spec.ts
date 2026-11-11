@@ -34,4 +34,34 @@ describe('groupCashBoxMovementsByMonth', () => {
     expect(groups[0]?.movements).toHaveLength(2);
     expect(groups[1]?.depositsTotalCents).toBe(50_00);
   });
+
+  it('lists same-day movements newest first by recordedAt', () => {
+    const groups = groupCashBoxMovementsByMonth([
+      {
+        id: 'older',
+        cashBoxId: 'box',
+        type: CashBoxMovementType.Deposit,
+        amountCents: 312_31,
+        date: '2026-03-20',
+        recordedAt: '2026-03-20T10:00:00.000Z',
+      },
+      {
+        id: 'newest',
+        cashBoxId: 'box',
+        type: CashBoxMovementType.Deposit,
+        amountCents: 313_13,
+        date: '2026-03-20',
+        recordedAt: '2026-03-20T10:05:00.000Z',
+      },
+      {
+        id: 'middle',
+        cashBoxId: 'box',
+        type: CashBoxMovementType.Withdrawal,
+        amountCents: 50_00,
+        date: '2026-03-20',
+        recordedAt: '2026-03-20T10:02:00.000Z',
+      },
+    ]);
+    expect(groups[0]?.movements.map((movement) => movement.id)).toEqual(['newest', 'middle', 'older']);
+  });
 });

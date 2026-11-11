@@ -1,5 +1,6 @@
 import { CashBoxMovementType } from '../enums/cash-box-movement-type';
 import type { CashBoxMovement } from '../models/cash-box-movement';
+import { compareCashBoxMovementsNewestFirst } from './compare-cash-box-movements';
 import { formatCashBoxMonthLabel } from './format-cash-box-month-label';
 
 export interface CashBoxMovementMonthGroup {
@@ -14,7 +15,7 @@ function yearMonthFromDate(date: string): string {
 }
 
 export function groupCashBoxMovementsByMonth(movements: readonly CashBoxMovement[]): CashBoxMovementMonthGroup[] {
-  const sorted = [...movements].sort((left, right) => right.date.localeCompare(left.date));
+  const sorted = [...movements].sort(compareCashBoxMovementsNewestFirst);
   const groups = new Map<string, CashBoxMovement[]>();
 
   for (const movement of sorted) {

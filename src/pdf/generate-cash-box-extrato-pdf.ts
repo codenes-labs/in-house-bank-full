@@ -2,6 +2,7 @@ import { PDFDocument, StandardFonts, type PDFPage, type PDFFont } from 'pdf-lib'
 import { formatCentsAsBrl } from '../domain/money/brl-input';
 import { formatInstallmentDueDateRangeLabel } from '../domain/installments/installment-due-date-range';
 import type { InstallmentDueDateRange } from '../domain/installments/installment-due-date-range';
+import { compareLedgerLinesNewestFirst } from '../domain/ledger/compare-ledger-lines';
 import { groupLedgerLinesByMonth } from '../domain/ledger/group-ledger-lines-by-month';
 import { LedgerDirection } from '../domain/ledger/ledger-direction';
 import type { LedgerLine } from '../domain/ledger/ledger-line';
@@ -55,9 +56,7 @@ export async function generateCashBoxExtratoPdf(input: CashBoxExtratoPdfInput): 
   };
 
   startContentArea(state);
-  const sorted = [...input.lines].sort((left, right) =>
-    left.date < right.date ? 1 : left.date > right.date ? -1 : 0,
-  );
+  const sorted = [...input.lines].sort(compareLedgerLinesNewestFirst);
 
   if (sorted.length === 0) {
     drawEmptyState(state);
