@@ -121,6 +121,10 @@ html[data-ui-scale='large'] {
   display: none;
 }
 
+html.docs-public-scroll {
+  scrollbar-gutter: stable;
+}
+
 @media (max-width: 1023px) {
   html.docs-public-scroll {
     -ms-overflow-style: none;

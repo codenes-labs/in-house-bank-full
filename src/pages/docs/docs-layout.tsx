@@ -1,23 +1,29 @@
-import { useEffect } from 'react';
-import { Outlet } from 'react-router-dom';
+import { useEffect, useLayoutEffect } from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
 import { PublicSiteChrome } from '../../components/public-site-chrome';
 import { DocsSearchProvider } from './docs-search-context';
 import { DocsSidebarNav } from './docs-side-nav';
 
 function DocsLayoutBody() {
+  const { pathname } = useLocation();
+
   useEffect(() => {
     document.documentElement.classList.add('docs-public-scroll');
     return () => document.documentElement.classList.remove('docs-public-scroll');
   }, []);
 
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
   return (
     <PublicSiteChrome section="docs">
       <section className="mt-6 lg:mt-8">
-        <div className="mb-6">
-          <aside className="mb-6 hidden min-w-0 bg-background pt-1 lg:fixed lg:top-[4.75rem] lg:left-[max(1rem,calc((100vw-72rem)/2+1rem))] lg:z-20 lg:block lg:mb-0 lg:w-[17rem] lg:max-h-[calc(100dvh-4.75rem)] lg:overflow-y-auto lg:overscroll-y-contain lg:pt-4 lg:pr-2">
+        <div className="mb-6 lg:grid lg:grid-cols-[17rem_minmax(0,1fr)] lg:items-start lg:gap-10 xl:gap-14">
+          <aside className="mb-6 hidden min-w-0 lg:sticky lg:top-4 lg:block lg:mb-0 lg:max-h-[calc(100dvh-2rem)] lg:overflow-y-auto lg:overscroll-y-contain lg:pr-2">
             <DocsSidebarNav />
           </aside>
-          <div className="min-w-0 lg:ml-[calc(17rem+2.5rem)] xl:ml-[calc(17rem+3.5rem)]">
+          <div className="min-w-0">
             <div className="grid gap-6">
               <header>
                 <p className="text-sm font-semibold uppercase tracking-wide text-accent">Documentação técnica</p>

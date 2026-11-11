@@ -56,7 +56,9 @@ function PublicSiteHeader({
     <header
       className={cx(
         'shrink-0 gap-2 sm:gap-3',
-        inDocs ? 'grid grid-cols-1 sm:flex sm:flex-wrap sm:items-center' : 'flex w-full min-w-0 items-center justify-between gap-2',
+        inDocs
+          ? 'grid grid-cols-1 gap-2 sm:flex sm:flex-nowrap sm:items-center sm:gap-3'
+          : 'flex w-full min-w-0 items-center justify-between gap-2',
       )}
     >
       <div
@@ -87,7 +89,7 @@ function PublicSiteHeader({
             </Link>
           ) : (
             <Link to="/" className="inline-flex min-w-0 max-w-full" aria-label="In House Bank">
-              <Logo compactBelowSm />
+              <Logo />
             </Link>
           )}
         </div>
@@ -120,33 +122,14 @@ export function PublicSiteChrome({
   const docsSearch = useDocsSearchOptional();
 
   return (
-    <div className={`mx-auto min-h-dvh w-full min-w-0 max-w-6xl px-4 ${inDocs ? 'docs-public-chrome pb-5' : 'pb-5'}`}>
-      {inDocs ? (
-        <>
-          <div className="fixed inset-x-0 top-0 z-30 border-b border-border bg-background shadow-sm">
-            <div className="mx-auto max-w-6xl px-4 py-3">
-              <PublicSiteHeader
-                inDocs={inDocs}
-                docsSearch={docsSearch}
-                themeLabel={themeLabel}
-                mode={mode}
-                toggle={toggle}
-              />
-            </div>
-          </div>
-          <div className="h-[7.5rem] shrink-0 sm:h-[4.75rem] lg:h-[4.75rem]" aria-hidden />
-        </>
-      ) : (
-        <div className="sticky top-0 z-30 -mx-4 border-b border-border bg-background px-4 py-3 shadow-sm">
-          <PublicSiteHeader
-            inDocs={inDocs}
-            docsSearch={docsSearch}
-            themeLabel={themeLabel}
-            mode={mode}
-            toggle={toggle}
-          />
-        </div>
-      )}
+    <div className={`mx-auto min-h-dvh w-full min-w-0 max-w-6xl px-4 ${inDocs ? 'docs-public-chrome py-5' : 'py-5'}`}>
+      <PublicSiteHeader
+        inDocs={inDocs}
+        docsSearch={docsSearch}
+        themeLabel={themeLabel}
+        mode={mode}
+        toggle={toggle}
+      />
       {children}
       {!inDocs ? <PublicSiteFooter /> : null}
     </div>
