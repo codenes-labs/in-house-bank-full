@@ -135,7 +135,7 @@ export function ExtratoPage() {
   }
 
   return (
-    <div className="grid gap-4">
+    <div className="grid min-w-0 gap-4">
       <div className="grid gap-2">
         <h1 className="text-3xl font-semibold lg:hidden">{extratoKindLabel(kind)}</h1>
         {periodFilter ? (
@@ -177,7 +177,7 @@ export function ExtratoPage() {
         ) : null}
       </div>
       {periodFilter ? (
-        <Card className="grid gap-3">
+        <Card className="grid min-w-0 gap-3 overflow-hidden">
           <h2 className="font-semibold">Histórico</h2>
           {lines.length === 0 ? (
             <p className="text-sm text-muted-foreground">{KIND_HINTS[kind]}</p>

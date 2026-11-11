@@ -36,7 +36,7 @@ export function FinanceMovementList({
   children: ReactNode;
   className?: string;
 }) {
-  return <ul className={cx('grid gap-1.5', className)}>{children}</ul>;
+  return <ul className={cx('grid min-w-0 gap-1.5', className)}>{children}</ul>;
 }
 
 export function FinanceMovementRow({
@@ -62,7 +62,7 @@ export function FinanceMovementRow({
   return (
     <div
       className={cx(
-        'flex items-center gap-3 rounded-lg border border-border/70 bg-muted/35 px-3 py-2.5',
+        'grid w-full min-w-0 max-w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-lg border border-border/70 bg-muted/35 px-3 py-2.5 sm:gap-3',
         className,
       )}
     >
@@ -76,15 +76,17 @@ export function FinanceMovementRow({
           <ArrowUpRight className="size-4" strokeWidth={2.25} />
         )}
       </span>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium leading-snug text-foreground">{title}</p>
-        <p className="mt-0.5 text-xs text-muted-foreground">
+      <div className="min-w-0 overflow-hidden">
+        <p className="truncate text-sm font-medium leading-snug text-foreground" title={title}>
+          {title}
+        </p>
+        <p className="mt-0.5 min-w-0 truncate text-xs text-muted-foreground">
           {formattedDate}
           <span className="mx-1.5 opacity-50">·</span>
           <span className={tone.label}>{label}</span>
         </p>
       </div>
-      <p className={cx('shrink-0 text-base font-semibold tabular-nums', tone.amount)}>
+      <p className={cx('shrink-0 text-right text-sm font-semibold tabular-nums sm:text-base', tone.amount)}>
         {isIn ? '+' : '−'}
         {money(amountCents)}
       </p>

@@ -16,15 +16,15 @@ export function CashBoxHistoryByMonth({ groups }: { groups: CashBoxMovementMonth
   }
 
   return (
-    <div className="grid gap-4">
+    <div className="grid min-w-0 gap-4">
       {groups.map((group) => (
-        <section key={group.yearMonth} className="grid gap-2">
+        <section key={group.yearMonth} className="grid min-w-0 gap-2">
           <h2 className="font-semibold">{group.label}</h2>
           <FinanceMovementList>
             {group.movements.map((movement) => {
               const isDeposit = movement.type === CashBoxMovementType.Deposit;
               return (
-                <li key={movement.id}>
+                <li key={movement.id} className="min-w-0">
                   <FinanceMovementRow
                     title={cashBoxMovementTitle(movement.type, movement.note)}
                     date={movement.date}

@@ -20,13 +20,13 @@ export function LedgerHistoryByMonth({ groups }: { groups: LedgerLineMonthGroup[
   }
 
   return (
-    <div className="grid gap-4">
+    <div className="grid min-w-0 gap-4">
       {groups.map((group) => (
-        <section key={group.yearMonth} className="grid gap-2">
+        <section key={group.yearMonth} className="grid min-w-0 gap-2">
           <h2 className="font-semibold">{group.label}</h2>
           <FinanceMovementList>
             {group.lines.map((line) => (
-              <li key={line.id}>
+              <li key={line.id} className="min-w-0">
                 <FinanceMovementRow
                   title={line.label}
                   date={line.date}

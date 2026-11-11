@@ -177,7 +177,7 @@ export function CashBoxDetailPage() {
           </div>
         </form>
       </Card>
-      <Card className="grid gap-3">
+      <Card className="grid min-w-0 gap-3 overflow-hidden">
         <h2 className="font-semibold">Histórico</h2>
         <CashBoxHistoryByMonth groups={movementGroups} />
       </Card>

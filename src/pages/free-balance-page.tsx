@@ -133,8 +133,8 @@ export function FreeBalancePage() {
           </div>
         </form>
       </Card>
-      <Card className="grid gap-3">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
+      <Card className="grid min-w-0 gap-3 overflow-hidden">
+        <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-2">
           <h2 className="font-semibold">Histórico</h2>
           <p className="text-xs text-muted-foreground">
             {isDemo ? 'Movimentações de demonstração' : `Últimos ${LAST_MOVEMENTS_DAYS} dias`}
