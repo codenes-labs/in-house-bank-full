@@ -26,11 +26,18 @@ function neonApi() {
         }
         try {
           const mod = await server.ssrLoadModule('/src/server/create-api-handler.ts') as {
-            createApiHandler: (options: { databaseUrl?: string; jwtSecret?: string }) => (request: Request) => Promise<Response>
+            createApiHandler: (options: {
+              databaseUrl?: string
+              jwtSecret?: string
+              turnstileSecret?: string
+              turnstileSiteKey?: string
+            }) => (request: Request) => Promise<Response>
           }
           const handler = mod.createApiHandler({
             databaseUrl: loadEnvValue('DATABASE_URL'),
             jwtSecret: loadEnvValue('JWT_SECRET'),
+            turnstileSecret: loadEnvValue('TURNSTILE_SECRET_KEY'),
+            turnstileSiteKey: loadEnvValue('TURNSTILE_SITE_KEY'),
           })
           const webResponse = await handler(await toWebRequest(request))
           await writeWebResponse(response, webResponse)

@@ -5,6 +5,8 @@ import { createApiHandler } from '../src/server/create-api-handler';
 export interface Env {
   DATABASE_URL: string;
   JWT_SECRET: string;
+  TURNSTILE_SECRET_KEY?: string;
+  TURNSTILE_SITE_KEY?: string;
   ASSETS: Fetcher;
 }
 
@@ -15,6 +17,8 @@ export default {
       const handler = createApiHandler({
         databaseUrl: env.DATABASE_URL?.trim(),
         jwtSecret: env.JWT_SECRET?.trim(),
+        turnstileSecret: env.TURNSTILE_SECRET_KEY?.trim(),
+        turnstileSiteKey: env.TURNSTILE_SITE_KEY?.trim(),
       });
       return handler(request);
     }

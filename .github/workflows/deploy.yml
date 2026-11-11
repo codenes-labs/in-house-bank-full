@@ -89,13 +89,17 @@ jobs:
         run: |
           node <<'NODE'
           const fs = require('node:fs');
-          fs.writeFileSync(
-            'wrangler-secrets.json',
-            JSON.stringify({
-              DATABASE_URL: process.env.DATABASE_URL,
-              JWT_SECRET: process.env.JWT_SECRET,
-            }),
-          );
+          const secrets = {
+            DATABASE_URL: process.env.DATABASE_URL,
+            JWT_SECRET: process.env.JWT_SECRET,
+          };
+          if (process.env.TURNSTILE_SECRET_KEY?.trim()) {
+            secrets.TURNSTILE_SECRET_KEY = process.env.TURNSTILE_SECRET_KEY.trim();
+          }
+          if (process.env.TURNSTILE_SITE_KEY?.trim()) {
+            secrets.TURNSTILE_SITE_KEY = process.env.TURNSTILE_SITE_KEY.trim();
+          }
+          fs.writeFileSync('wrangler-secrets.json', JSON.stringify(secrets));
           NODE
           npx wrangler secret bulk wrangler-secrets.json
           rm -f wrangler-secrets.json
@@ -105,6 +109,8 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          TURNSTILE_SITE_KEY: ${{ secrets.TURNSTILE_SITE_KEY }}
 
       - name: Deploy Worker
         uses: cloudflare/wrangler-action@v3
@@ -117,13 +123,17 @@ jobs:
         run: |
           node <<'NODE'
           const fs = require('node:fs');
-          fs.writeFileSync(
-            'wrangler-secrets.json',
-            JSON.stringify({
-              DATABASE_URL: process.env.DATABASE_URL,
-              JWT_SECRET: process.env.JWT_SECRET,
-            }),
-          );
+          const secrets = {
+            DATABASE_URL: process.env.DATABASE_URL,
+            JWT_SECRET: process.env.JWT_SECRET,
+          };
+          if (process.env.TURNSTILE_SECRET_KEY?.trim()) {
+            secrets.TURNSTILE_SECRET_KEY = process.env.TURNSTILE_SECRET_KEY.trim();
+          }
+          if (process.env.TURNSTILE_SITE_KEY?.trim()) {
+            secrets.TURNSTILE_SITE_KEY = process.env.TURNSTILE_SITE_KEY.trim();
+          }
+          fs.writeFileSync('wrangler-secrets.json', JSON.stringify(secrets));
           NODE
           npx wrangler secret bulk wrangler-secrets.json
           rm -f wrangler-secrets.json
@@ -132,3 +142,5 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          TURNSTILE_SITE_KEY: ${{ secrets.TURNSTILE_SITE_KEY }}
