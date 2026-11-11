@@ -31,6 +31,7 @@ Deixar o dashboard coerente com os dados já calculados em `computeDashboardMetr
 - Status com `StatusPill` (mesmas labels/tons da lista de parcelamentos).
 - Em viewport abaixo de `lg`: layout em duas linhas (pagador + status; vencimento + valor), lista contínua com divisórias (sem “cards” soltos entre linhas).
 - Em `lg+`, mesma apresentação tabular da lista de parcelamentos: cabeçalho `bg-muted/50`, colunas Pagador · Status · Próx. venc. · Valor e subgrade nas linhas.
+- Na coluna Pagador, exibir **`{nº ordinal da parcela} · {nome do pagador}`** (ex.: `2ª · Ana`, número antes do nome, sufixo feminino `ª`).
 
 ### KPIs (quatro cards)
 

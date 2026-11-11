@@ -13,6 +13,7 @@ import {
 import { milestonesOrDefault } from '../domain/finance/default-milestones';
 import { todayCalendarDate } from '../domain/calendar/today-calendar-date';
 import { deriveInstallmentStatus } from '../domain/installments/derive-installment-status';
+import { formatInstallmentOrdinalPt } from '../domain/installments/format-installment-ordinal-pt';
 import { InstallmentStatus } from '../domain/enums/installment-status';
 import { readPendingBundle, writePendingBundle } from '../lib/guest-draft';
 import { formatCalendarMonthKeyBr } from '../domain/calendar/format-calendar-month-key-br';
@@ -137,7 +138,7 @@ export function HomePage() {
                 >
                   <Link to={`/parcelamentos/${plan.id}`} className="contents">
                     <span className="min-w-0 truncate font-semibold max-lg:col-start-1 max-lg:row-start-1">
-                      {plan.borrowerName} · {installment.number}
+                      {formatInstallmentOrdinalPt(installment.number)} · {plan.borrowerName}
                     </span>
                     <span className="flex shrink-0 justify-end max-lg:col-start-2 max-lg:row-start-1 max-lg:justify-self-end lg:justify-center">
                       <StatusPill label={installmentStatusLabel(status)} tone={tone} />
