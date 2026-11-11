@@ -11,6 +11,9 @@ declare global {
           'expired-callback'?: () => void;
           'error-callback'?: () => void;
           theme?: 'light' | 'dark' | 'auto';
+          appearance?: 'always' | 'execute' | 'interaction-only';
+          size?: 'normal' | 'flexible' | 'compact';
+          action?: string;
         },
       ) => string;
       remove: (widgetId: string) => void;
@@ -68,6 +71,9 @@ export function TurnstileField({
         widgetIdRef.current = window.turnstile.render(containerRef.current, {
           sitekey: siteKey,
           theme: 'auto',
+          appearance: 'interaction-only',
+          size: 'flexible',
+          action: 'auth',
           callback: (token) => onToken(token),
           'expired-callback': () => {
             onToken(null);
@@ -97,7 +103,9 @@ export function TurnstileField({
 
   return (
     <div className="grid gap-1">
-      <div ref={containerRef} id={`turnstile-${reactId}`} />
+      <div className="turnstile-mount max-w-full">
+        <div ref={containerRef} id={`turnstile-${reactId}`} className="min-h-0 w-full max-w-full" />
+      </div>
       {failed ? (
         <p className="text-sm text-destructive">Não foi possível carregar o captcha. Verifique a conexão ou tente mais tarde.</p>
       ) : null}

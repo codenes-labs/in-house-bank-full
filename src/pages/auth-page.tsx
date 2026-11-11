@@ -48,9 +48,10 @@ export function AuthPage({ mode }: { mode: 'sign-in' | 'recover' }) {
     event.preventDefault();
     setError(null);
     setMessage(null);
-    const login = email.trim().toLowerCase() === 'teste' ? 'teste' : email;
+    const trimmed = email.trim();
+    const login = trimmed.toLowerCase() === 'teste' ? 'teste' : trimmed;
     if (!login.includes('@') && login !== 'teste') {
-      setError('Informe um e-mail válido ou teste para a conta demo.');
+      setError('Informe um e-mail válido ou teste (conta demo, sem @).');
       return;
     }
     if (mode === 'sign-in' && password.length < 5) {
@@ -87,8 +88,8 @@ export function AuthPage({ mode }: { mode: 'sign-in' | 'recover' }) {
   const title = mode === 'sign-in' ? 'Entrar' : 'Recuperar senha';
 
   return (
-    <div className="mx-auto grid min-h-dvh max-w-md place-items-center px-4 py-8">
-      <Card className="grid w-full gap-4">
+    <div className="mx-auto min-h-dvh w-full max-w-md overflow-y-auto overscroll-y-contain px-4 py-6 sm:py-10">
+      <Card className="my-4 grid w-full gap-4 sm:my-auto">
         <Logo />
         <h1 className="text-2xl font-semibold">{title}</h1>
         {!auth.configured ? (
@@ -96,17 +97,33 @@ export function AuthPage({ mode }: { mode: 'sign-in' | 'recover' }) {
             A API não está configurada (DATABASE_URL e JWT_SECRET no servidor). O carnê aberto continua disponível na página inicial.
           </p>
         ) : null}
-        <form className="grid gap-3" onSubmit={(event) => void submit(event)}>
+        <form
+          id="auth-form"
+          className="grid gap-3"
+          autoComplete="on"
+          onSubmit={(event) => void submit(event)}
+        >
           <Field label="E-mail">
             <TextInput
+              id="auth-email"
+              name="email"
+              form="auth-form"
               type={mode === 'sign-in' ? 'text' : 'email'}
               autoComplete="username"
+              inputMode={mode === 'sign-in' ? 'email' : undefined}
+              spellCheck={false}
               value={email}
               onChange={(event) => setEmail(event.target.value)}
             />
           </Field>
+          {mode === 'sign-in' ? (
+            <p className="text-xs text-muted-foreground">Demo: usuário <strong className="font-semibold">teste</strong> e senha <strong className="font-semibold">teste</strong>.</p>
+          ) : null}
           <Field label={mode === 'recover' ? 'Nova senha' : 'Senha'}>
             <TextInput
+              id="auth-password"
+              name="password"
+              form="auth-form"
               type="password"
               autoComplete={mode === 'sign-in' ? 'current-password' : 'new-password'}
               value={password}
