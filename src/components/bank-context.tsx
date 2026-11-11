@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import type { AppDataBackup } from '../domain/models/app-data-backup';
 import type { CashBox } from '../domain/models/cash-box';
 import type { CashBoxMovement } from '../domain/models/cash-box-movement';
+import type { FreeBalanceDeposit } from '../domain/models/free-balance-deposit';
 import type { FreeBalanceWithdrawal } from '../domain/models/free-balance-withdrawal';
 import type { Installment } from '../domain/models/installment';
 import type { InstallmentPlan } from '../domain/models/installment-plan';
@@ -27,7 +28,9 @@ interface BankContextValue {
   saveCashBox: (cashBox: CashBox) => Promise<void>;
   deleteCashBox: (cashBoxId: string) => Promise<void>;
   saveMovement: (movement: CashBoxMovement) => Promise<void>;
+  recordCashBoxMovement: (cashBox: CashBox, movement: CashBoxMovement) => Promise<void>;
   deleteMovement: (movementId: string) => Promise<void>;
+  saveFreeBalanceDeposit: (deposit: FreeBalanceDeposit, settings: Settings) => Promise<void>;
   saveFreeBalanceWithdrawal: (withdrawal: FreeBalanceWithdrawal, settings: Settings) => Promise<void>;
   importBackup: (backup: AppDataBackup) => Promise<void>;
 }
@@ -107,7 +110,14 @@ export function BankProvider({ children }: { children: ReactNode }) {
       saveCashBox: (cashBox) => run((repo) => repo.saveCashBox(cashBox)),
       deleteCashBox: (cashBoxId) => run((repo) => repo.deleteCashBox(cashBoxId)),
       saveMovement: (movement) => run((repo) => repo.saveMovement(movement)),
+      recordCashBoxMovement: (cashBox, movement) =>
+        run(async (repo) => {
+          await repo.saveCashBox(cashBox);
+          await repo.saveMovement(movement);
+        }),
       deleteMovement: (movementId) => run((repo) => repo.deleteMovement(movementId)),
+      saveFreeBalanceDeposit: (deposit, settings) =>
+        run((repo) => repo.saveFreeBalanceDeposit(deposit, settings)),
       saveFreeBalanceWithdrawal: (withdrawal, settings) =>
         run((repo) => repo.saveFreeBalanceWithdrawal(withdrawal, settings)),
       importBackup: (backup) => run((repo) => repo.importBackup(backup)),

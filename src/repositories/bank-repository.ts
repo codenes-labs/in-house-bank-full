@@ -53,6 +53,10 @@ export interface BankRepository {
   deleteCashBox(cashBoxId: string): Promise<void>;
   saveMovement(movement: CashBoxMovement): Promise<void>;
   deleteMovement(movementId: string): Promise<void>;
+  saveFreeBalanceDeposit(
+    deposit: FreeBalanceDeposit,
+    settings: Settings,
+  ): Promise<void>;
   saveFreeBalanceWithdrawal(
     withdrawal: FreeBalanceWithdrawal,
     settings: Settings,

@@ -5,6 +5,7 @@ import { createId } from '../domain/ids/create-id';
 import type { AppDataBackup } from '../domain/models/app-data-backup';
 import type { CashBox } from '../domain/models/cash-box';
 import type { CashBoxMovement } from '../domain/models/cash-box-movement';
+import type { FreeBalanceDeposit } from '../domain/models/free-balance-deposit';
 import type { FreeBalanceWithdrawal } from '../domain/models/free-balance-withdrawal';
 import type { Installment } from '../domain/models/installment';
 import type { InstallmentPlan } from '../domain/models/installment-plan';
@@ -73,6 +74,13 @@ export function createMemoryBankRepository(initial?: BankSnapshot): BankReposito
       snapshot = {
         ...snapshot,
         cashBoxMovements: snapshot.cashBoxMovements.filter((movement) => movement.id !== movementId),
+      };
+    },
+    async saveFreeBalanceDeposit(deposit: FreeBalanceDeposit, settings: Settings) {
+      snapshot = {
+        ...snapshot,
+        settings: structuredClone(settings),
+        freeBalanceDeposits: upsert(snapshot.freeBalanceDeposits, deposit),
       };
     },
     async saveFreeBalanceWithdrawal(withdrawal: FreeBalanceWithdrawal, settings: Settings) {

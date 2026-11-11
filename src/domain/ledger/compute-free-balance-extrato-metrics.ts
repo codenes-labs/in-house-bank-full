@@ -1,4 +1,5 @@
 import { compareCalendarDates } from '../calendar/compare-calendar-dates';
+import { compareLedgerLinesNewestFirst, compareLedgerLinesOldestFirst } from './compare-ledger-lines';
 import type { InstallmentDueDateRange } from '../installments/installment-due-date-range';
 import { LedgerDirection } from './ledger-direction';
 import type { LedgerLine } from './ledger-line';
@@ -16,14 +17,6 @@ export interface FreeBalanceExtratoMetrics {
   totalOutCents: number;
   movementCount: number;
   rowsByLineId: ReadonlyMap<string, FreeBalanceExtratoRow>;
-}
-
-function compareLineChronological(left: LedgerLine, right: LedgerLine): number {
-  const byDate = compareCalendarDates(left.date, right.date);
-  if (byDate !== 0) {
-    return byDate;
-  }
-  return left.id.localeCompare(right.id);
 }
 
 function undoLine(balance: number, line: LedgerLine): number {
@@ -79,9 +72,7 @@ export function computeFreeBalanceExtratoMetrics(input: {
 
   if (input.currentBalanceCents !== undefined && input.allLines !== undefined) {
     let balance = input.currentBalanceCents;
-    const allSortedNewestFirst = [...input.allLines].sort(
-      (left, right) => -compareLineChronological(left, right),
-    );
+    const allSortedNewestFirst = [...input.allLines].sort(compareLedgerLinesNewestFirst);
 
     for (const line of allSortedNewestFirst) {
       if (compareCalendarDates(line.date, input.period.to) > 0) {
@@ -90,14 +81,14 @@ export function computeFreeBalanceExtratoMetrics(input: {
     }
     closingBalanceCents = balance;
 
-    const periodNewestFirst = [...periodLines].sort((left, right) => -compareLineChronological(left, right));
+    const periodNewestFirst = [...periodLines].sort(compareLedgerLinesNewestFirst);
     for (const line of periodNewestFirst) {
       balance = undoLine(balance, line);
     }
     openingBalanceCents = balance;
   }
 
-  const periodAsc = [...periodLines].sort(compareLineChronological);
+  const periodAsc = [...periodLines].sort(compareLedgerLinesOldestFirst);
   let running = openingBalanceCents;
   const rowsByLineId = new Map<string, FreeBalanceExtratoRow>();
   for (const line of periodAsc) {

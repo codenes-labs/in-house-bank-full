@@ -9,4 +9,6 @@ export interface LedgerLine {
   amountCents: number;
   direction: LedgerDirection;
   kind: ExtratoKind;
+  /** Ordem real do lançamento no mesmo dia. */
+  recordedAt?: string;
 }

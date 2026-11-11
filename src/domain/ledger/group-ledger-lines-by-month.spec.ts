@@ -36,4 +36,31 @@ describe('groupLedgerLinesByMonth', () => {
     expect(groups[0]?.depositsTotalCents).toBe(350_00);
     expect(groups[1]?.depositsTotalCents).toBe(100_00);
   });
+
+  it('preserves newest-first order within the same day', () => {
+    const groups = groupLedgerLinesByMonth([
+      {
+        id: 'free-balance-deposit:1',
+        date: '2026-03-20',
+        label: 'Entrada',
+        amountCents: 10,
+        direction: LedgerDirection.In,
+        kind: ExtratoKind.FreeBalance,
+        recordedAt: '2026-03-20T09:00:00.000Z',
+      },
+      {
+        id: 'free-balance-withdrawal:1',
+        date: '2026-03-20',
+        label: 'Resgate',
+        amountCents: 5,
+        direction: LedgerDirection.Out,
+        kind: ExtratoKind.FreeBalance,
+        recordedAt: '2026-03-20T09:05:00.000Z',
+      },
+    ]);
+    expect(groups[0]?.lines.map((line) => line.id)).toEqual([
+      'free-balance-withdrawal:1',
+      'free-balance-deposit:1',
+    ]);
+  });
 });

@@ -82,7 +82,15 @@ export function FreeBalancePage() {
                   setNotice('Informe um valor maior que zero.');
                   return;
                 }
-                await bank.saveSettings({ ...bank.snapshot.settings, freeBalanceCents: result.freeBalanceCents });
+                await bank.saveFreeBalanceDeposit(
+                  {
+                    id: createId(),
+                    amountCents,
+                    date: today,
+                    recordedAt: new Date().toISOString(),
+                  },
+                  { ...bank.snapshot.settings, freeBalanceCents: result.freeBalanceCents },
+                );
                 setNotice('Entrada registrada.');
                 setAmountFieldKey((previous) => previous + 1);
                 return;
@@ -102,6 +110,7 @@ export function FreeBalancePage() {
                     id: createId(),
                     amountCents,
                     date: today,
+                    recordedAt: new Date().toISOString(),
                   },
                   { ...bank.snapshot.settings, freeBalanceCents: result.freeBalanceCents },
                 );

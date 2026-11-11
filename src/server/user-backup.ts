@@ -154,6 +154,39 @@ export async function saveCashBox(sql: Sql, userId: string, cashBox: CashBox): P
   ]);
 }
 
+export async function saveFreeBalanceDeposit(
+  sql: Sql,
+  userId: string,
+  deposit: FreeBalanceDeposit,
+  settings: Settings,
+): Promise<void> {
+  await sql.transaction([
+    sql`select set_config('app.user_id', ${userId}, true)`,
+    sql`
+      insert into free_balance_deposits (id, user_id, amount_cents, deposit_date, note, recorded_at)
+      values (
+        ${deposit.id}::uuid,
+        ${userId}::uuid,
+        ${deposit.amountCents},
+        ${deposit.date},
+        ${deposit.note ?? null},
+        ${deposit.recordedAt ?? null}
+      )
+      on conflict (id) do update set
+        amount_cents = excluded.amount_cents,
+        deposit_date = excluded.deposit_date,
+        note = excluded.note,
+        recorded_at = excluded.recorded_at
+      where free_balance_deposits.user_id = ${userId}::uuid
+    `,
+    sql`
+      update settings
+      set free_balance_cents = ${settings.freeBalanceCents}, updated_at = now()
+      where user_id = ${userId}::uuid
+    `,
+  ]);
+}
+
 export async function saveFreeBalanceWithdrawal(
   sql: Sql,
   userId: string,
@@ -163,18 +196,20 @@ export async function saveFreeBalanceWithdrawal(
   await sql.transaction([
     sql`select set_config('app.user_id', ${userId}, true)`,
     sql`
-      insert into free_balance_withdrawals (id, user_id, amount_cents, withdrawal_date, note)
+      insert into free_balance_withdrawals (id, user_id, amount_cents, withdrawal_date, note, recorded_at)
       values (
         ${withdrawal.id}::uuid,
         ${userId}::uuid,
         ${withdrawal.amountCents},
         ${withdrawal.date},
-        ${withdrawal.note ?? null}
+        ${withdrawal.note ?? null},
+        ${withdrawal.recordedAt ?? null}
       )
       on conflict (id) do update set
         amount_cents = excluded.amount_cents,
         withdrawal_date = excluded.withdrawal_date,
-        note = excluded.note
+        note = excluded.note,
+        recorded_at = excluded.recorded_at
       where free_balance_withdrawals.user_id = ${userId}::uuid
     `,
     sql`
@@ -189,18 +224,20 @@ async function insertFreeBalanceDeposit(sql: Sql, userId: string, deposit: FreeB
   await sql.transaction([
     sql`select set_config('app.user_id', ${userId}, true)`,
     sql`
-      insert into free_balance_deposits (id, user_id, amount_cents, deposit_date, note)
+      insert into free_balance_deposits (id, user_id, amount_cents, deposit_date, note, recorded_at)
       values (
         ${deposit.id}::uuid,
         ${userId}::uuid,
         ${deposit.amountCents},
         ${deposit.date},
-        ${deposit.note ?? null}
+        ${deposit.note ?? null},
+        ${deposit.recordedAt ?? null}
       )
       on conflict (id) do update set
         amount_cents = excluded.amount_cents,
         deposit_date = excluded.deposit_date,
-        note = excluded.note
+        note = excluded.note,
+        recorded_at = excluded.recorded_at
       where free_balance_deposits.user_id = ${userId}::uuid
     `,
   ]);
@@ -214,18 +251,20 @@ async function insertFreeBalanceWithdrawal(
   await sql.transaction([
     sql`select set_config('app.user_id', ${userId}, true)`,
     sql`
-      insert into free_balance_withdrawals (id, user_id, amount_cents, withdrawal_date, note)
+      insert into free_balance_withdrawals (id, user_id, amount_cents, withdrawal_date, note, recorded_at)
       values (
         ${withdrawal.id}::uuid,
         ${userId}::uuid,
         ${withdrawal.amountCents},
         ${withdrawal.date},
-        ${withdrawal.note ?? null}
+        ${withdrawal.note ?? null},
+        ${withdrawal.recordedAt ?? null}
       )
       on conflict (id) do update set
         amount_cents = excluded.amount_cents,
         withdrawal_date = excluded.withdrawal_date,
-        note = excluded.note
+        note = excluded.note,
+        recorded_at = excluded.recorded_at
       where free_balance_withdrawals.user_id = ${userId}::uuid
     `,
   ]);
@@ -234,16 +273,17 @@ async function insertFreeBalanceWithdrawal(
 export async function saveMovement(sql: Sql, userId: string, movement: CashBoxMovement): Promise<void> {
   await sql.transaction([
     sql`select set_config('app.user_id', ${userId}, true)`,
-    sql`insert into cash_box_movements (id, user_id, cash_box_id, type, amount_cents, movement_date, note)
+    sql`insert into cash_box_movements (id, user_id, cash_box_id, type, amount_cents, movement_date, note, recorded_at)
     values (
       ${movement.id}::uuid, ${userId}::uuid, ${movement.cashBoxId}::uuid, ${movement.type},
-      ${movement.amountCents}, ${movement.date}, ${movement.note ?? null}
+      ${movement.amountCents}, ${movement.date}, ${movement.note ?? null}, ${movement.recordedAt ?? null}
     )
     on conflict (id) do update set
       type = excluded.type,
       amount_cents = excluded.amount_cents,
       movement_date = excluded.movement_date,
-      note = excluded.note
+      note = excluded.note,
+      recorded_at = excluded.recorded_at
     where cash_box_movements.user_id = ${userId}::uuid`,
   ]);
 }
@@ -266,13 +306,14 @@ export async function deleteCashBox(sql: Sql, userId: string, cashBoxId: string)
     ...(deposit
       ? [
           sql`
-            insert into free_balance_deposits (id, user_id, amount_cents, deposit_date, note)
+            insert into free_balance_deposits (id, user_id, amount_cents, deposit_date, note, recorded_at)
             values (
               ${deposit.id}::uuid,
               ${userId}::uuid,
               ${deposit.amountCents},
               ${deposit.date},
-              ${deposit.note ?? null}
+              ${deposit.note ?? null},
+              ${deposit.recordedAt ?? null}
             )
           `,
         ]

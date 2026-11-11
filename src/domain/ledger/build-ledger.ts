@@ -3,6 +3,7 @@ import type { CashBox } from '../models/cash-box';
 import type { CashBoxMovement } from '../models/cash-box-movement';
 import type { FreeBalanceDeposit } from '../models/free-balance-deposit';
 import type { FreeBalanceWithdrawal } from '../models/free-balance-withdrawal';
+import { compareLedgerLinesNewestFirst } from './compare-ledger-lines';
 import { ExtratoKind } from './extrato-kind';
 import { LedgerDirection } from './ledger-direction';
 import type { LedgerLine } from './ledger-line';
@@ -26,6 +27,7 @@ export function buildLedger(input: BuildLedgerInput): LedgerLine[] {
       amountCents: deposit.amountCents,
       direction: LedgerDirection.In,
       kind: ExtratoKind.FreeBalance,
+      recordedAt: deposit.recordedAt,
     });
   }
 
@@ -37,6 +39,7 @@ export function buildLedger(input: BuildLedgerInput): LedgerLine[] {
       amountCents: withdrawal.amountCents,
       direction: LedgerDirection.Out,
       kind: ExtratoKind.FreeBalance,
+      recordedAt: withdrawal.recordedAt,
     });
   }
 
@@ -51,10 +54,11 @@ export function buildLedger(input: BuildLedgerInput): LedgerLine[] {
       amountCents: movement.amountCents,
       direction: isDeposit ? LedgerDirection.In : LedgerDirection.Out,
       kind: ExtratoKind.CashBox,
+      recordedAt: movement.recordedAt,
     });
   }
 
-  return lines.sort(compareLedgerLines);
+  return lines.sort(compareLedgerLinesNewestFirst);
 }
 
 export function filterLedgerByExtratoKind(lines: LedgerLine[], kind: ExtratoKind): LedgerLine[] {
@@ -64,9 +68,3 @@ export function filterLedgerByExtratoKind(lines: LedgerLine[], kind: ExtratoKind
   return [];
 }
 
-function compareLedgerLines(left: LedgerLine, right: LedgerLine): number {
-  if (left.date !== right.date) {
-    return left.date < right.date ? 1 : -1;
-  }
-  return left.id < right.id ? 1 : left.id > right.id ? -1 : 0;
-}

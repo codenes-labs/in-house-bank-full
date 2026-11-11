@@ -1,4 +1,5 @@
 import { formatCashBoxMonthLabel } from '../cash-boxes/format-cash-box-month-label';
+import { compareLedgerLinesNewestFirst } from './compare-ledger-lines';
 import { LedgerDirection } from './ledger-direction';
 import type { LedgerLine } from './ledger-line';
 
@@ -14,7 +15,7 @@ function yearMonthFromDate(date: string): string {
 }
 
 export function groupLedgerLinesByMonth(lines: readonly LedgerLine[]): LedgerLineMonthGroup[] {
-  const sorted = [...lines].sort((left, right) => right.date.localeCompare(left.date));
+  const sorted = [...lines].sort(compareLedgerLinesNewestFirst);
   const groups = new Map<string, LedgerLine[]>();
 
   for (const line of sorted) {

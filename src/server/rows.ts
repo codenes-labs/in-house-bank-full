@@ -111,7 +111,15 @@ export function mapMovement(row: Row): CashBoxMovement {
     amountCents: asNumber(row['amount_cents']),
     date: asDate(row['movement_date']),
     note: optionalText(row['note']),
+    recordedAt: optionalTimestamp(row['recorded_at']),
   };
+}
+
+function optionalTimestamp(value: unknown): string | undefined {
+  if (value == null) {
+    return undefined;
+  }
+  return asTimestamp(value);
 }
 
 export function mapFreeBalanceWithdrawal(row: Row): FreeBalanceWithdrawal {
@@ -120,6 +128,7 @@ export function mapFreeBalanceWithdrawal(row: Row): FreeBalanceWithdrawal {
     amountCents: asNumber(row['amount_cents']),
     date: asDate(row['withdrawal_date']),
     note: optionalText(row['note']),
+    recordedAt: optionalTimestamp(row['recorded_at']),
   };
 }
 
@@ -129,5 +138,6 @@ export function mapFreeBalanceDeposit(row: Row): FreeBalanceDeposit {
     amountCents: asNumber(row['amount_cents']),
     date: asDate(row['deposit_date']),
     note: optionalText(row['note']),
+    recordedAt: optionalTimestamp(row['recorded_at']),
   };
 }

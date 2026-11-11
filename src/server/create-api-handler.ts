@@ -2,6 +2,7 @@ import { neon, type NeonQueryFunction } from '@neondatabase/serverless';
 import type { AppDataBackup } from '../domain/models/app-data-backup';
 import type { CashBox } from '../domain/models/cash-box';
 import type { CashBoxMovement } from '../domain/models/cash-box-movement';
+import type { FreeBalanceDeposit } from '../domain/models/free-balance-deposit';
 import type { FreeBalanceWithdrawal } from '../domain/models/free-balance-withdrawal';
 import type { Installment } from '../domain/models/installment';
 import type { InstallmentPlan } from '../domain/models/installment-plan';
@@ -35,6 +36,7 @@ import {
   replaceUserBackup,
   saveCashBox,
   saveInstallment,
+  saveFreeBalanceDeposit,
   saveFreeBalanceWithdrawal,
   saveMovement,
   savePlan,
@@ -151,6 +153,11 @@ async function route(sql: Sql, request: Request, jwtSecret: string): Promise<Res
   }
   if (pathname === '/api/bank/movements' && request.method === 'PUT') {
     await saveMovement(sql, account.id, (await request.json()) as CashBoxMovement);
+    return json({ ok: true });
+  }
+  if (pathname === '/api/bank/free-balance-deposits' && request.method === 'PUT') {
+    const body = (await request.json()) as { deposit: FreeBalanceDeposit; settings: Settings };
+    await saveFreeBalanceDeposit(sql, account.id, body.deposit, body.settings);
     return json({ ok: true });
   }
   if (pathname === '/api/bank/free-balance-withdrawals' && request.method === 'PUT') {

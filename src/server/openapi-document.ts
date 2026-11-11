@@ -282,6 +282,27 @@ export function buildOpenApiDocument(serverUrl = '/'): Record<string, unknown> {
           responses: { '200': { content: { 'application/json': { schema: { $ref: '#/components/schemas/OkBody' } } } } },
         },
       },
+      '/api/bank/free-balance-deposits': {
+        put: {
+          tags: ['Bank'],
+          summary: 'Registrar entrada no saldo livre',
+          security: bearer,
+          requestBody: {
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    deposit: { type: 'object' },
+                    settings: { type: 'object' },
+                  },
+                },
+              },
+            },
+          },
+          responses: { '200': { content: { 'application/json': { schema: { $ref: '#/components/schemas/OkBody' } } } } },
+        },
+      },
       '/api/bank/free-balance-withdrawals': {
         put: {
           tags: ['Bank'],

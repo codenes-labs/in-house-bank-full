@@ -100,6 +100,9 @@ export const schemaStatements = [
   `create index if not exists cash_box_movements_user_id_idx on public.cash_box_movements (user_id)`,
   `create index if not exists free_balance_withdrawals_user_id_idx on public.free_balance_withdrawals (user_id)`,
   `create index if not exists free_balance_deposits_user_id_idx on public.free_balance_deposits (user_id)`,
+  `alter table public.free_balance_deposits add column if not exists recorded_at timestamptz`,
+  `alter table public.free_balance_withdrawals add column if not exists recorded_at timestamptz`,
+  `alter table public.cash_box_movements add column if not exists recorded_at timestamptz`,
 ];
 
 const dataTables = [

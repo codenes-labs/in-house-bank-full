@@ -5,4 +5,5 @@ export interface FreeBalanceDeposit {
   amountCents: number;
   date: CalendarDate;
   note?: string;
+  recordedAt?: string;
 }

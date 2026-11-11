@@ -9,6 +9,7 @@ describe('buildOpenApiDocument', () => {
     expect(paths['/api/health']?.get).toBeDefined();
     expect(paths['/api/auth/sign-in']?.post).toBeDefined();
     expect(paths['/api/bank']?.get).toBeDefined();
+    expect(paths['/api/bank/free-balance-deposits']?.put).toBeDefined();
     expect(paths['/api/bank/free-balance-withdrawals']?.put).toBeDefined();
   });
 });

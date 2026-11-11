@@ -86,6 +86,40 @@ describe('buildLedger', () => {
     ]);
   });
 
+  it('keeps entrada and saída on the same day in registration order', () => {
+    const lines = buildLedger({
+      cashBoxes: [],
+      cashBoxMovements: [],
+      freeBalanceDeposits: [
+        {
+          id: 'd1',
+          amountCents: 333,
+          date: '2026-03-20',
+          recordedAt: '2026-03-20T10:00:00.000Z',
+        },
+      ],
+      freeBalanceWithdrawals: [
+        {
+          id: 'w1',
+          amountCents: 321,
+          date: '2026-03-20',
+          recordedAt: '2026-03-20T10:01:00.000Z',
+        },
+        {
+          id: 'w2',
+          amountCents: 131,
+          date: '2026-03-20',
+          recordedAt: '2026-03-20T10:02:00.000Z',
+        },
+      ],
+    });
+    expect(lines.map((line) => line.id)).toEqual([
+      'free-balance-withdrawal:w2',
+      'free-balance-withdrawal:w1',
+      'free-balance-deposit:d1',
+    ]);
+  });
+
   it('drops a line when the underlying withdrawal is removed', () => {
     const full = buildLedger({
       cashBoxes: [],
