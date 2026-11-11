@@ -5,7 +5,7 @@ import type { ThemeMode } from '../domain/theme/theme-mode';
 import { DocsHeaderSearchField, useDocsSearchOptional } from '../pages/docs/docs-search-context';
 import { DocsMobileMenu } from '../pages/docs/docs-mobile-menu';
 import { useTheme } from './theme';
-import { cx, Logo } from './ui';
+import { BrandMark, cx, Logo } from './ui';
 
 function DocsHeaderActions({
   themeLabel,
@@ -56,28 +56,38 @@ function PublicSiteHeader({
     <header
       className={cx(
         'shrink-0 gap-2 sm:gap-3',
-        inDocs ? 'grid grid-cols-1 sm:flex sm:flex-wrap sm:items-center' : 'flex flex-wrap items-center',
+        inDocs ? 'grid grid-cols-1 sm:flex sm:flex-wrap sm:items-center' : 'flex w-full min-w-0 items-center justify-between gap-2',
       )}
     >
       <div
         className={cx(
           'flex min-w-0 items-center',
-          inDocs ? 'w-full justify-between gap-2 sm:w-auto sm:justify-start' : 'shrink-0 gap-0',
+          inDocs ? 'w-full justify-between gap-2 sm:w-auto sm:justify-start' : 'min-w-0 flex-1 gap-0',
         )}
       >
-        <div className="inline-flex min-w-0 items-center gap-1">
+        <div className="flex min-w-0 flex-1 items-center gap-1 sm:flex-initial">
           {inDocs ? <DocsMobileMenu /> : null}
           {inDocs ? (
-            <Link to="/docs" className="inline-flex min-w-0 shrink items-center gap-0">
-              <Logo />
-              <span className="truncate text-base font-semibold text-primary">
-                <span aria-hidden="true"> / </span>
-                Docs
+            <Link
+              to="/docs"
+              className="inline-flex min-w-0 max-w-full items-center gap-1.5 font-semibold text-primary"
+              aria-label="In House Bank — documentação"
+            >
+              <BrandMark />
+              <span className="flex min-w-0 items-baseline whitespace-nowrap text-base">
+                <span className="hidden truncate sm:inline">In House Bank</span>
+                <span>
+                  <span className="hidden sm:inline" aria-hidden="true">
+                    {' '}
+                    /{' '}
+                  </span>
+                  Docs
+                </span>
               </span>
             </Link>
           ) : (
-            <Link to="/" className="min-w-0 shrink">
-              <Logo />
+            <Link to="/" className="inline-flex min-w-0 max-w-full" aria-label="In House Bank">
+              <Logo compactBelowSm />
             </Link>
           )}
         </div>
@@ -91,7 +101,7 @@ function PublicSiteHeader({
       {inDocs ? (
         <DocsHeaderActions themeLabel={themeLabel} mode={mode} toggle={toggle} className="ml-auto hidden sm:flex" />
       ) : (
-        <DocsHeaderActions themeLabel={themeLabel} mode={mode} toggle={toggle} className="ml-auto" />
+        <DocsHeaderActions themeLabel={themeLabel} mode={mode} toggle={toggle} className="shrink-0" />
       )}
     </header>
   );
@@ -110,7 +120,7 @@ export function PublicSiteChrome({
   const docsSearch = useDocsSearchOptional();
 
   return (
-    <div className={`mx-auto min-h-dvh max-w-6xl px-4 ${inDocs ? 'docs-public-chrome pb-5' : 'py-5'}`}>
+    <div className={`mx-auto min-h-dvh w-full min-w-0 max-w-6xl px-4 ${inDocs ? 'docs-public-chrome pb-5' : 'pb-5'}`}>
       {inDocs ? (
         <>
           <div className="fixed inset-x-0 top-0 z-30 border-b border-border bg-background shadow-sm">
@@ -127,13 +137,15 @@ export function PublicSiteChrome({
           <div className="h-[7.5rem] shrink-0 sm:h-[4.75rem] lg:h-[4.75rem]" aria-hidden />
         </>
       ) : (
-        <PublicSiteHeader
-          inDocs={inDocs}
-          docsSearch={docsSearch}
-          themeLabel={themeLabel}
-          mode={mode}
-          toggle={toggle}
-        />
+        <div className="sticky top-0 z-30 -mx-4 border-b border-border bg-background px-4 py-3 shadow-sm">
+          <PublicSiteHeader
+            inDocs={inDocs}
+            docsSearch={docsSearch}
+            themeLabel={themeLabel}
+            mode={mode}
+            toggle={toggle}
+          />
+        </div>
       )}
       {children}
       {!inDocs ? <PublicSiteFooter /> : null}

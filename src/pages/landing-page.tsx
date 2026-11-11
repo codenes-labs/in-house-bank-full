@@ -6,10 +6,10 @@ import { Card } from '../components/ui';
 export function LandingPage() {
   return (
     <PublicSiteChrome>
-      <section className="mt-8 grid gap-6 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
-        <div>
+      <section className="mt-8 grid min-w-0 gap-6 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
+        <div className="min-w-0">
           <p className="text-sm font-semibold uppercase tracking-wide text-accent">Controle financeiro pessoal</p>
-          <h1 className="mt-2 text-4xl font-semibold leading-tight">Pague juros para você mesmo</h1>
+          <h1 className="mt-2 text-3xl font-semibold leading-tight break-words sm:text-4xl">Pague juros para você mesmo</h1>
           <p className="mt-4 text-lg text-muted-foreground">
             O In House Bank organiza empréstimos e compras parceladas feitos com o seu dinheiro.
             Sai da caixinha, paga no Pix e volta em parcelas. O app não movimenta dinheiro e não é meio de pagamento.
@@ -17,7 +17,7 @@ export function LandingPage() {
         </div>
         <CarneGenerator />
       </section>
-      <section className="mt-10 grid gap-3 md:grid-cols-3">
+      <section className="mt-10 grid min-w-0 gap-3 md:grid-cols-3">
         <Card><h2 className="font-semibold">1. Sai da caixinha</h2><p className="mt-2 text-muted-foreground">O valor utilizado deixa o seu caixa e vira uma operação.</p></Card>
         <Card><h2 className="font-semibold">2. Combina as parcelas</h2><p className="mt-2 text-muted-foreground">O retorno é dividido, com a diferença na última parcela, e cada uma ganha um Pix copia e cola.</p></Card>
         <Card><h2 className="font-semibold">3. Volta para você</h2><p className="mt-2 text-muted-foreground">Quando a parcela é paga, o controle registra a data. O lucro previsto é o retorno menos o valor utilizado.</p></Card>

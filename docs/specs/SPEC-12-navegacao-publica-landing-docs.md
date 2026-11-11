@@ -6,7 +6,8 @@ Status: pendente.
 
 A chrome pública (`PublicSiteChrome`) serve landing (`/`), documentação (`/docs/*`), termos e privacidade. Hoje:
 
-- Na **doc**, a marca **In House Bank / Docs** leva a `/docs` (visão geral).
+- Na **doc**, a marca **In House Bank / Docs** leva a `/docs` (visão geral); em telas abaixo de `sm`, o cabeçalho mostra só o ícone **IH** e o sufixo **Docs** (sem quebrar o nome completo).
+- **Favicon:** ícone da marca em SVG, PNG 32×32 e `apple-touch-icon` 180×180 (Safari/iOS não usam bem só SVG).
 - O link **Página inicial** foi **removido** do cabeçalho da doc e do rodapé público (redundante e confuso com a marca).
 - O rodapé em páginas não-doc mantém **Termos**, **Privacidade** e **Documentação** apenas.
 
@@ -18,7 +19,7 @@ Qualquer visitante encontra o caminho de volta à landing e entre doc, termos e 
 
 ## Regras (a fechar na implementação)
 
-1. **Landing (`/`):** logo/marca permanece em `/`; rodapé com Termos, Privacidade, Documentação (sem link “Página inicial”).
+1. **Landing (`/`):** logo/marca permanece em `/`; cabeçalho **sticky** no mobile; marca compacta (só ícone **IH**) abaixo de `sm`; conteúdo sem rolagem horizontal; rodapé com Termos, Privacidade, Documentação (sem link “Página inicial”).
 2. **`/docs`:** marca → `/docs`; sem botão “Página inicial” até esta spec ser implementada; entrada na landing continua possível por URL `/` ou link externo.
 3. **`/termos` e `/privacidade`:** mesma chrome; decidir se a marca leva a `/` ou mantém contexto da página legal.
 4. Evitar duplicar o mesmo destino em marca + botão + rodapé.

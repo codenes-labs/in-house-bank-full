@@ -242,7 +242,7 @@ export function CarneGenerator({
   }
 
   return (
-    <Card className="grid gap-4">
+    <Card className="grid min-w-0 gap-4">
       <div>
         <h2 className="text-xl font-semibold">{title}</h2>
         <p className="text-sm text-muted-foreground">{description}</p>
@@ -294,7 +294,7 @@ export function CarneGenerator({
       </div>
       {warning ? <p className="rounded-lg bg-warning-soft px-3 py-2 text-sm text-status-pending">{warning}</p> : null}
       <div className="grid gap-2">
-        <div className="grid gap-2 sm:grid-cols-[8rem_1fr_1fr]">
+        <div className="grid min-w-0 gap-2 md:grid-cols-[8rem_1fr_1fr]">
           <Field label="Taxa ao mês (%)">
             <TextInput inputMode="decimal" value={ratePercent} onChange={(event) => edit(() => setRatePercent(maskMonthlyRate(event.target.value)))} placeholder="3" maxLength={6} />
           </Field>
@@ -323,16 +323,17 @@ export function CarneGenerator({
           </p>
         ) : null}
       </div>
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="grid min-w-0 gap-2 sm:grid-cols-2">
         <GenerateInstallmentsActionButton
           type="button"
-          className={onSaveBundle ? '' : 'sm:col-span-2'}
+          className={onSaveBundle ? 'w-full min-w-0' : 'w-full min-w-0 sm:col-span-2'}
           disabled={!readyToGenerate}
           onClick={() => generate()}
         />
         {onSaveBundle ? (
           <SaveActionButton
             type="button"
+            className="w-full min-w-0"
             disabled={!bundle || saving || !readyToGenerate}
             busy={saving}
             label="Salvar na conta"
@@ -340,7 +341,7 @@ export function CarneGenerator({
           />
         ) : null}
         <DownloadPdfActionButton
-          className={onSaveBundle ? 'sm:col-span-2' : 'sm:col-span-2'}
+          className={onSaveBundle ? 'w-full min-w-0 sm:col-span-2' : 'w-full min-w-0 sm:col-span-2'}
           href={pdfFile?.url}
           download={pdfFile?.filename}
           busy={busy}
@@ -351,10 +352,13 @@ export function CarneGenerator({
       {bundle ? (
         <ul className="grid gap-2">
           {bundle.installments.map((installment) => (
-            <li key={installment.id} className="flex items-center justify-between rounded-lg bg-muted px-3 py-2 text-sm">
-              <span>Parcela {installment.number}</span>
-              <span>{installment.dueDate.split('-').reverse().join('/')}</span>
-              <strong>{money(installment.amountCents)}</strong>
+            <li
+              key={installment.id}
+              className="grid min-w-0 grid-cols-[auto_1fr_auto] items-center gap-2 rounded-lg bg-muted px-3 py-2 text-sm"
+            >
+              <span className="whitespace-nowrap">Parcela {installment.number}</span>
+              <span className="truncate text-center">{installment.dueDate.split('-').reverse().join('/')}</span>
+              <strong className="whitespace-nowrap text-right">{money(installment.amountCents)}</strong>
             </li>
           ))}
         </ul>
@@ -377,8 +381,8 @@ function SimulatorColumn({
   onApply: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg bg-brand-soft px-3 py-2">
-      <div className="min-w-0">
+    <div className="flex min-w-0 items-center justify-between gap-2 rounded-lg bg-brand-soft px-3 py-2">
+      <div className="min-w-0 flex-1">
         <p className="text-xs font-semibold text-primary">{title}</p>
         <p className="text-sm font-semibold">{total === undefined ? '—' : money(total)}</p>
         {installment !== undefined ? <p className="text-xs text-muted-foreground">Parcela {money(installment)}</p> : null}

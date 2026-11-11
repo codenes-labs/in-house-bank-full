@@ -6,11 +6,30 @@ export function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(' ');
 }
 
-export function Logo() {
+export function BrandMark({ className }: { className?: string }) {
   return (
-    <span className="inline-flex items-center gap-2 font-semibold text-primary">
-      <img src="/favicon.svg" alt="" className="size-8 shrink-0 rounded-full" width={32} height={32} decoding="async" />
-      In House Bank
+    <img
+      src="/favicon.svg"
+      alt=""
+      className={cx('size-8 shrink-0 rounded-full', className)}
+      width={32}
+      height={32}
+      decoding="async"
+    />
+  );
+}
+
+export function Logo({
+  className,
+  compactBelowSm = false,
+}: {
+  className?: string;
+  compactBelowSm?: boolean;
+}) {
+  return (
+    <span className={cx('inline-flex min-w-0 max-w-full items-center gap-2 font-semibold text-primary', className)}>
+      <BrandMark />
+      <span className={cx('truncate', compactBelowSm && 'hidden sm:inline')}>In House Bank</span>
     </span>
   );
 }
@@ -42,7 +61,7 @@ export function Button({
 
 export function Card({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <section className={cx('rounded-xl border border-border bg-card p-4 text-card-foreground shadow-[var(--shadow-card)]', className)}>
+    <section className={cx('min-w-0 rounded-xl border border-border bg-card p-4 text-card-foreground shadow-[var(--shadow-card)]', className)}>
       {children}
     </section>
   );
