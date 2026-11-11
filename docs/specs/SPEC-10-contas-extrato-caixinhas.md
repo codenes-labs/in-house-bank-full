@@ -71,7 +71,7 @@ PDF **Caixinha** (e demais que reutilizarem `generateCashBoxExtratoPdf`): cabeç
 
 PDF **Saldo livre** (`generateFreeBalanceExtratoPdf`, HTML + CSS A4): logotipo ou marca **IH** fora do bloco azul (círculo branco com borda azul); cabeçalho azul-marinho com título “Extrato do saldo livre”, período em pílula e data de emissão (sem ID no corpo); quatro cards de resumo com valores tabulares no mesmo tamanho (saldo inicial, entradas com ↑ e +, saídas com ↓ e −, saldo final do período); linha “N movimentações no período” alinhada à esquerda; movimentações por mês (mais recente primeiro) com subtotal do mês, tabela Data / Descrição / Valor / Saldo; entradas verdes, saídas vermelhas; rodapé com paginação no jsPDF; nota legal no fim.
 
-Em `/financeiro/saldo-livre`: **Card Histórico** com agrupamento mensal dos **últimos 30 dias** (lançamentos ficam em card separado do formulário de entrada/saída).
+Em `/financeiro/saldo-livre`: **Card Histórico** com agrupamento mensal dos **últimos 30 dias** (lançamentos ficam em card separado do formulário de entrada/saída). **Entrada** e **Saída** gravam linha em `free_balance_deposits` / `free_balance_withdrawals` com `recordedAt` e atualizam o saldo na mesma operação. No histórico, movimentos do mesmo dia aparecem do mais recente ao mais antigo, na ordem real do lançamento (não agrupados por tipo).
 
 Aceite: um aporte, uma parcela paga e uma conta paga aparecem com as datas certas e a ordem da mais nova para a mais antiga. Apagar o aporte some a linha, porque ela é derivada.
 
@@ -83,7 +83,7 @@ Meta de movimentação, opcional: `monthlyMovementGoalCents` no `CashBox`. Se es
 
 A tela sai de dentro de `/financeiro` e vai para `/caixinhas`, com o mesmo aporte, resgate e desfazer. `/financeiro` fica com saldo livre, patrimônio, rendimento estimado e metas de patrimônio. O rendimento continua não creditado sozinho.
 
-Aceite: caixinha sem limite e sem meta mensal se comporta como hoje. Aporte que passa de `limitCents` continua recusado. Com meta mensal de 200 reais, aportes de 50 e 30 no mês mostram 80 de 200. Resgate no mês não reduz esses 80.
+Aceite: caixinha sem limite e sem meta mensal se comporta como hoje. Aporte que passa de `limitCents` continua recusado. Com meta mensal de 200 reais, aportes de 50 e 30 no mês mostram 80 de 200. Resgate no mês não reduz esses 80. No detalhe da caixinha, aportes/resgates gravam `recordedAt`; no **Histórico**, movimentos do mesmo dia ficam do mais recente ao mais antigo, na ordem do lançamento (mesma regra do saldo livre). Aporte/resgate atualizam saldo e movimento na mesma persistência (saldo do card acompanha o histórico). **Editar** no detalhe altera nome, instituição, % CDI e limite (não o saldo); limite abaixo do saldo atual é recusado.
 
 ### 5. Menu
 

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { CashBoxMovementType } from '../domain/enums/cash-box-movement-type';
 import { APP_DATA_BACKUP_VERSION } from '../domain/models/app-data-backup';
 import { createEmptySettings } from '../domain/models/settings';
 import { createMemoryBankRepository } from './memory-bank-repository';
@@ -90,6 +91,22 @@ describe('createMemoryBankRepository', () => {
         amountCents: 500_00,
         note: 'Resgate da caixinha Reserva',
       }),
+    ]);
+  });
+
+  it('records a free balance deposit and updates settings together', async () => {
+    const repository = createMemoryBankRepository();
+    const settings = { ...createEmptySettings(), freeBalanceCents: 20_000 };
+    await repository.saveSettings(settings);
+    await repository.saveFreeBalanceDeposit(
+      { id: 'd1', amountCents: 5_000, date: '2026-11-07' },
+      { ...settings, freeBalanceCents: 25_000 },
+    );
+
+    const snapshot = await repository.load();
+    expect(snapshot.settings.freeBalanceCents).toBe(25_000);
+    expect(snapshot.freeBalanceDeposits).toEqual([
+      { id: 'd1', amountCents: 5_000, date: '2026-11-07' },
     ]);
   });
 

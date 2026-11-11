@@ -4,7 +4,13 @@ import { useAuth } from '../components/auth-context';
 import { useBank } from '../components/bank-context';
 import { CashBoxHistoryByMonth } from '../components/cash-box-history-by-month';
 import { DeleteCashBoxPanel } from '../components/delete-cash-box-panel';
-import { DeleteActionButton, DepositActionButton, WithdrawalActionButton } from '../components/standard-action-buttons';
+import { EditCashBoxPanel } from '../components/edit-cash-box-panel';
+import {
+  DeleteActionButton,
+  DepositActionButton,
+  EditActionButton,
+  WithdrawalActionButton,
+} from '../components/standard-action-buttons';
 import { MaskedMoneyInput } from '../components/masked-inputs';
 import { Card, EmptyState, money } from '../components/ui';
 import { applyCashBoxMovement } from '../domain/cash-boxes/apply-cash-box-movement';
@@ -26,6 +32,7 @@ export function CashBoxDetailPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [amountFieldKey, setAmountFieldKey] = useState(0);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const cashBox = bank.snapshot.cashBoxes.find((item) => item.id === cashBoxId);
   const settings = {
     ...bank.snapshot.settings,
@@ -61,14 +68,17 @@ export function CashBoxDetailPage() {
       );
       return false;
     }
-    await bank.saveCashBox({ ...cashBox, balanceCents: result.balanceCents });
-    await bank.saveMovement({
-      id: createId(),
-      cashBoxId: cashBox.id,
-      type,
-      amountCents,
-      date: today,
-    });
+    await bank.recordCashBoxMovement(
+      { ...cashBox, balanceCents: result.balanceCents },
+      {
+        id: createId(),
+        cashBoxId: cashBox.id,
+        type,
+        amountCents,
+        date: today,
+        recordedAt: new Date().toISOString(),
+      },
+    );
     setNotice(type === CashBoxMovementType.Deposit ? 'Aporte registrado.' : 'Resgate registrado.');
     return true;
   }
@@ -107,7 +117,10 @@ export function CashBoxDetailPage() {
         <Link to="/caixinhas" className="text-sm font-semibold text-primary">
           Voltar para todas as caixinhas
         </Link>
-        <DeleteActionButton label="Excluir caixinha" onClick={() => setDeleteOpen(true)} />
+        <div className="flex flex-wrap gap-2">
+          <EditActionButton layout="inline" onClick={() => setEditOpen(true)} />
+          <DeleteActionButton label="Excluir caixinha" onClick={() => setDeleteOpen(true)} />
+        </div>
       </div>
       {notice ? <p className="text-sm text-accent">{notice}</p> : null}
       <Card className="grid gap-2">
@@ -168,6 +181,13 @@ export function CashBoxDetailPage() {
         <h2 className="font-semibold">Histórico</h2>
         <CashBoxHistoryByMonth groups={movementGroups} />
       </Card>
+      <EditCashBoxPanel
+        cashBox={cashBox}
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        onError={(message) => setNotice(message)}
+        onSaved={() => setNotice('Caixinha atualizada.')}
+      />
       <DeleteCashBoxPanel
         cashBox={cashBox}
         open={deleteOpen}
