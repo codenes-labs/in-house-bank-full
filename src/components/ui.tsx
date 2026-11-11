@@ -89,17 +89,22 @@ const controlClass =
   'field-control min-h-12 w-full rounded-xl border border-border bg-card px-4 text-base text-foreground outline-none transition-[box-shadow,border-color] focus:border-ring focus:ring-2 focus:ring-ring/25';
 
 export function TextInput({ className, type, ...props }: InputHTMLAttributes<HTMLInputElement>) {
-  const input = (
-    <input
-      type={type}
-      className={cx(controlClass, type === 'date' && 'field-control-date min-w-0 max-w-full', className)}
-      {...props}
-    />
-  );
   if (type === 'date') {
-    return <div className="relative min-w-0 max-w-full overflow-hidden">{input}</div>;
+    return (
+      <div className="relative min-w-0 w-full max-w-full">
+        <input
+          type="date"
+          className={cx(controlClass, 'field-control-date relative min-w-0 max-w-full pr-11', className)}
+          {...props}
+        />
+        <Calendar
+          className="pointer-events-none absolute top-1/2 right-3 size-5 -translate-y-1/2 text-muted-foreground"
+          aria-hidden
+        />
+      </div>
+    );
   }
-  return input;
+  return <input className={cx(controlClass, className)} type={type} {...props} />;
 }
 
 export function MonthInput({ className, ...props }: Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>) {

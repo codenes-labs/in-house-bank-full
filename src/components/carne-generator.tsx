@@ -242,7 +242,7 @@ export function CarneGenerator({
   }
 
   return (
-    <Card className="grid min-w-0 gap-4">
+    <Card className="grid min-w-0 gap-4 overflow-hidden">
       <div>
         <h2 className="text-xl font-semibold">{title}</h2>
         <p className="text-sm text-muted-foreground">{description}</p>
