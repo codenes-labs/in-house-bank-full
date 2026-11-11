@@ -1,15 +1,48 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../components/auth-context';
+import { TurnstileField } from '../components/turnstile-field';
 import { Button, Card, Field, Logo, TextInput } from '../components/ui';
+
+interface AuthSecurityConfig {
+  turnstileSiteKey: string | null;
+  captchaRequired: boolean;
+}
 
 export function AuthPage({ mode }: { mode: 'sign-in' | 'recover' }) {
   const auth = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [totpCode, setTotpCode] = useState('');
+  const [needsTotp, setNeedsTotp] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [security, setSecurity] = useState<AuthSecurityConfig | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    setEmail('');
+    setPassword('');
+    setTotpCode('');
+    setNeedsTotp(false);
+    setTurnstileToken(null);
+    setError(null);
+    setMessage(null);
+  }, [mode]);
+
+  useEffect(() => {
+    void fetch('/api/auth/security')
+      .then(async (response) => (response.ok ? ((await response.json()) as AuthSecurityConfig) : null))
+      .then((body) => {
+        if (body) {
+          setSecurity(body);
+        }
+      })
+      .catch(() => undefined);
+  }, []);
+
+  const captchaRequired = Boolean(security?.captchaRequired && security.turnstileSiteKey);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -28,11 +61,19 @@ export function AuthPage({ mode }: { mode: 'sign-in' | 'recover' }) {
       setError('A nova senha precisa ter pelo menos 6 caracteres.');
       return;
     }
+    if (captchaRequired && !turnstileToken) {
+      setError('Confirme o captcha antes de continuar.');
+      return;
+    }
+    const totpPayload = needsTotp && mode === 'sign-in' ? totpCode : undefined;
     const result =
       mode === 'sign-in'
-        ? await auth.signIn(login, password)
-        : await auth.recoverPassword(login, password);
+        ? await auth.signIn(login, password, { totpCode: totpPayload, turnstileToken })
+        : await auth.recoverPassword(login, password, { turnstileToken });
     if (result) {
+      if (mode === 'sign-in' && result.includes('autenticador')) {
+        setNeedsTotp(true);
+      }
       setError(result);
       return;
     }
@@ -72,6 +113,20 @@ export function AuthPage({ mode }: { mode: 'sign-in' | 'recover' }) {
               onChange={(event) => setPassword(event.target.value)}
             />
           </Field>
+          {needsTotp && mode === 'sign-in' ? (
+            <Field label="Código do autenticador (6 dígitos)">
+              <TextInput
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                value={totpCode}
+                onChange={(event) => setTotpCode(event.target.value)}
+                maxLength={6}
+              />
+            </Field>
+          ) : null}
+          {captchaRequired && security?.turnstileSiteKey ? (
+            <TurnstileField siteKey={security.turnstileSiteKey} onToken={setTurnstileToken} onExpired={() => setTurnstileToken(null)} />
+          ) : null}
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
           {message ? <p className="text-sm text-accent">{message}</p> : null}
           <Button type="submit">{title}</Button>

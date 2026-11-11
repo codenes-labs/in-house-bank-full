@@ -134,6 +134,20 @@ export function buildOpenApiDocument(serverUrl = '/'): Record<string, unknown> {
               },
             },
             '400': { description: 'Credenciais inválidas', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorBody' } } } },
+            '429': {
+              description: 'Bloqueio temporário após muitas tentativas',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      error: { type: 'string' },
+                      retryAfterSeconds: { type: 'integer' },
+                    },
+                  },
+                },
+              },
+            },
           },
         },
       },

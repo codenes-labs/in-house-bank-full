@@ -1,5 +1,7 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { authRequestInit, writeAccessToken } from '../lib/auth-token';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { isAccessTokenExpired } from '../lib/access-token-expiry';
+import { useSessionGuard } from '../lib/use-session-guard';
+import { authRequestInit, readAccessToken, writeAccessToken } from '../lib/auth-token';
 
 export interface AuthSession {
   user: {
@@ -14,8 +16,16 @@ interface AuthContextValue {
   configured: boolean;
   loading: boolean;
   session: AuthSession | null;
-  signIn: (email: string, password: string) => Promise<string | null>;
-  recoverPassword: (email: string, newPassword: string) => Promise<string | null>;
+  signIn: (
+    email: string,
+    password: string,
+    options?: { totpCode?: string; turnstileToken?: string | null },
+  ) => Promise<string | null>;
+  recoverPassword: (
+    email: string,
+    newPassword: string,
+    options?: { turnstileToken?: string | null },
+  ) => Promise<string | null>;
   updatePassword: (password: string) => Promise<string | null>;
   signOut: () => Promise<void>;
 }
@@ -26,6 +36,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<AuthSession | null>(null);
   const [configured, setConfigured] = useState(true);
   const [loading, setLoading] = useState(true);
+
+  const expireSession = useCallback(() => {
+    writeAccessToken(null);
+    setSession(null);
+  }, []);
+
+  useSessionGuard(Boolean(session), expireSession);
+
+  useEffect(() => {
+    const token = readAccessToken();
+    if (token && isAccessTokenExpired(token)) {
+      expireSession();
+    }
+  }, [expireSession]);
 
   useEffect(() => {
     let active = true;
@@ -41,7 +65,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
         setConfigured(body.configured !== false);
-        setSession(body.user ? { user: body.user } : null);
+        if (!body.user) {
+          writeAccessToken(null);
+          setSession(null);
+        } else {
+          setSession({ user: body.user });
+        }
         setLoading(false);
       })
       .catch(() => {
@@ -62,14 +91,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       configured,
       loading,
       session,
-      async signIn(email, password) {
-        return authenticate('/api/auth/sign-in', email, password, setSession);
+      async signIn(email, password, options) {
+        return authenticate('/api/auth/sign-in', { email, password, ...options }, setSession);
       },
-      async recoverPassword(email, newPassword) {
+      async recoverPassword(email, newPassword, options) {
         const response = await fetch('/api/auth/recover', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ email, newPassword }),
+          body: JSON.stringify({
+            email,
+            newPassword,
+            turnstileToken: options?.turnstileToken ?? undefined,
+          }),
         });
         const body = (await response.json()) as { error?: string };
         if (!response.ok) {
@@ -107,18 +140,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
+export type AuthSignInPayload = {
+  email: string;
+  password: string;
+  totpCode?: string;
+  turnstileToken?: string | null;
+};
+
 async function authenticate(
   path: string,
-  email: string,
-  password: string,
+  payload: AuthSignInPayload,
   setSession: (session: AuthSession | null) => void,
 ): Promise<string | null> {
   const response = await fetch(path, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({
+      email: payload.email,
+      password: payload.password,
+      totpCode: payload.totpCode,
+      turnstileToken: payload.turnstileToken ?? undefined,
+    }),
   });
-  const body = (await response.json()) as { error?: string; user?: AuthSession['user']; accessToken?: string };
+  const body = (await response.json()) as {
+    error?: string;
+    user?: AuthSession['user'];
+    accessToken?: string;
+    retryAfterSeconds?: number;
+    requiresTotp?: boolean;
+  };
+  if (response.status === 401 && body.requiresTotp) {
+    return body.error ?? 'Informe o código do autenticador.';
+  }
   if (!response.ok || !body.user || !body.accessToken) {
     return body.error ?? 'Não foi possível entrar.';
   }

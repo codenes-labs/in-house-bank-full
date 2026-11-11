@@ -9,6 +9,24 @@ export const schemaStatements = [
   )`,
   `alter table public.users add column if not exists account_kind text not null default 'standard'`,
   `alter table public.users add column if not exists must_change_password boolean not null default false`,
+  `create table if not exists public.auth_login_lockouts (
+    email text primary key,
+    failure_count integer not null default 0,
+    lockout_level integer not null default 0,
+    locked_until timestamptz,
+    updated_at timestamptz not null default now()
+  )`,
+  `create table if not exists public.auth_rate_limits (
+    scope text not null,
+    subject text not null,
+    failure_count integer not null default 0,
+    lockout_level integer not null default 0,
+    locked_until timestamptz,
+    updated_at timestamptz not null default now(),
+    primary key (scope, subject)
+  )`,
+  `alter table public.users add column if not exists totp_secret text`,
+  `alter table public.users add column if not exists totp_enabled boolean not null default false`,
   `create table if not exists public.settings (
     user_id uuid primary key references public.users (id) on delete cascade,
     business_name text not null default '',
