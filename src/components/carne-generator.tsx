@@ -247,7 +247,7 @@ export function CarneGenerator({
         <h2 className="text-xl font-semibold">{title}</h2>
         <p className="text-sm text-muted-foreground">{description}</p>
       </div>
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 [&>*]:min-w-0">
         <Field label="Valor utilizado" error={errors.usedAmountCents}>
           <TextInput inputMode="numeric" value={usedAmount} onChange={(event) => edit(() => setUsedAmount(maskMoneyField(event.target.value)))} placeholder="540,00" />
         </Field>

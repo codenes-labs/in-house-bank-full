@@ -77,7 +77,7 @@ export function Field({
   children: ReactNode;
 }) {
   return (
-    <label className="grid gap-1 text-sm font-medium">
+    <label className="grid min-w-0 gap-1 text-sm font-medium">
       {label}
       {children}
       {error ? <span className="text-sm font-normal text-destructive">{error}</span> : null}
@@ -88,8 +88,18 @@ export function Field({
 const controlClass =
   'field-control min-h-12 w-full rounded-xl border border-border bg-card px-4 text-base text-foreground outline-none transition-[box-shadow,border-color] focus:border-ring focus:ring-2 focus:ring-ring/25';
 
-export function TextInput({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
-  return <input className={cx(controlClass, className)} {...props} />;
+export function TextInput({ className, type, ...props }: InputHTMLAttributes<HTMLInputElement>) {
+  const input = (
+    <input
+      type={type}
+      className={cx(controlClass, type === 'date' && 'field-control-date min-w-0 max-w-full', className)}
+      {...props}
+    />
+  );
+  if (type === 'date') {
+    return <div className="relative min-w-0 max-w-full overflow-hidden">{input}</div>;
+  }
+  return input;
 }
 
 export function MonthInput({ className, ...props }: Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>) {

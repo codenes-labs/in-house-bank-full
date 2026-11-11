@@ -212,3 +212,28 @@ html.theme-dark .field-control-month {
   cursor: pointer;
   opacity: 0;
 }
+
+/* iOS/Safari: input type=date costuma ultrapassar a largura do card. */
+.field-control-date {
+  min-width: 0;
+  max-width: 100%;
+  display: block;
+  box-sizing: border-box;
+  color-scheme: light;
+}
+
+html.theme-dark .field-control-date {
+  color-scheme: dark;
+}
+
+.field-control-date::-webkit-datetime-edit-fields-wrapper {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.field-control-date::-webkit-datetime-edit {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
