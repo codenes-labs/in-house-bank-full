@@ -104,11 +104,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </nav>
         </aside>
         <div className="flex min-h-0 min-w-0 flex-col">
-          <header className="z-10 flex shrink-0 items-center justify-between gap-3 border-b border-border bg-card px-4 py-2">
-            <div className="lg:hidden">
-              <Logo />
+          <header className="z-10 flex w-full min-w-0 shrink-0 items-center justify-between gap-2 border-b border-border bg-card px-4 py-2">
+            <div className="min-w-0 flex-1 lg:hidden">
+              <Logo compactBelowSm />
             </div>
-            <div className="ml-auto flex items-center gap-1">
+            <div className="flex shrink-0 items-center gap-1">
               <button
                 type="button"
                 className="press inline-flex size-12 items-center justify-center rounded-lg text-muted-foreground"
@@ -121,8 +121,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <UserAccountMenu />
             </div>
           </header>
-          <main className="app-scroll min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
-            <div className="mx-auto w-full max-w-6xl px-4 pb-28 pt-4 lg:px-8 lg:pb-10 lg:pt-8">{children}</div>
+          <main className="app-scroll min-h-0 min-w-0 flex-1 overflow-x-clip overflow-y-auto overscroll-y-contain">
+            <div className="mx-auto w-full min-w-0 max-w-6xl px-4 pb-28 pt-4 lg:px-8 lg:pb-10 lg:pt-8">{children}</div>
           </main>
           <nav
             className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-3 border-t border-border bg-card px-1 pb-[env(safe-area-inset-bottom)] lg:hidden"

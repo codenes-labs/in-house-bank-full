@@ -8,12 +8,12 @@ export function NewInstallmentPage() {
   const settings = bank.snapshot.settings;
 
   return (
-    <div className="grid gap-4">
-      <Link to="/parcelamentos" className="text-sm font-semibold text-primary w-fit">
+    <div className="grid min-w-0 gap-4">
+      <Link to="/parcelamentos" className="w-fit text-sm font-semibold text-primary">
         Voltar aos parcelamentos
       </Link>
-      <div>
-        <h1 className="text-3xl font-semibold">Novo parcelamento</h1>
+      <div className="min-w-0">
+        <h1 className="text-3xl font-semibold break-words">Novo parcelamento</h1>
         <p className="mt-1 text-muted-foreground">Gere as parcelas e salve direto na sua conta.</p>
       </div>
       <CarneGenerator
