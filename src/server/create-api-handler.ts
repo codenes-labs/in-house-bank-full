@@ -343,20 +343,22 @@ async function signIn(
   const password = String(body.password ?? '');
   const clientIp = readClientIp(request);
 
-  if (!(await verifyTurnstileToken(authSecurity.turnstileSecret, body.turnstileToken, clientIp))) {
+  const rateKeys: RateLimitKey[] = [
+    { scope: AUTH_RATE_SIGN_IN_EMAIL, subject: email },
+    { scope: AUTH_RATE_SIGN_IN_IP, subject: clientIp },
+  ];
+  const nowMs = Date.now();
+  const [captchaOk, rateStates] = await Promise.all([
+    verifyTurnstileToken(authSecurity.turnstileSecret, body.turnstileToken, clientIp),
+    loadRateLimitStates(sql, rateKeys),
+  ]);
+  if (!captchaOk) {
     return json({ error: 'Confirme o desafio de segurança (captcha) e tente de novo.' }, 400);
   }
 
   if (!email.includes('@') || (password.length < 6 && !(email === DEMO_EMAIL && password === DEMO_PASSWORD))) {
     return json({ error: 'Informe um e-mail válido e uma senha com pelo menos 6 caracteres.' }, 400);
   }
-
-  const rateKeys: RateLimitKey[] = [
-    { scope: AUTH_RATE_SIGN_IN_EMAIL, subject: email },
-    { scope: AUTH_RATE_SIGN_IN_IP, subject: clientIp },
-  ];
-  const nowMs = Date.now();
-  const rateStates = await loadRateLimitStates(sql, rateKeys);
   const blocked = rateLimitBlockedResponse(rateStates, nowMs, json);
   if (blocked) {
     return blocked;
@@ -412,20 +414,22 @@ async function recoverPassword(sql: Sql, request: Request, authSecurity: AuthSec
   const newPassword = String(body.newPassword ?? '');
   const clientIp = readClientIp(request);
 
-  if (!(await verifyTurnstileToken(authSecurity.turnstileSecret, body.turnstileToken, clientIp))) {
+  const rateKeys: RateLimitKey[] = [
+    { scope: AUTH_RATE_RECOVER_EMAIL, subject: email },
+    { scope: AUTH_RATE_RECOVER_IP, subject: clientIp },
+  ];
+  const nowMs = Date.now();
+  const [captchaOk, rateStates] = await Promise.all([
+    verifyTurnstileToken(authSecurity.turnstileSecret, body.turnstileToken, clientIp),
+    loadRateLimitStates(sql, rateKeys),
+  ]);
+  if (!captchaOk) {
     return json({ error: 'Confirme o desafio de segurança (captcha) e tente de novo.' }, 400);
   }
 
   if (!email.includes('@') || newPassword.length < 6) {
     return json({ error: 'Informe o e-mail e uma nova senha com pelo menos 6 caracteres.' }, 400);
   }
-
-  const rateKeys: RateLimitKey[] = [
-    { scope: AUTH_RATE_RECOVER_EMAIL, subject: email },
-    { scope: AUTH_RATE_RECOVER_IP, subject: clientIp },
-  ];
-  const nowMs = Date.now();
-  const rateStates = await loadRateLimitStates(sql, rateKeys);
   const blocked = rateLimitBlockedResponse(rateStates, nowMs, json);
   if (blocked) {
     return blocked;

@@ -14,12 +14,12 @@ type Sql = NeonQueryFunction<false, false>;
 export type RateLimitKey = { scope: string; subject: string };
 
 export async function loadRateLimitStates(sql: Sql, keys: readonly RateLimitKey[]): Promise<RateLimitSubjectState[]> {
-  const out: RateLimitSubjectState[] = [];
-  for (const key of keys) {
-    const state = await loadAuthRateLimit(sql, key.scope, key.subject);
-    out.push({ scope: key.scope, subject: key.subject, state });
-  }
-  return out;
+  return Promise.all(
+    keys.map(async (key) => {
+      const state = await loadAuthRateLimit(sql, key.scope, key.subject);
+      return { scope: key.scope, subject: key.subject, state };
+    }),
+  );
 }
 
 export function rateLimitBlockedResponse(

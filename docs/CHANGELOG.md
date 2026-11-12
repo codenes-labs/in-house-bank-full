@@ -4,6 +4,10 @@ Marcos do produto In House Bank. Atualize **neste arquivo** e em `src/domain/doc
 
 ## [0.2.3] — 2026-11-11
 
+### Corrigido
+
+- Login: o captcha invisível não pede um segundo clique. O envio espera o token e o botão mostra **Entrando…**.
+
 ### Projeto B (SPEC-09)
 
 - Integração HTTP: `health.integration.spec.ts` (health + metrics sem Neon).

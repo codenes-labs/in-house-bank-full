@@ -16,6 +16,12 @@ export const PRODUCT_CHANGELOG: readonly ChangelogRelease[] = [
     date: '2026-11-11',
     sections: [
       {
+        title: 'Corrigido',
+        items: [
+          'Login: captcha invisível espera o token no mesmo clique; o botão mostra Entrando… enquanto isso.',
+        ],
+      },
+      {
         title: 'Adicionado',
         items: [
           'Projeto B (SPEC-09): health integration, métrica api_requests_total, SLO, ADR BankRepository, openapi.yaml e k6 smoke.',

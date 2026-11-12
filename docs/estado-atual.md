@@ -63,3 +63,4 @@ GitHub Actions: lint (oxlint), `test:coverage` com piso no Vitest. Deploy em `ma
 | 2026-03-20 | Specs devem ser atualizadas junto com cada mudança; estado geral neste arquivo. |
 | 2026-11-09 | Ações repetidas (editar, excluir, salvar, cancelar, parcela, etc.) usam `src/components/standard-action-buttons.tsx` (ícones Lucide + variantes `primary` / `soft` / `danger` / `ghost`). |
 | 2026-11-09 | Tema escuro/claro logado: toggle na área logada grava `settings.theme` (antes só `localStorage`, sobrescrito ao carregar a conta). |
+| 2026-11-11 | Login com Turnstile invisível: um clique espera o token; não mostra “Confirme o captcha” enquanto o desafio ainda corre (SPEC-13). |
