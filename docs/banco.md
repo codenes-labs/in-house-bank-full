@@ -19,4 +19,4 @@ Cadastro público fechado. Contas criadas pelo seed em `src/server/account-seed.
 | Admin | `admin@codenes.com.br` | `CodenesTemp1` | Dados reais; trocar senha em `/alterar-senha` no primeiro acesso |
 | Demo | `teste` ou `teste@teste.com` | `teste` | Dados fictícios; mutações ficam só na sessão (memória no app). O banco não grava alterações; cada login restaura o mock |
 
-Recuperação de senha: `/recuperar-senha` (e-mail + nova senha). Não vale para a conta demo.
+Recuperação de senha: em **produção** desligada por padrão (`AUTH_PASSWORD_RECOVER_ENABLED=true` no Worker só se precisar do fluxo legado e-mail + nova senha com Turnstile). Em dev, ligada salvo `AUTH_PASSWORD_RECOVER_ENABLED=false`. Não vale para a conta demo. Ver [SPEC-14](specs/SPEC-14-recuperacao-senha.md).

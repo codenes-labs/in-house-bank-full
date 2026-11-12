@@ -12,6 +12,19 @@ export interface ChangelogRelease {
 /** Atualize junto com `docs/CHANGELOG.md` (mesmo conteúdo). */
 export const PRODUCT_CHANGELOG: readonly ChangelogRelease[] = [
   {
+    version: '0.2.2',
+    date: '2026-11-11',
+    sections: [
+      {
+        title: 'Corrigido',
+        items: [
+          'Segurança: recover desligado no Worker por padrão; 2FA begin exige senha+código se já ativo; senha atual na troca de senha.',
+          'Headers de segurança; validação de import JSON; Docker/entrypoint sem gravar .dev.vars na raiz.',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.2.1',
     date: '2026-11-10',
     sections: [

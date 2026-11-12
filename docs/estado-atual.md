@@ -1,6 +1,6 @@
 # Estado atual do projeto
 
-Última atualização: 2026-11-10 (extrato PDF saldo livre e carnê/caixinha).
+Última atualização: 2026-11-11 (auditoria de segurança — SPEC-14 recover, TOTP, senha).
 
 Referência rápida para agentes e implementadores. Detalhes de domínio seguem em `docs/principios.md`, `docs/arquitetura.md` e `docs/banco.md`.
 
@@ -12,7 +12,7 @@ Stack: React, Vite, TypeScript, Tailwind, Vitest, Neon Postgres, JWT, PDF no cli
 
 ## Governança
 
-- Specs em `docs/specs` (SPEC-01 a SPEC-10; SPEC-09 Projeto B e SPEC-10 contas/menu pendentes de implementação).
+- Specs em `docs/specs` (SPEC-01 a SPEC-14; ver `docs/auditoria-seguranca-2026-11.md` para segurança).
 - **Regra ativa:** toda alteração de código que muda comportamento ou UI deve atualizar a spec relacionada no mesmo PR/trabalho.
 - Este arquivo resume o estado **atual** da UI e decisões recentes; specs continuam sendo a fonte de critérios de aceite.
 

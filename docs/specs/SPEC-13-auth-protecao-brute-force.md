@@ -25,7 +25,7 @@ Proteger login, recuperação de senha e contas com tentativas limitadas, captch
 ### 2FA (TOTP)
 
 9. Colunas `users.totp_secret`, `users.totp_enabled`.
-10. Configuração em **Configurações → Usuário**: `POST /api/auth/totp/begin`, `enable`, `disable` (com senha + código).
+10. Configuração em **Configurações → Usuário**: `POST /api/auth/totp/begin`, `enable`, `disable`. Com `totp_enabled`, **begin** exige senha atual e código 2FA (ou desativar antes via disable). **Disable** exige senha + código.
 11. Login: após senha correta, se `totp_enabled`, exige `totpCode` (6 dígitos, janela ±1 período).
 12. Falhas de TOTP contam no rate limit de sign-in.
 

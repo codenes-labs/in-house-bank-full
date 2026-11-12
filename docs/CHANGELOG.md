@@ -2,6 +2,16 @@
 
 Marcos do produto In House Bank. Atualize **neste arquivo** e em `src/domain/docs/product-changelog.ts` no mesmo trabalho (SPEC-11).
 
+## [0.2.2] — 2026-11-11
+
+### Segurança
+
+- Recuperação por e-mail desligada no Worker por padrão (SPEC-14); CI exige Turnstile no deploy.
+- 2FA: `totp/begin` não desativa TOTP sem senha e código quando já ativo.
+- Troca de senha exige senha atual (exceto primeiro acesso); headers de segurança na API e nos assets.
+- Import de backup validado; Docker ignora `.env`/`.dev.vars`; entrypoint usa `--env-file` temporário.
+- Relatório: `docs/auditoria-seguranca-2026-11.md`.
+
 ## [0.2.1] — 2026-11-10
 
 Versão de consolidação dos commits locais após **0.2.0** (extrato, relatórios, PDFs, configurações e demo).
