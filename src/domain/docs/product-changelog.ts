@@ -12,6 +12,19 @@ export interface ChangelogRelease {
 /** Atualize junto com `docs/CHANGELOG.md` (mesmo conteúdo). */
 export const PRODUCT_CHANGELOG: readonly ChangelogRelease[] = [
   {
+    version: '0.2.3',
+    date: '2026-11-11',
+    sections: [
+      {
+        title: 'Adicionado',
+        items: [
+          'Projeto B (SPEC-09): health integration, métrica api_requests_total, SLO, ADR BankRepository, openapi.yaml e k6 smoke.',
+          'CI roda test:coverage com piso mínimo.',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.2.2',
     date: '2026-11-11',
     sections: [

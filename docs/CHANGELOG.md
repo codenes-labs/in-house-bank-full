@@ -2,6 +2,15 @@
 
 Marcos do produto In House Bank. Atualize **neste arquivo** e em `src/domain/docs/product-changelog.ts` no mesmo trabalho (SPEC-11).
 
+## [0.2.3] — 2026-11-11
+
+### Projeto B (SPEC-09)
+
+- Integração HTTP: `health.integration.spec.ts` (health + metrics sem Neon).
+- Log JSON por `/api/*`, `GET /api/metrics`, `docs/slo.md`.
+- Coverage com piso no CI (`test:coverage`).
+- ADR `docs/adr/0001-bank-repository.md`, `docs/openapi.yaml`, smoke `perf/health-smoke.js`.
+
 ## [0.2.2] — 2026-11-11
 
 ### Segurança

@@ -1,6 +1,6 @@
 # Estado atual do projeto
 
-Última atualização: 2026-11-11 (auditoria de segurança — SPEC-14 recover, TOTP, senha).
+Última atualização: 2026-11-11 (SPEC-09 Projeto B concluída: health integration, metrics, coverage, ADR, k6).
 
 Referência rápida para agentes e implementadores. Detalhes de domínio seguem em `docs/principios.md`, `docs/arquitetura.md` e `docs/banco.md`.
 
@@ -52,7 +52,7 @@ Cadastro público fechado. Contas seed: admin e demo (`docs/banco.md`). RLS por 
 
 ## CI
 
-GitHub Actions: lint (oxlint), testes (Vitest). Deploy em `master` para Cloudflare. Docker: dev em `.docker/` (porta 5173); produção local com `Dockerfile` + `compose.prod.yaml` na raiz (8787). SPEC-09 (Projeto B) ainda pendente no pipeline (coverage mínimo, integração, ADR, etc.).
+GitHub Actions: lint (oxlint), `test:coverage` com piso no Vitest. Deploy em `master` para Cloudflare. Docker: dev em `.docker/` (`docker compose -f .docker/docker-compose.dev.yaml up`, porta 5173); produção local com `compose.prod.yaml` (8787). Observabilidade B: log JSON por `/api/*`, `GET /api/metrics`, `docs/slo.md`, smoke `perf/health-smoke.js`.
 
 ## Decisões recentes (UI)
 

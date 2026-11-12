@@ -29,11 +29,25 @@ Relatórios → Extrato (`tipo=caixinha` ou `tipo=saldo-livre`): filtro de perí
 
 ## Desenvolvimento local
 
+Atalhos via [`Makefile`](Makefile) (`make help`). Equivalente em npm:
+
 ```bash
 npm install
 npm test
+npm run test:coverage   # mesmo que o CI; falha se coverage cair abaixo do piso
 npm run dev
 ```
+
+### Smoke de latência (k6)
+
+Com o app no ar (`npm run dev` ou Docker na porta 5173):
+
+```bash
+make k6
+# ou: k6 run -e BASE_URL=http://localhost:5173 perf/health-smoke.js
+```
+
+Meta p95 &lt; 500 ms para `GET /api/health` — ver [`docs/slo.md`](docs/slo.md). Contrato estático mínimo: [`docs/openapi.yaml`](docs/openapi.yaml).
 
 ### Variáveis de ambiente
 
@@ -107,6 +121,8 @@ Domínio customizado: **Workers & Pages → in-house-bank-full → Settings → 
 | [`docs/banco.md`](docs/banco.md) | Schema, RLS, migrações Neon |
 | [`docs/estado-atual.md`](docs/estado-atual.md) | UI e rotas atuais |
 | [`docs/specs/`](docs/specs/) | Especificações (SPEC-01+) |
+| [`docs/slo.md`](docs/slo.md) | SLO Projeto B (p95 health) |
+| [`docs/adr/`](docs/adr/) | Decisões de arquitetura (MADR) |
 | [`AGENTS.md`](AGENTS.md) | Regras para agentes e contribuidores |
 
 Para implementar features: spec em `docs/specs` → testes → código (ver skills em `.cursor/skills`).

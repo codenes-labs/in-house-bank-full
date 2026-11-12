@@ -1,6 +1,6 @@
 # SPEC-09 Projeto B — o que falta
 
-Status: pendente.
+Status: concluída.
 
 Fecha os entregáveis do Projeto B que o repositório ainda não tem. Não muda domínio, paleta, banco nem o contrato de `BankRepository`. O app continua sem movimentar dinheiro.
 

@@ -28,3 +28,7 @@ Login -> JWT + BankRepository HTTP -> áreas internas
 ```
 
 A implementação em memória existe para testes e para o contrato do repositório.
+
+## Persistência (Repository)
+
+Telas e domínio falam só com a interface `BankRepository`: em produção, `HttpBankRepository` chama `/api/*`; em testes e na conta demo, a implementação em memória evita Neon no cliente. O domínio não importa React nem SQL. A alternativa descartada foi a UI abrir Postgres direto — ver [ADR 0001 — BankRepository](adr/0001-bank-repository.md).

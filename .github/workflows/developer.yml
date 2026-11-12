@@ -1,6 +1,6 @@
 name: Developer
 
-# Feature branches: lint → testes. Master usa só deploy.yml (lint → testes → deploy).
+# Feature branches: lint → coverage → build (sem deploy).
 on:
   push:
     branches-ignore:
@@ -31,7 +31,7 @@ jobs:
         run: npm run lint
 
   test:
-    name: Testes
+    name: Coverage
     needs: lint
     runs-on: ubuntu-latest
     steps:
@@ -47,5 +47,25 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: Unit tests
-        run: npm test
+      - name: Testes com coverage
+        run: npm run test:coverage
+
+  build:
+    name: Build
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build

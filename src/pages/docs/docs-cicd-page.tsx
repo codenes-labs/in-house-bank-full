@@ -7,8 +7,8 @@ export function DocsCicdPage() {
         <p>Dois workflows em <code className="text-foreground">.github/workflows/</code>:</p>
         <DocsList
           items={[
-            'developer.yml — push em branches que não são master: lint (oxlint) → testes (Vitest)',
-            'deploy.yml — push em master: lint → testes → build → deploy Cloudflare',
+            'developer.yml — branches (não master): lint → coverage → build',
+            'deploy.yml — master: lint → coverage → build → validação de secrets → deploy Cloudflare',
           ]}
         />
       </DocsSection>
@@ -23,8 +23,9 @@ export function DocsCicdPage() {
       </DocsSection>
       <DocsSection title="Gates">
         <p>
-          Nenhum deploy sem lint e testes verdes na master. SPEC-09 (Projeto B) prevê coverage mínimo e outras melhorias de
-          pipeline — ainda não aplicadas.
+          Nenhum deploy sem lint e testes verdes na master. Coverage mínimo em <code className="text-foreground">vite.config.ts</code>{' '}
+          (lines 76%, statements 76%, functions 82%, branches 57%). Métrica leve em <code className="text-foreground">GET /api/metrics</code>;
+          SLO em <code className="text-foreground">docs/slo.md</code> (SPEC-09).
         </p>
       </DocsSection>
     </div>

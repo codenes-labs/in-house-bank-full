@@ -1,0 +1,47 @@
+openapi: 3.1.0
+info:
+  title: In House Bank — contrato mínimo (Projeto B)
+  version: 1.0.0
+  description: Endpoints de saúde e métrica leve. Contrato completo em GET /api/openapi.json em runtime.
+servers:
+  - url: /
+paths:
+  /api/health:
+    get:
+      summary: Verifica se DATABASE_URL e JWT_SECRET estão configurados
+      operationId: getHealth
+      tags:
+        - Sistema
+      responses:
+        '200':
+          description: Status de configuração (não acessa o banco)
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - configured
+                  - database
+                  - jwt
+                properties:
+                  configured:
+                    type: boolean
+                  database:
+                    type: boolean
+                  jwt:
+                    type: boolean
+  /api/metrics:
+    get:
+      summary: Contador de requisições /api no isolate atual
+      operationId: getMetrics
+      tags:
+        - Sistema
+      responses:
+        '200':
+          description: Texto plano estilo Prometheus (uma série)
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: |
+                  api_requests_total 42

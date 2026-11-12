@@ -1,6 +1,6 @@
 name: Deploy
 
-# Só master. Lint → testes → deploy (cada job depende do anterior).
+# master: lint → coverage → build → validação de secrets → deploy Cloudflare
 on:
   push:
     branches: [master]
@@ -30,7 +30,7 @@ jobs:
         run: npm run lint
 
   test:
-    name: Testes
+    name: Coverage
     needs: lint
     runs-on: ubuntu-latest
     steps:
@@ -46,12 +46,39 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: Unit tests
-        run: npm test
+      - name: Testes com coverage
+        run: npm run test:coverage
+
+  build:
+    name: Build
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Guardar dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+          if-no-files-found: error
 
   cloudflare:
     name: Deploy Cloudflare
-    needs: [lint, test]
+    needs: build
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -69,8 +96,11 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: Build
-        run: npm run build
+      - name: Restaurar dist
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
 
       - name: Validar secrets do GitHub
         run: |
@@ -95,6 +125,7 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
           TURNSTILE_SITE_KEY: ${{ secrets.TURNSTILE_SITE_KEY }}
+
       - name: Sync Worker secrets
         run: |
           node <<'NODE'

@@ -62,6 +62,7 @@ import {
 
 import { ACCESS_TOKEN_TTL_SECONDS } from '../domain/auth/access-token-policy';
 import { assertAppDataBackup } from '../domain/backup/assert-app-data-backup';
+import { getApiRequestsTotal, incrementApiRequests, logApiRequest } from './request-log';
 import { jsonResponse, withSecurityHeaders } from './security-response';
 
 type Sql = NeonQueryFunction<false, false>;
@@ -95,10 +96,19 @@ export function createApiHandler(options: ApiHandlerOptions): (request: Request)
     turnstileSiteKey: options.turnstileSiteKey?.trim(),
   };
   const passwordRecoverEnabled = options.passwordRecoverEnabled === true;
-  return async (request) => {
+  const handle = async (request: Request): Promise<Response> => {
     const databaseUrl = options.databaseUrl?.trim() || undefined;
     const jwtSecret = options.jwtSecret?.trim() || undefined;
     const url = new URL(request.url);
+
+    if (url.pathname === '/api/metrics' && request.method === 'GET') {
+      return withSecurityHeaders(
+        new Response(`api_requests_total ${getApiRequestsTotal()}\n`, {
+          status: 200,
+          headers: { 'content-type': 'text/plain; charset=utf-8' },
+        }),
+      );
+    }
 
     if (url.pathname === '/api/openapi.json' && request.method === 'GET') {
       return withSecurityHeaders(
@@ -130,6 +140,22 @@ export function createApiHandler(options: ApiHandlerOptions): (request: Request)
     } catch {
       return json({ error: 'Falha interna. Tente de novo.' }, 500);
     }
+  };
+
+  return async (request: Request) => {
+    const started = performance.now();
+    const pathname = new URL(request.url).pathname;
+    const response = await handle(request);
+    if (pathname.startsWith('/api/')) {
+      incrementApiRequests();
+      logApiRequest({
+        method: request.method,
+        path: pathname,
+        status: response.status,
+        durationMs: Math.max(0, Math.round(performance.now() - started)),
+      });
+    }
+    return response;
   };
 }
 
