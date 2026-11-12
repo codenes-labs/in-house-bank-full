@@ -4,5 +4,8 @@ dist
 .github
 .cursor
 .docker/.env
+.env
+.dev.vars
+wrangler-secrets.json
 *.md
 !README.md
