@@ -192,7 +192,10 @@ export function buildOpenApiDocument(serverUrl = '/'): Record<string, unknown> {
               'application/json': {
                 schema: {
                   type: 'object',
-                  properties: { newPassword: { type: 'string' } },
+                  properties: {
+                    newPassword: { type: 'string' },
+                    currentPassword: { type: 'string', description: 'Obrigatória exceto no primeiro acesso (must_change_password)' },
+                  },
                 },
               },
             },

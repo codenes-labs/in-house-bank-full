@@ -31,13 +31,16 @@ function neonApi() {
               jwtSecret?: string
               turnstileSecret?: string
               turnstileSiteKey?: string
+              passwordRecoverEnabled?: boolean
             }) => (request: Request) => Promise<Response>
           }
+          const recoverFlag = loadEnvValue('AUTH_PASSWORD_RECOVER_ENABLED')
           const handler = mod.createApiHandler({
             databaseUrl: loadEnvValue('DATABASE_URL'),
             jwtSecret: loadEnvValue('JWT_SECRET'),
             turnstileSecret: loadEnvValue('TURNSTILE_SECRET_KEY'),
             turnstileSiteKey: loadEnvValue('TURNSTILE_SITE_KEY'),
+            passwordRecoverEnabled: recoverFlag !== 'false',
           })
           const webResponse = await handler(await toWebRequest(request))
           await writeWebResponse(response, webResponse)

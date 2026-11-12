@@ -14,7 +14,11 @@ type UserTotpRow = {
   totp_enabled: boolean;
 };
 
-export async function totpBegin(sql: Sql, userId: string): Promise<{ secret: string; otpauthUrl: string } | { error: string }> {
+export async function totpBegin(
+  sql: Sql,
+  userId: string,
+  options?: { password?: string; code?: string },
+): Promise<{ secret: string; otpauthUrl: string } | { error: string }> {
   const rows = await sql`
     select id, email, password_hash, account_kind, totp_secret, totp_enabled
     from users where id = ${userId}::uuid
@@ -25,6 +29,22 @@ export async function totpBegin(sql: Sql, userId: string): Promise<{ secret: str
   }
   if (row.account_kind === AccountKind.Demo) {
     return { error: 'A conta de demonstração não usa 2FA.' };
+  }
+  if (row.totp_enabled) {
+    const password = String(options?.password ?? '');
+    const code = String(options?.code ?? '');
+    if (!password || !code) {
+      return {
+        error:
+          'Com o 2FA ativo, informe a senha atual e um código do autenticador para gerar um novo segredo (ou desative o 2FA antes).',
+      };
+    }
+    if (!(await verifyPassword(password, row.password_hash))) {
+      return { error: 'Senha atual incorreta.' };
+    }
+    if (!row.totp_secret || !verifyTotpCode(row.totp_secret, code)) {
+      return { error: 'Código 2FA inválido.' };
+    }
   }
   const secret = createTotpSecret();
   await sql`

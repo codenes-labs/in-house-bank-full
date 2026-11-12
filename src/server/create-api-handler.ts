@@ -1,5 +1,4 @@
 import { neon, type NeonQueryFunction } from '@neondatabase/serverless';
-import type { AppDataBackup } from '../domain/models/app-data-backup';
 import type { CashBox } from '../domain/models/cash-box';
 import type { CashBoxMovement } from '../domain/models/cash-box-movement';
 import type { FreeBalanceDeposit } from '../domain/models/free-balance-deposit';
@@ -62,6 +61,8 @@ import {
 } from './user-backup';
 
 import { ACCESS_TOKEN_TTL_SECONDS } from '../domain/auth/access-token-policy';
+import { assertAppDataBackup } from '../domain/backup/assert-app-data-backup';
+import { jsonResponse, withSecurityHeaders } from './security-response';
 
 type Sql = NeonQueryFunction<false, false>;
 
@@ -84,6 +85,8 @@ export type ApiHandlerOptions = {
   jwtSecret?: string;
   turnstileSecret?: string;
   turnstileSiteKey?: string;
+  /** Produção: só `true` liga POST /api/auth/recover. Dev costuma ligar por padrão no Vite. */
+  passwordRecoverEnabled?: boolean;
 };
 
 export function createApiHandler(options: ApiHandlerOptions): (request: Request) => Promise<Response> {
@@ -91,19 +94,22 @@ export function createApiHandler(options: ApiHandlerOptions): (request: Request)
     turnstileSecret: options.turnstileSecret?.trim(),
     turnstileSiteKey: options.turnstileSiteKey?.trim(),
   };
+  const passwordRecoverEnabled = options.passwordRecoverEnabled === true;
   return async (request) => {
     const databaseUrl = options.databaseUrl?.trim() || undefined;
     const jwtSecret = options.jwtSecret?.trim() || undefined;
     const url = new URL(request.url);
 
     if (url.pathname === '/api/openapi.json' && request.method === 'GET') {
-      return new Response(JSON.stringify(buildOpenApiDocument(url.origin)), {
-        status: 200,
-        headers: {
-          'content-type': 'application/json',
-          'cache-control': 'public, max-age=300',
-        },
-      });
+      return withSecurityHeaders(
+        new Response(JSON.stringify(buildOpenApiDocument(url.origin)), {
+          status: 200,
+          headers: {
+            'content-type': 'application/json',
+            'cache-control': 'public, max-age=300',
+          },
+        }),
+      );
     }
 
     if (url.pathname === '/api/health' && request.method === 'GET') {
@@ -120,15 +126,20 @@ export function createApiHandler(options: ApiHandlerOptions): (request: Request)
     try {
       const sql = neon(normalizeDatabaseUrl(databaseUrl));
       await ensureBootstrapped(databaseUrl, sql);
-      return await route(sql, request, jwtSecret, authSecurity);
-    } catch (cause) {
-      const message = cause instanceof Error ? cause.message : 'Falha no banco.';
-      return json({ error: message }, 500);
+      return await route(sql, request, jwtSecret, authSecurity, passwordRecoverEnabled);
+    } catch {
+      return json({ error: 'Falha interna. Tente de novo.' }, 500);
     }
   };
 }
 
-async function route(sql: Sql, request: Request, jwtSecret: string, authSecurity: AuthSecurityOptions): Promise<Response> {
+async function route(
+  sql: Sql,
+  request: Request,
+  jwtSecret: string,
+  authSecurity: AuthSecurityOptions,
+  passwordRecoverEnabled: boolean,
+): Promise<Response> {
   const url = new URL(request.url);
   const { pathname } = url;
 
@@ -136,6 +147,7 @@ async function route(sql: Sql, request: Request, jwtSecret: string, authSecurity
     return json({
       turnstileSiteKey: authSecurity.turnstileSiteKey ?? null,
       captchaRequired: Boolean(authSecurity.turnstileSecret),
+      passwordRecoverEnabled,
     });
   }
 
@@ -153,6 +165,15 @@ async function route(sql: Sql, request: Request, jwtSecret: string, authSecurity
     return json({ ok: true });
   }
   if (pathname === '/api/auth/recover' && request.method === 'POST') {
+    if (!passwordRecoverEnabled) {
+      return json(
+        {
+          error:
+            'Recuperação por e-mail desativada neste ambiente. Entre com sua senha ou peça a um administrador.',
+        },
+        403,
+      );
+    }
     return recoverPassword(sql, request, authSecurity);
   }
   if (pathname === '/api/auth/password' && request.method === 'POST') {
@@ -172,7 +193,11 @@ async function route(sql: Sql, request: Request, jwtSecret: string, authSecurity
     if (!account) {
       return json({ error: 'Entre na conta para continuar.' }, 401);
     }
-    const result = await totpBegin(sql, account.id);
+    const body = (await request.json()) as { password?: string; code?: string };
+    const result = await totpBegin(sql, account.id, {
+      password: body.password,
+      code: body.code,
+    });
     if ('error' in result) {
       return json({ error: result.error }, 400);
     }
@@ -248,7 +273,8 @@ async function route(sql: Sql, request: Request, jwtSecret: string, authSecurity
     return json({ ok: true });
   }
   if (pathname === '/api/bank/import' && request.method === 'POST') {
-    await replaceUserBackup(sql, account.id, (await request.json()) as AppDataBackup);
+    const backup = assertAppDataBackup(await request.json());
+    await replaceUserBackup(sql, account.id, backup);
     return json({ ok: true });
   }
 
@@ -416,8 +442,9 @@ async function changePassword(sql: Sql, request: Request, jwtSecret: string): Pr
   } catch {
     return json({ error: 'Sessão inválida.' }, 401);
   }
-  const body = (await request.json()) as { newPassword?: string };
+  const body = (await request.json()) as { newPassword?: string; currentPassword?: string };
   const newPassword = String(body.newPassword ?? '');
+  const currentPassword = String(body.currentPassword ?? '');
   if (newPassword.length < 6) {
     return json({ error: 'A senha precisa ter pelo menos 6 caracteres.' }, 400);
   }
@@ -431,6 +458,14 @@ async function changePassword(sql: Sql, request: Request, jwtSecret: string): Pr
   }
   if (row.account_kind === AccountKind.Demo) {
     return json({ error: 'A conta de demonstração usa senha fixa.' }, 400);
+  }
+  if (!row.must_change_password) {
+    if (!currentPassword) {
+      return json({ error: 'Informe a senha atual.' }, 400);
+    }
+    if (!(await verifyPassword(currentPassword, row.password_hash))) {
+      return json({ error: 'Senha atual incorreta.' }, 400);
+    }
   }
   await sql`
     update users
@@ -527,10 +562,7 @@ function normalizeDatabaseUrl(databaseUrl: string): string {
 }
 
 function json(body: unknown, status = 200, extraHeaders?: Record<string, string>): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { 'content-type': 'application/json', ...extraHeaders },
-  });
+  return jsonResponse(body, status, extraHeaders);
 }
 
 function readBearerToken(request: Request): string | null {

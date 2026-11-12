@@ -7,6 +7,7 @@ export interface Env {
   JWT_SECRET: string;
   TURNSTILE_SECRET_KEY?: string;
   TURNSTILE_SITE_KEY?: string;
+  AUTH_PASSWORD_RECOVER_ENABLED?: string;
   ASSETS: Fetcher;
 }
 
@@ -19,9 +20,22 @@ export default {
         jwtSecret: env.JWT_SECRET?.trim(),
         turnstileSecret: env.TURNSTILE_SECRET_KEY?.trim(),
         turnstileSiteKey: env.TURNSTILE_SITE_KEY?.trim(),
+        passwordRecoverEnabled: env.AUTH_PASSWORD_RECOVER_ENABLED?.trim() === 'true',
       });
       return handler(request);
     }
-    return env.ASSETS.fetch(request);
+    return withAssetSecurityHeaders(await env.ASSETS.fetch(request));
   },
 } satisfies ExportedHandler<Env>;
+
+function withAssetSecurityHeaders(response: Response): Response {
+  const headers = new Headers(response.headers);
+  headers.set('x-content-type-options', 'nosniff');
+  headers.set('referrer-policy', 'strict-origin-when-cross-origin');
+  headers.set('x-frame-options', 'DENY');
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
