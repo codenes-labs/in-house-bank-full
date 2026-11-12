@@ -32,7 +32,7 @@ Proteger login, recuperação de senha e contas com tentativas limitadas, captch
 
 ## Aceite
 
-1. Testes em `login-lockout.spec.ts`, `rate-limit-subjects` (via `worstRateLimitLock`), `totp.spec.ts`, `read-client-ip.spec.ts`, `auth-captcha-gate.spec.ts`.
+1. Testes em `login-lockout.spec.ts`, `rate-limit-subjects` (via `worstRateLimitLock`), `auth-rate-limit-flow.spec.ts`, `totp.spec.ts`, `read-client-ip.spec.ts`, `auth-captcha-gate.spec.ts`.
 2. UI: captcha em `/entrar` e `/recuperar-senha` quando configurado; um clique espera o token invisível em vez de pedir o captcha de novo; campo 2FA no login quando necessário; cartão 2FA em configurações.
 3. Worker e Vite repassam variáveis Turnstile ao `createApiHandler`.
 
