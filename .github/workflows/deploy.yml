@@ -82,9 +82,19 @@ jobs:
             echo "::error::Secret JWT_SECRET precisa ter pelo menos 32 caracteres"
             exit 1
           fi
+          if [ -z "$TURNSTILE_SECRET_KEY" ]; then
+            echo "::error::Secret TURNSTILE_SECRET_KEY obrigatório em produção (captcha no login)"
+            exit 1
+          fi
+          if [ -z "$TURNSTILE_SITE_KEY" ]; then
+            echo "::error::Secret TURNSTILE_SITE_KEY obrigatório em produção"
+            exit 1
+          fi
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          TURNSTILE_SITE_KEY: ${{ secrets.TURNSTILE_SITE_KEY }}
       - name: Sync Worker secrets
         run: |
           node <<'NODE'
