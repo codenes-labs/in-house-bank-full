@@ -26,7 +26,7 @@ interface AuthContextValue {
     newPassword: string,
     options?: { turnstileToken?: string | null },
   ) => Promise<string | null>;
-  updatePassword: (password: string) => Promise<string | null>;
+  updatePassword: (password: string, currentPassword?: string) => Promise<string | null>;
   signOut: () => Promise<void>;
 }
 
@@ -110,11 +110,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         return null;
       },
-      async updatePassword(password) {
+      async updatePassword(password, currentPassword) {
         const response = await fetch('/api/auth/password', authRequestInit({
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ newPassword: password }),
+          body: JSON.stringify({
+            newPassword: password,
+            ...(currentPassword ? { currentPassword } : {}),
+          }),
         }));
         const body = (await response.json()) as {
           error?: string;

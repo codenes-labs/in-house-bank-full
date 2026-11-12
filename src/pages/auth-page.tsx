@@ -7,6 +7,7 @@ import { Button, Card, Field, Logo, TextInput } from '../components/ui';
 interface AuthSecurityConfig {
   turnstileSiteKey: string | null;
   captchaRequired: boolean;
+  passwordRecoverEnabled?: boolean;
 }
 
 export function AuthPage({ mode }: { mode: 'sign-in' | 'recover' }) {
@@ -43,6 +44,7 @@ export function AuthPage({ mode }: { mode: 'sign-in' | 'recover' }) {
   }, []);
 
   const captchaRequired = Boolean(security?.captchaRequired && security.turnstileSiteKey);
+  const recoverEnabled = security?.passwordRecoverEnabled !== false;
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -92,6 +94,11 @@ export function AuthPage({ mode }: { mode: 'sign-in' | 'recover' }) {
       <Card className="my-4 grid w-full gap-4 sm:my-auto">
         <Logo />
         <h1 className="text-2xl font-semibold">{title}</h1>
+        {mode === 'recover' && security && !recoverEnabled ? (
+          <p className="rounded-lg bg-warning-soft px-3 py-2 text-sm text-status-pending">
+            Recuperação por e-mail está desativada neste ambiente. Use sua senha ou fale com o administrador.
+          </p>
+        ) : null}
         {!auth.configured ? (
           <p className="rounded-lg bg-warning-soft px-3 py-2 text-sm text-status-pending">
             A API não está configurada (DATABASE_URL e JWT_SECRET no servidor). O carnê aberto continua disponível na página inicial.
@@ -147,7 +154,7 @@ export function AuthPage({ mode }: { mode: 'sign-in' | 'recover' }) {
         </form>
         <div className="grid gap-1 text-sm">
           {mode !== 'sign-in' ? <Link to="/entrar">Voltar ao login</Link> : null}
-          {mode !== 'recover' ? <Link to="/recuperar-senha">Esqueci a senha</Link> : null}
+          {mode !== 'recover' && recoverEnabled ? <Link to="/recuperar-senha">Esqueci a senha</Link> : null}
           <Link to="/">Voltar</Link>
         </div>
       </Card>

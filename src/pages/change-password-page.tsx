@@ -15,6 +15,7 @@ export function ChangePasswordPage() {
           heading="Nova senha"
           description="Defina uma senha forte antes de usar o app."
           onSuccessPath="/inicio"
+          requireCurrentPassword={!auth.session?.user.mustChangePassword}
         />
         {!auth.session?.user.mustChangePassword ? (
           <button type="button" className="text-sm font-semibold text-primary" onClick={() => navigate('/inicio')}>

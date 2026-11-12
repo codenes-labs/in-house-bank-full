@@ -154,14 +154,17 @@ export function ChangePasswordForm({
   description,
   demoNotice,
   onSuccessPath = '/inicio',
+  requireCurrentPassword = true,
 }: {
   heading: string;
   description: string;
   demoNotice?: string;
   onSuccessPath?: string;
+  requireCurrentPassword?: boolean;
 }) {
   const auth = useAuth();
   const navigate = useNavigate();
+  const [currentPassword, setCurrentPassword] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -169,6 +172,10 @@ export function ChangePasswordForm({
   async function submit(event: FormEvent) {
     event.preventDefault();
     setError(null);
+    if (requireCurrentPassword && !currentPassword) {
+      setError('Informe a senha atual.');
+      return;
+    }
     if (password.length < 6) {
       setError('A senha precisa ter pelo menos 6 caracteres.');
       return;
@@ -177,7 +184,7 @@ export function ChangePasswordForm({
       setError('As senhas não coincidem.');
       return;
     }
-    const result = await auth.updatePassword(password);
+    const result = await auth.updatePassword(password, requireCurrentPassword ? currentPassword : undefined);
     if (result) {
       setError(result);
       return;
@@ -193,6 +200,16 @@ export function ChangePasswordForm({
       </div>
       {demoNotice ? <p className="rounded-lg bg-warning-soft px-3 py-2 text-sm text-status-pending">{demoNotice}</p> : null}
       <form className="grid gap-3" onSubmit={(event) => void submit(event)}>
+        {requireCurrentPassword ? (
+          <Field label="Senha atual">
+            <TextInput
+              type="password"
+              autoComplete="current-password"
+              value={currentPassword}
+              onChange={(event) => setCurrentPassword(event.target.value)}
+            />
+          </Field>
+        ) : null}
         <Field label="Nova senha">
           <TextInput type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} />
         </Field>
