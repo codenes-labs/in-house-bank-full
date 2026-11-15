@@ -1,0 +1,33 @@
+{
+  "name": "In House Bank",
+  "dockerComposeFile": "../.docker/docker-compose.dev.yaml",
+  "service": "app",
+  "workspaceFolder": "/app",
+  "remoteUser": "node",
+  "overrideCommand": true,
+  "postCreateCommand": "npm ci",
+  "postStartCommand": "bash .devcontainer/start-dev-server.sh",
+  "forwardPorts": [5173, 9090, 3000],
+  "otherPortsAttributes": {
+    "onAutoForward": "notify",
+    "label": "Vite"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "oxc.oxc-vscode",
+        "bradlc.vscode-tailwindcss",
+        "ms-azuretools.vscode-docker",
+        "GitHub.vscode-pull-request-github",
+        "johnpapa.vscode-peacock"
+      ],
+      "settings": {
+        "peacock.color": "#2563eb",
+        "peacock.affectTitleBar": true,
+        "peacock.affectStatusBar": true,
+        "peacock.affectActivityBar": true,
+        "peacock.affectEditorGroupBorder": true
+      }
+    }
+  }
+}
