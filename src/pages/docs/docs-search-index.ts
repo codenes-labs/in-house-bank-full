@@ -1,83 +1,74 @@
 import { DOCS_NAV } from './docs-nav';
+import { DOCS_SEARCH_TOPICS } from './docs-search-content';
 
-export interface DocsSearchEntry {
-  to: string;
-  label: string;
-  keywords: readonly string[];
+export interface DocsSearchMatch {
+  sectionTitle: string;
 }
 
-export const DOCS_SEARCH_INDEX: readonly DocsSearchEntry[] = [
-  {
-    to: '/docs',
-    label: 'Visão geral',
-    keywords: ['produto', 'carnê', 'patrimônio', 'parcelamento', 'overview'],
-  },
-  {
-    to: '/docs/stack',
-    label: 'Stack',
-    keywords: ['react', 'vite', 'typescript', 'tailwind', 'vitest', 'recharts', 'pdf'],
-  },
-  {
-    to: '/docs/arquitetura',
-    label: 'Arquitetura',
-    keywords: ['domínio', 'repositório', 'camadas', 'worker', 'spa', 'jwt'],
-  },
-  {
-    to: '/docs/banco',
-    label: 'Banco Neon',
-    keywords: ['postgres', 'neon', 'rls', 'user_id', 'backup', 'migração', 'schema'],
-  },
-  {
-    to: '/docs/ci-cd',
-    label: 'CI/CD',
-    keywords: ['github', 'actions', 'lint', 'testes', 'workflow', 'master'],
-  },
-  {
-    to: '/docs/deploy',
-    label: 'Deploy',
-    keywords: ['cloudflare', 'wrangler', 'secrets', 'worker', 'build'],
-  },
-  {
-    to: '/docs/api',
-    label: 'API (OpenAPI)',
-    keywords: ['swagger', 'openapi', 'bearer', 'auth', 'sign-in', 'rest', 'http'],
-  },
-  {
-    to: '/docs/apresentacao',
-    label: 'Apresentação',
-    keywords: ['vídeo', 'roteiro', 'demo', 'apresentação'],
-  },
-  {
-    to: '/docs/changelog',
-    label: 'Changelog',
-    keywords: ['versão', 'release', 'novidades', 'histórico', '0.2.1', '0.2.0'],
-  },
-];
+export interface DocsSearchResult {
+  to: string;
+  label: string;
+  matches: DocsSearchMatch[];
+}
+
+/** @deprecated Mantido para testes que inspecionam keywords; preferir DOCS_SEARCH_TOPICS. */
+export const DOCS_SEARCH_INDEX = DOCS_SEARCH_TOPICS.map((topic) => ({
+  to: topic.to,
+  label: topic.label,
+  keywords: topic.keywords,
+}));
 
 const NAV_LABEL_BY_TO = new Map<string, string>(DOCS_NAV.map((item) => [item.to, item.label]));
 
-export function filterDocsSearch(query: string): DocsSearchEntry[] {
-  const normalized = query.trim().toLowerCase();
+const TOPIC_ORDER = new Map<string, number>([
+  ['/docs', 0],
+  ...DOCS_NAV.map((item, index) => [item.to, index + 1] as const),
+]);
+
+function normalizeForSearch(text: string): string {
+  return text.trim().toLowerCase();
+}
+
+function haystackIncludes(haystack: string, needle: string): boolean {
+  return normalizeForSearch(haystack).includes(needle);
+}
+
+export function filterDocsSearch(query: string): DocsSearchResult[] {
+  const normalized = normalizeForSearch(query);
   if (!normalized) {
     return [];
   }
-  return DOCS_SEARCH_INDEX.filter((entry) => {
-    const label = NAV_LABEL_BY_TO.get(entry.to) ?? entry.label;
-    if (label.toLowerCase().includes(normalized)) {
-      return true;
-    }
-    return entry.keywords.some((keyword) => keyword.includes(normalized));
-  });
-}
 
-export function docsSearchMatchHint(entry: DocsSearchEntry, query: string): string | null {
-  const normalized = query.trim().toLowerCase();
-  if (!normalized) {
-    return null;
+  const results: DocsSearchResult[] = [];
+
+  for (const topic of DOCS_SEARCH_TOPICS) {
+    const label = NAV_LABEL_BY_TO.get(topic.to) ?? topic.label;
+    const matches: DocsSearchMatch[] = [];
+
+    if (haystackIncludes(label, normalized)) {
+      matches.push({ sectionTitle: 'Título do tópico' });
+    }
+
+    if (topic.keywords.some((keyword) => keyword.includes(normalized))) {
+      const keyword = topic.keywords.find((k) => k.includes(normalized));
+      if (keyword && !matches.some((m) => m.sectionTitle === `Palavra-chave: ${keyword}`)) {
+        matches.push({ sectionTitle: `Palavra-chave: ${keyword}` });
+      }
+    }
+
+    for (const section of topic.sections) {
+      if (haystackIncludes(section.title, normalized) || haystackIncludes(section.body, normalized)) {
+        if (!matches.some((m) => m.sectionTitle === section.title)) {
+          matches.push({ sectionTitle: section.title });
+        }
+      }
+    }
+
+    if (matches.length > 0) {
+      results.push({ to: topic.to, label, matches });
+    }
   }
-  const label = (NAV_LABEL_BY_TO.get(entry.to) ?? entry.label).toLowerCase();
-  if (label.includes(normalized)) {
-    return null;
-  }
-  return entry.keywords.find((keyword) => keyword.includes(normalized)) ?? null;
+
+  results.sort((a, b) => (TOPIC_ORDER.get(a.to) ?? 99) - (TOPIC_ORDER.get(b.to) ?? 99));
+  return results;
 }

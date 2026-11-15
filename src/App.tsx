@@ -33,7 +33,6 @@ import { DocsCicdPage } from './pages/docs/docs-cicd-page';
 import { DocsDatabasePage } from './pages/docs/docs-database-page';
 import { DocsDeployPage } from './pages/docs/docs-deploy-page';
 import { DocsOverviewPage } from './pages/docs/docs-overview-page';
-import { DocsPresentationPage } from './pages/docs/docs-presentation-page';
 import { DocsChangelogPage } from './pages/docs/docs-changelog-page';
 import { DocsStackPage } from './pages/docs/docs-stack-page';
 import { PrivacyPage, TermsPage } from './pages/legal-notice-page';
@@ -86,7 +85,6 @@ export default function App() {
         <Route path="ci-cd" element={<DocsCicdPage />} />
         <Route path="deploy" element={<DocsDeployPage />} />
         <Route path="api" element={<DocsApiPage />} />
-        <Route path="apresentacao" element={<DocsPresentationPage />} />
         <Route path="changelog" element={<DocsChangelogPage />} />
       </Route>
       <Route path="/termos" element={<TermsPage />} />

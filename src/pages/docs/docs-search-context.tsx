@@ -2,8 +2,7 @@ import { createContext, useContext, useId, useMemo, useRef, useState, type React
 import { Link } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import { TextInput } from '../../components/ui';
-import { DOCS_NAV } from './docs-nav';
-import { docsSearchMatchHint, filterDocsSearch } from './docs-search-index';
+import { filterDocsSearch } from './docs-search-index';
 
 type DocsSearchContextValue = {
   query: string;
@@ -11,8 +10,6 @@ type DocsSearchContextValue = {
 };
 
 const DocsSearchContext = createContext<DocsSearchContextValue | null>(null);
-
-const NAV_LABEL_BY_TO = new Map<string, string>(DOCS_NAV.map((item) => [item.to, item.label]));
 
 export function DocsSearchProvider({ children }: { children: ReactNode }) {
   const [query, setQuery] = useState('');
@@ -67,26 +64,28 @@ export function DocsHeaderSearchField({ className = '' }: { className?: string }
           id={listId}
         >
           {suggestions.length === 0 ? (
-            <p className="px-3 py-2.5 text-sm text-muted-foreground">Nenhum tópico relacionado.</p>
+            <p className="px-3 py-2.5 text-sm text-muted-foreground">Nenhum resultado na documentação.</p>
           ) : (
             <ul className="max-h-64 overflow-y-auto py-1">
-              {suggestions.map((entry) => {
-                const label = NAV_LABEL_BY_TO.get(entry.to) ?? entry.label;
-                const hint = docsSearchMatchHint(entry, query);
-                return (
-                  <li key={entry.to}>
-                    <Link
-                      to={entry.to}
-                      role="option"
-                      className="block px-3 py-2 text-sm hover:bg-muted"
-                      onClick={() => setQuery('')}
-                    >
-                      <span className="font-semibold text-primary">{label}</span>
-                      {hint ? <span className="mt-0.5 block text-xs text-muted-foreground">Palavra-chave: {hint}</span> : null}
-                    </Link>
-                  </li>
-                );
-              })}
+              {suggestions.map((result) => (
+                <li key={result.to}>
+                  <Link
+                    to={result.to}
+                    role="option"
+                    className="block px-3 py-2 text-sm hover:bg-muted"
+                    onClick={() => setQuery('')}
+                  >
+                    <span className="font-semibold text-primary">{result.label}</span>
+                    <ul className="mt-1 grid gap-0.5">
+                      {result.matches.map((match) => (
+                        <li key={match.sectionTitle} className="text-xs text-muted-foreground">
+                          {match.sectionTitle}
+                        </li>
+                      ))}
+                    </ul>
+                  </Link>
+                </li>
+              ))}
             </ul>
           )}
         </div>

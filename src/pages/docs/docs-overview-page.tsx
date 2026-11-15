@@ -8,7 +8,6 @@ const TOPICS = [
   { to: '/docs/ci-cd', title: 'CI/CD', text: 'GitHub Actions: lint, testes e deploy na master.' },
   { to: '/docs/deploy', title: 'Deploy Cloudflare', text: 'Worker, assets estáticos e secrets.' },
   { to: '/docs/api', title: 'API OpenAPI', text: 'Referência HTTP interativa (Swagger UI).' },
-  { to: '/docs/apresentacao', title: 'Apresentação', text: 'Espaço para vídeo e roteiro do produto.' },
   { to: '/docs/changelog', title: 'Changelog', text: 'Versões e marcos do produto.' },
 ] as const;
 
