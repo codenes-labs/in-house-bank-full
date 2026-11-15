@@ -15,7 +15,8 @@ Marcos do produto In House Bank. Atualize **neste arquivo** e em `src/domain/doc
 
 ### Corrigido
 
-- **Favicon (prod e localhost):** `favicon.ico` + SVG em vetor (sem `<text>`), `?v=ih1` no `index.html` — aba deixa de mostrar logo Vite (cache / fallback).
+- **Marca IH:** `favicon.svg` volta ao texto centralizado (paths distorciam o ícone no app e na aba).
+- **Favicon (prod e localhost):** `favicon.ico` + links no `index.html` — aba sem logo Vite (cache / fallback).
 
 ### Desenvolvimento
 
