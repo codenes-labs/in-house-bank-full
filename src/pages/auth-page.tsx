@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../components/auth-context';
 import { TurnstileField, type TurnstileFieldHandle } from '../components/turnstile-field';
 import { loadTurnstileScript } from '../components/turnstile-script';
@@ -10,9 +10,10 @@ interface AuthSecurityConfig {
   turnstileSiteKey: string | null;
   captchaRequired: boolean;
   passwordRecoverEnabled?: boolean;
+  signUpEnabled?: boolean;
 }
 
-export function AuthPage({ mode }: { mode: 'sign-in' | 'recover' }) {
+export function AuthPage({ mode }: { mode: 'sign-in' | 'recover' | 'sign-up' }) {
   const auth = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
@@ -52,14 +53,24 @@ export function AuthPage({ mode }: { mode: 'sign-in' | 'recover' }) {
 
   const captchaRequired = Boolean(security?.captchaRequired && security.turnstileSiteKey);
   const recoverEnabled = security?.passwordRecoverEnabled !== false;
+  const signUpEnabled = security?.signUpEnabled === true;
+
+  if (mode === 'sign-up' && security && !signUpEnabled) {
+    return <Navigate to="/entrar" replace />;
+  }
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     setError(null);
     setMessage(null);
     const trimmed = email.trim();
-    const login = trimmed.toLowerCase() === 'teste' ? 'teste' : trimmed;
-    if (!login.includes('@') && login !== 'teste') {
+    const login = mode === 'sign-in' && trimmed.toLowerCase() === 'teste' ? 'teste' : trimmed;
+    if (mode === 'sign-up') {
+      if (!login.includes('@')) {
+        setError('Informe um e-mail válido.');
+        return;
+      }
+    } else if (!login.includes('@') && login !== 'teste') {
       setError('Informe um e-mail válido ou teste (conta demo, sem @).');
       return;
     }
@@ -67,8 +78,8 @@ export function AuthPage({ mode }: { mode: 'sign-in' | 'recover' }) {
       setError('Informe a senha.');
       return;
     }
-    if (mode === 'recover' && password.length < 6) {
-      setError('A nova senha precisa ter pelo menos 6 caracteres.');
+    if ((mode === 'recover' || mode === 'sign-up') && password.length < 6) {
+      setError('A senha precisa ter pelo menos 6 caracteres.');
       return;
     }
     const gate = captchaGate({ required: captchaRequired, token: turnstileToken, failed: captchaFailed });
@@ -96,7 +107,9 @@ export function AuthPage({ mode }: { mode: 'sign-in' | 'recover' }) {
       const result =
         mode === 'sign-in'
           ? await auth.signIn(login, password, { totpCode: totpPayload, turnstileToken: token })
-          : await auth.recoverPassword(login, password, { turnstileToken: token });
+          : mode === 'sign-up'
+            ? await auth.signUp(login, password, { turnstileToken: token })
+            : await auth.recoverPassword(login, password, { turnstileToken: token });
       if (captchaRequired) {
         turnstileRef.current?.reset();
         setTurnstileToken(null);
@@ -118,7 +131,7 @@ export function AuthPage({ mode }: { mode: 'sign-in' | 'recover' }) {
     navigate('/inicio');
   }
 
-  const title = mode === 'sign-in' ? 'Entrar' : 'Recuperar senha';
+  const title = mode === 'sign-in' ? 'Entrar' : mode === 'sign-up' ? 'Cadastro' : 'Recuperar senha';
 
   return (
     <div className="mx-auto min-h-dvh w-full max-w-md overflow-y-auto overscroll-y-contain px-4 py-6 sm:py-10">
@@ -128,6 +141,11 @@ export function AuthPage({ mode }: { mode: 'sign-in' | 'recover' }) {
         {mode === 'recover' && security && !recoverEnabled ? (
           <p className="rounded-lg bg-warning-soft px-3 py-2 text-sm text-status-pending">
             Recuperação por e-mail está desativada neste ambiente. Use sua senha ou fale com o administrador.
+          </p>
+        ) : null}
+        {mode === 'sign-up' ? (
+          <p className="text-sm text-muted-foreground">
+            Disponível só em desenvolvimento local. Em produção o cadastro público fica desativado.
           </p>
         ) : null}
         {!auth.configured ? (
@@ -160,7 +178,7 @@ export function AuthPage({ mode }: { mode: 'sign-in' | 'recover' }) {
               name="password"
               form="auth-form"
               type="password"
-              autoComplete={mode === 'sign-in' ? 'current-password' : 'new-password'}
+              autoComplete={mode === 'sign-in' ? 'current-password' : mode === 'sign-up' ? 'new-password' : 'new-password'}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
             />
@@ -188,11 +206,18 @@ export function AuthPage({ mode }: { mode: 'sign-in' | 'recover' }) {
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
           {message ? <p className="text-sm text-accent">{message}</p> : null}
           <Button type="submit" disabled={submitting}>
-            {submitting ? (mode === 'sign-in' ? 'Entrando…' : 'Salvando…') : title}
+            {submitting
+              ? mode === 'sign-in'
+                ? 'Entrando…'
+                : mode === 'sign-up'
+                  ? 'Cadastrando…'
+                  : 'Salvando…'
+              : title}
           </Button>
         </form>
         <div className="grid gap-1 text-sm">
           {mode !== 'sign-in' ? <Link to="/entrar">Voltar ao login</Link> : null}
+          {mode === 'sign-in' && signUpEnabled ? <Link to="/cadastro">Criar conta</Link> : null}
           {mode !== 'recover' && recoverEnabled ? <Link to="/recuperar-senha">Esqueci a senha</Link> : null}
           <Link to="/">Voltar</Link>
         </div>

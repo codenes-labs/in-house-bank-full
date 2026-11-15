@@ -18,7 +18,18 @@ export const AccountKind = {
 
 export type AccountKind = (typeof AccountKind)[keyof typeof AccountKind];
 
-const accountsReady = new Map<string, Promise<void>>();
+const accountsReady = getAccountsReadyMap();
+
+function getAccountsReadyMap(): Map<string, Promise<void>> {
+  const host = globalThis as typeof globalThis & { __ihb_accounts_ready__?: Map<string, Promise<void>> };
+  const existing = host.__ihb_accounts_ready__;
+  if (existing) {
+    return existing;
+  }
+  const created = new Map<string, Promise<void>>();
+  host.__ihb_accounts_ready__ = created;
+  return created;
+}
 
 export function normalizeLoginEmail(raw: string): string {
   const trimmed = raw.trim().toLowerCase();
@@ -29,13 +40,10 @@ export function normalizeLoginEmail(raw: string): string {
 }
 
 export function ensureSeededAccounts(databaseUrl: string, sql: NeonQueryFunction<false, false>): Promise<void> {
-  const existing = accountsReady.get(databaseUrl);
-  if (existing) {
-    return existing;
+  if (!accountsReady.has(databaseUrl)) {
+    accountsReady.set(databaseUrl, seedAccounts(sql));
   }
-  const pending = seedAccounts(sql);
-  accountsReady.set(databaseUrl, pending);
-  return pending;
+  return accountsReady.get(databaseUrl)!;
 }
 
 async function seedAccounts(sql: NeonQueryFunction<false, false>): Promise<void> {
