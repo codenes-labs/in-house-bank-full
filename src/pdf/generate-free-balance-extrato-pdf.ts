@@ -102,9 +102,9 @@ export async function generateFreeBalanceExtratoPdf(input: FreeBalanceExtratoPdf
     const html2pdfModule = await import('html2pdf.js');
     const html2pdf = html2pdfModule.default;
     const html2PdfOptions = {
-      margin: [...PDF_MARGIN_MM],
+      margin: [...PDF_MARGIN_MM] as [number, number, number, number],
       filename: 'extrato-saldo-livre.pdf',
-      image: { type: 'jpeg', quality: 0.98 },
+      image: { type: 'jpeg' as const, quality: 0.98 },
       html2canvas: {
         scale: 2,
         useCORS: true,
@@ -116,11 +116,11 @@ export async function generateFreeBalanceExtratoPdf(input: FreeBalanceExtratoPdf
         scrollX: 0,
         scrollY: 0,
       },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
       pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', 'section'] },
     };
     const pdf = (await html2pdf()
-      .set(html2PdfOptions as never)
+      .set(html2PdfOptions)
       .from(doc.body)
       .toPdf()
       .get('pdf')) as Html2PdfInstance;
