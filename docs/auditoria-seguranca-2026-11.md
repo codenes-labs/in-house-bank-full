@@ -25,7 +25,7 @@ Escopo: código em `src/server`, Worker, auth, RLS e deploy. Pentest externo e `
 
 - Tabelas de carnê: RLS + `app.user_id` em transação (ver `schema.ts`, `user-backup.ts`).
 - Teste estático: `schema.spec.ts`.
-- Teste live opcional: `bank-isolation.integration.spec.ts` (roda com `DATABASE_URL` + `JWT_SECRET` no ambiente).
+- Teste live opcional: `bank-isolation.integration.spec.ts` (`make test-bank-isolation`, `RUN_BANK_ISOLATION=1`, Postgres no ar). O `make test` padrão ignora esse arquivo.
 
 ## Pendências conscientes (fora deste ciclo)
 

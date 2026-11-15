@@ -4,7 +4,7 @@
 BASE_URL ?= http://localhost:5173
 BASE_URL_PROD_LOCAL ?= http://localhost:8787
 
-COMPOSE_DEV := docker compose -f .docker/docker-compose.dev.yaml
+COMPOSE_DEV := docker compose $(if $(wildcard .docker/.env),--env-file .docker/.env,) -f .docker/docker-compose.dev.yaml
 COMPOSE_PROD := docker compose -f compose.prod.yaml
 
 .PHONY: help install dev test test-coverage lint build deploy \
@@ -22,6 +22,9 @@ dev: ## Vite (porta 5173) — API local se .docker/.env estiver preenchido
 
 test: ## Vitest (rápido, sem coverage)
 	npm test
+
+test-bank-isolation: ## Integração RLS no Postgres (compose com db no ar; opt-in)
+	RUN_BANK_ISOLATION=1 npm test -- src/server/bank-isolation.integration.spec.ts
 
 test-coverage: ## Vitest + coverage (mesmo gate do CI)
 	npm run test:coverage

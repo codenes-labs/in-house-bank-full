@@ -1,24 +1,28 @@
 import { describe, expect, it, beforeAll } from 'vitest';
-import { createApiHandler } from './create-api-handler';
+import { createViteDevApiHandler } from './vite-api-handler';
 import { ADMIN_EMAIL, ADMIN_PROVISIONAL_PASSWORD, DEMO_EMAIL, DEMO_PASSWORD } from './account-seed';
-
 const databaseUrl = process.env.DATABASE_URL?.trim();
 const jwtSecret = process.env.JWT_SECRET?.trim();
+const runBankIsolation =
+  process.env.RUN_BANK_ISOLATION === '1' &&
+  Boolean(databaseUrl && jwtSecret && jwtSecret.length >= 32);
 
-describe.skipIf(!databaseUrl || !jwtSecret || jwtSecret.length < 32)('bank isolation (live Neon)', () => {
-  const handler = createApiHandler({
+describe.skipIf(!runBankIsolation)('bank isolation (integration DB)', () => {
+  const handler = createViteDevApiHandler({
     databaseUrl,
     jwtSecret,
     passwordRecoverEnabled: false,
+    signUpEnabled: false,
   });
 
   let adminToken = '';
   let demoToken = '';
 
   beforeAll(async () => {
-    adminToken = await signInToken(ADMIN_EMAIL, ADMIN_PROVISIONAL_PASSWORD);
+    await handler(new Request('http://localhost/api/health'));
+    adminToken = await signInAdmin();
     demoToken = await signInToken(DEMO_EMAIL, DEMO_PASSWORD);
-  }, 60_000);
+  }, 120_000);
 
   it('admin and demo receive different bank payloads', async () => {
     const adminBank = await fetchBank(adminToken);
@@ -47,6 +51,60 @@ describe.skipIf(!databaseUrl || !jwtSecret || jwtSecret.length < 32)('bank isola
     expect(response.status).toBe(403);
   }, 15_000);
 
+  const ADMIN_TEST_PASSWORD = 'AdminDefinitiva1';
+
+  async function signInAdmin(): Promise<string> {
+    for (const password of [ADMIN_PROVISIONAL_PASSWORD, ADMIN_TEST_PASSWORD]) {
+      const response = await handler(
+        new Request('http://localhost/api/auth/sign-in', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ email: ADMIN_EMAIL, password }),
+        }),
+      );
+      if (!response.ok) {
+        continue;
+      }
+      const body = (await response.json()) as { accessToken?: string };
+      if (!body.accessToken) {
+        continue;
+      }
+      return clearMandatoryPasswordChange(body.accessToken);
+    }
+    throw new Error(`sign-in ${ADMIN_EMAIL}: nenhuma senha de teste funcionou`);
+  }
+
+  async function clearMandatoryPasswordChange(token: string): Promise<string> {
+    const sessionRes = await handler(
+      new Request('http://localhost/api/auth/session', {
+        headers: { authorization: `Bearer ${token}` },
+      }),
+    );
+    const session = (await sessionRes.json()) as { user?: { mustChangePassword?: boolean } };
+    if (!session.user?.mustChangePassword) {
+      return token;
+    }
+    const response = await handler(
+      new Request('http://localhost/api/auth/password', {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${token}`,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ newPassword: ADMIN_TEST_PASSWORD }),
+      }),
+    );
+    if (!response.ok) {
+      const err = (await response.json().catch(() => null)) as { error?: string } | null;
+      throw new Error(`password change: ${response.status} ${err?.error ?? ''}`.trim());
+    }
+    const body = (await response.json()) as { accessToken?: string };
+    if (!body.accessToken) {
+      throw new Error('password change: missing accessToken');
+    }
+    return body.accessToken;
+  }
+
   async function signInToken(email: string, password: string): Promise<string> {
     const response = await handler(
       new Request('http://localhost/api/auth/sign-in', {
@@ -55,6 +113,10 @@ describe.skipIf(!databaseUrl || !jwtSecret || jwtSecret.length < 32)('bank isola
         body: JSON.stringify({ email, password }),
       }),
     );
+    if (!response.ok) {
+      const err = (await response.json().catch(() => null)) as { error?: string } | null;
+      throw new Error(`sign-in ${email}: ${response.status} ${err?.error ?? ''}`.trim());
+    }
     expect(response.ok).toBe(true);
     const body = (await response.json()) as { accessToken?: string };
     if (!body.accessToken) {
