@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { DocsList, DocsSection } from './docs-prose';
 
 export function DocsDeployPage() {
@@ -37,6 +38,17 @@ export function DocsDeployPage() {
           Em dev, o plugin Vite <code className="text-foreground">neon-api</code> monta as rotas{' '}
           <code className="text-foreground">/api</code> usando variáveis de <code className="text-foreground">.docker/.env</code>{' '}
           ou ambiente. O front usa sempre caminhos relativos <code className="text-foreground">/api/...</code>.
+        </p>
+      </DocsSection>
+      <DocsSection title="Rollback">
+        <p>
+          Se um push na <code className="text-foreground">master</code> publicar uma versão ruim, use rollback no dashboard Cloudflare,{' '}
+          <code className="text-foreground">wrangler rollback</code> ou <code className="text-foreground">git revert</code> + push. Passo a passo
+          em{' '}
+          <Link to="/docs/ci-cd" className="text-primary underline underline-offset-2">
+            CI/CD → Rollback em produção
+          </Link>
+          .
         </p>
       </DocsSection>
     </div>
