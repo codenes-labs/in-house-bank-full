@@ -9,8 +9,8 @@ import type { InstallmentPlan } from '../domain/models/installment-plan';
 import type { Settings } from '../domain/models/settings';
 import type { GeneratedInstallmentPlanBundle } from '../domain/quick-generator/create-installment-plan-from-generator';
 import { createEmptySnapshot, type BankSnapshot } from '../repositories/bank-repository';
+import { runBankMutation } from './bank-context-run';
 import { createHttpBankRepository } from '../repositories/http-bank-repository';
-import { createMemoryBankRepository } from '../repositories/memory-bank-repository';
 import type { BankRepository } from '../repositories/bank-repository';
 import { useAuth } from './auth-context';
 
@@ -83,9 +83,7 @@ export function BankProvider({ children }: { children: ReactNode }) {
       if (!repository) {
         throw new Error('Entre na conta para salvar.');
       }
-      const writer: BankRepository = isDemo ? createMemoryBankRepository(snapshot) : repository;
-      await work(writer);
-      setSnapshot(await writer.load());
+      setSnapshot(await runBankMutation(snapshot, isDemo, repository, work));
     }
 
     return {
