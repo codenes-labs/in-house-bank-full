@@ -80,6 +80,7 @@ Métricas locais (Prometheus + Grafana, só compose dev): [`docs/metricas.md`](d
 
 ### Problemas comuns
 
+- **`Git: cannot run ssh` no Cursor** — o container não tem `ssh`; o script `ensure-git-https-remote.sh` troca `origin` para HTTPS. **Push** siga fazendo no **host** (WSL), onde você já tem SSH ou PAT.
 - **`localhost:5173` com `ERR_EMPTY_RESPONSE`** — o Vite ainda não subiu ou a porta do Docker não está mapeada. No terminal do container: `bash .devcontainer/start-dev-server.sh` ou `make dev`. Confira `tail -f /tmp/vite.log`. A porta vem do compose (`PORT_EXTERNAL` no host = `PORT_INTERNAL` no app); o Dev Container **não** reencaminha a 5173 (evita conflito com o publish do Docker). Use a mesma porta do `.docker/.env` (padrão 5173).
 - **`npm ci` com permissão negada** — `make docker-dev-down`, remova o volume `node_modules` (`docker volume ls`) e reabra o Dev Container.
 - **Postgres no DBeaver (host)** — host `localhost:5432`, não `db` (só resolve dentro do compose).

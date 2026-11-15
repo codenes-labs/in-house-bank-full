@@ -7,9 +7,9 @@
   "workspaceFolder": "/app",
   "remoteUser": "node",
   "overrideCommand": true,
-  "postCreateCommand": "npm ci",
+  "postCreateCommand": "npm ci && bash .devcontainer/ensure-git-https-remote.sh",
   "postStartCommand": "bash .devcontainer/start-dev-server.sh",
-  "postAttachCommand": "bash .devcontainer/start-dev-server.sh",
+  "postAttachCommand": "bash .devcontainer/start-dev-server.sh && bash .devcontainer/ensure-git-https-remote.sh",
   "forwardPorts": [9090, 3000],
   "customizations": {
     "vscode": {
