@@ -38,47 +38,50 @@ function makeTemplateTag(pool: pg.Pool, client?: pg.PoolClient) {
   };
 }
 
+function attachSqlMethods(pool: pg.Pool, tagged: ReturnType<typeof makeTemplateTag>, client?: pg.PoolClient): Sql {
+  const sql = tagged as unknown as Sql;
+  sql.unsafe = ((raw: string) => raw) as unknown as Sql['unsafe'];
+  sql.query = ((queryText: string, params?: unknown[]) =>
+    buildTaggedQuery(pool, queryText, params ?? [], client)) as unknown as Sql['query'];
+  return sql;
+}
+
 export function createPgCompatSql(connectionString: string): Sql {
   const pool = new pg.Pool({ connectionString });
   pool.on('error', (cause) => {
     console.error('[pg pool]', cause instanceof Error ? cause.message : String(cause));
   });
-  const sql = makeTemplateTag(pool) as Sql;
-  sql.unsafe = (raw: string) => raw;
+  const sql = attachSqlMethods(pool, makeTemplateTag(pool));
 
-  sql.query = ((queryText: string, params?: unknown[]) => {
-    return buildTaggedQuery(pool, queryText, params ?? []);
-  }) as Sql['query'];
-
-  sql.transaction = async (queriesOrFn) => {
+  sql.transaction = (async (
+    queriesOrFn: Parameters<Sql['transaction']>[0],
+  ) => {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
-      const txnSql = makeTemplateTag(pool, client) as Sql;
-      txnSql.unsafe = (raw: string) => raw;
-      txnSql.query = ((queryText: string, params?: unknown[]) =>
-        buildTaggedQuery(pool, queryText, params ?? [], client)) as Sql['query'];
-
+      const txnSql = attachSqlMethods(pool, makeTemplateTag(pool, client), client);
       const pendingList =
-        typeof queriesOrFn === 'function' ? queriesOrFn(txnSql) : queriesOrFn;
+        typeof queriesOrFn === 'function'
+          ? (queriesOrFn as (innerSql: Sql) => unknown)(txnSql)
+          : queriesOrFn;
       const queries = Array.isArray(pendingList) ? pendingList : [pendingList];
       const results: Row[][] = [];
       for (const item of queries) {
         if (isPendingPgQuery(item)) {
           results.push(await item._runOnClient(client));
         } else {
-          results.push(await item);
+          results.push((await item) as unknown as Row[]);
         }
       }
       await client.query('COMMIT');
-      return results;
+      return results as unknown as Awaited<ReturnType<Sql['transaction']>>;
     } catch (cause) {
       await client.query('ROLLBACK');
       throw cause;
     } finally {
       client.release();
     }
-  };
+  }) as unknown as Sql['transaction'];
 
   return sql;
 }
