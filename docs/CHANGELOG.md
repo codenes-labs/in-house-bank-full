@@ -6,14 +6,22 @@ Marcos do produto In House Bank. Atualize **neste arquivo** e em `src/domain/doc
 
 ### Adicionado
 
+- Extrato de **Parcelamento** (SPEC-16): resumo do período, histórico por mês e **Baixar extrato** (PDF), alinhado a Caixinha/Saldo livre.
 - Cadastro em `/cadastro` (SPEC-15): ligado por padrão no dev local; produção desligada até `AUTH_SIGN_UP_ENABLED=true` no Worker.
 
 ### Corrigido
 
 - Postgres local (`pg-neon-compat`): transação devolve linhas de cada query — corrige `GET /api/bank` 500 após salvar tema/configurações.
 
+### Corrigido
+
+- **Favicon (prod e localhost):** `favicon.ico` + SVG em vetor (sem `<text>`), `?v=ih1` no `index.html` — aba deixa de mostrar logo Vite (cache / fallback).
+
 ### Desenvolvimento
 
+- Dev Container: **`postAttachCommand`** garante Vite ao conectar; porta **5173** só via publish do compose (sem `forwardPorts` duplicado); `start-dev-server.sh` reinicia Vite zumbi.
+- **k6** na imagem dev (`.docker/Dockerfile.dev`); README focado em **Produção** + **Dev Container** (Vite sobe no `postStartCommand`, sem `make dev` duplicado).
+- Doc de **rollback em produção** (`/docs/ci-cd`, `/docs/deploy`, README): Cloudflare, `wrangler rollback` e `git revert` na `master`.
 - Compose dev com **Postgres** (`postgres:17-bookworm`), `.docker/.env.example` simplificado e driver local `pg` no Vite (`pg-neon-compat.ts`); Worker/prod inalterados (`neon-sql.ts`).
 - SPEC-09 atualizada (Postgres no compose dev). Doc [`docs/observabilidade.md`](observabilidade.md) para logs e métricas.
 - Compose dev: **Prometheus + Grafana** (só local). [`docs/metricas.md`](metricas.md). `/api/metrics` com exposição Prometheus.
