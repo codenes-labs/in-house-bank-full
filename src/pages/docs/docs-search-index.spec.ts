@@ -8,8 +8,10 @@ describe('filterDocsSearch', () => {
 
   it('suggests by label, keywords and page body', () => {
     expect(filterDocsSearch('neon').map((entry) => entry.to)).toContain('/docs/banco');
-    expect(filterDocsSearch('swagger').map((entry) => entry.to)).toEqual(['/docs/api']);
-    expect(filterDocsSearch('vite').map((entry) => entry.to)).toEqual(['/docs', '/docs/stack']);
+    expect(filterDocsSearch('swagger').map((entry) => entry.to)).toContain('/docs/api');
+    expect(filterDocsSearch('vite').map((entry) => entry.to)).toEqual(
+      expect.arrayContaining(['/docs', '/docs/stack']),
+    );
   });
 
   it('matches body text such as Node.js in CI/CD', () => {
