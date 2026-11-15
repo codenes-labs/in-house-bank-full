@@ -8,7 +8,7 @@ COMPOSE_DEV := docker compose $(if $(wildcard .docker/.env),--env-file .docker/.
 COMPOSE_PROD := docker compose -f compose.prod.yaml
 
 .PHONY: help install dev test test-coverage lint build deploy \
-	k6 k6-prod health health-prod env-example \
+	k6 k6-prod health health-prod env-example api-token \
 	docker-dev docker-prod docker-dev-down docker-prod-down
 
 help: ## Lista alvos disponíveis
@@ -39,16 +39,32 @@ deploy: ## build + wrangler deploy
 	npm run deploy
 
 k6: ## Smoke p95 em GET /api/health (app em BASE_URL, padrão 5173)
-	k6 run -e BASE_URL=$(BASE_URL) perf/health-smoke.js
+	@if command -v k6 >/dev/null 2>&1; then \
+		k6 run -e BASE_URL=$(BASE_URL) perf/health-smoke.js; \
+	else \
+		echo "k6 não encontrado — no Dev Container: Dev Containers → Rebuild Container (k6 está em .docker/Dockerfile.dev). No host com Docker: docker run --rm -i --network=host -v \"$(CURDIR)/perf:/perf:ro\" -e BASE_URL=$(BASE_URL) grafana/k6 run /perf/health-smoke.js"; \
+		exit 127; \
+	fi
 
 k6-prod: ## Smoke no compose prod local (BASE_URL_PROD_LOCAL, padrão 8787)
-	k6 run -e BASE_URL=$(BASE_URL_PROD_LOCAL) perf/health-smoke.js
+	@if command -v k6 >/dev/null 2>&1; then \
+		k6 run -e BASE_URL=$(BASE_URL_PROD_LOCAL) perf/health-smoke.js; \
+	else \
+		echo "k6 não encontrado — no Dev Container: Rebuild Container; no host: docker run com grafana/k6 (BASE_URL=$(BASE_URL_PROD_LOCAL))."; \
+		exit 127; \
+	fi
 
 health: ## curl /api/health (BASE_URL)
 	curl -sS "$(BASE_URL)/api/health"
 
 health-prod: ## curl /api/health em 8787
 	curl -sS "$(BASE_URL_PROD_LOCAL)/api/health"
+
+API_LOGIN ?= teste
+API_PASSWORD ?= teste
+
+api-token: ## JWT para Swagger/curl (demo: teste/teste; override API_LOGIN, API_PASSWORD, BASE_URL)
+	@BASE_URL="$(BASE_URL)" API_LOGIN="$(API_LOGIN)" API_PASSWORD="$(API_PASSWORD)" bash scripts/api-auth-token.sh
 
 env-example: ## Cria .docker/.env a partir do exemplo se ainda não existir
 	cp -n .docker/.env.example .docker/.env && echo "Criado .docker/.env — edite DATABASE_URL e JWT_SECRET." || echo ".docker/.env já existe."

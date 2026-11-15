@@ -2,12 +2,16 @@
 
 FROM node:22-bookworm-slim
 
+ARG K6_VERSION=0.57.0
+
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
     git \
     make \
+  && curl -fsSL "https://github.com/grafana/k6/releases/download/v${K6_VERSION}/k6-v${K6_VERSION}-linux-amd64.tar.gz" \
+    | tar xzf - -C /usr/local/bin --strip-components=1 "k6-v${K6_VERSION}-linux-amd64/k6" \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

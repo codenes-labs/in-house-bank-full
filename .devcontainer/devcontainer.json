@@ -1,17 +1,16 @@
 {
   "name": "In House Bank",
-  "dockerComposeFile": "../.docker/docker-compose.dev.yaml",
+  "dockerComposeFile": [
+    "${localWorkspaceFolder}/.docker/docker-compose.dev.yaml"
+  ],
   "service": "app",
   "workspaceFolder": "/app",
   "remoteUser": "node",
   "overrideCommand": true,
   "postCreateCommand": "npm ci",
   "postStartCommand": "bash .devcontainer/start-dev-server.sh",
-  "forwardPorts": [5173, 9090, 3000],
-  "otherPortsAttributes": {
-    "onAutoForward": "notify",
-    "label": "Vite"
-  },
+  "postAttachCommand": "bash .devcontainer/start-dev-server.sh",
+  "forwardPorts": [9090, 3000],
   "customizations": {
     "vscode": {
       "extensions": [

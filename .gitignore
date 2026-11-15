@@ -25,6 +25,8 @@ coverage
 *.sw?
 
 .env
+.envcopy
+.docker/.envcopy
 .dev.vars
 .docker/.env
 .neon_local
