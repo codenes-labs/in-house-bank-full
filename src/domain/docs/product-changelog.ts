@@ -18,6 +18,7 @@ export const PRODUCT_CHANGELOG: readonly ChangelogRelease[] = [
       {
         title: 'Adicionado',
         items: [
+          'Extrato de parcelamento em Relatórios (SPEC-16): resumo do período, histórico e PDF Baixar extrato.',
           'Cadastro em /cadastro no dev local (SPEC-15); em produção o cadastro público permanece desativado por padrão.',
         ],
       },

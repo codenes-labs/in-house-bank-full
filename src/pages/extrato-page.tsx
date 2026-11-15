@@ -4,12 +4,20 @@ import { useAuth } from '../components/auth-context';
 import { useBank } from '../components/bank-context';
 import { DueDateRangePicker } from '../components/due-date-range-picker';
 import { FilterField } from '../components/filter-field';
+import { InstallmentExtratoHistoryByMonth } from '../components/installment-extrato-history-by-month';
+import { InstallmentExtratoSummary } from '../components/installment-extrato-summary';
 import { LedgerHistoryByMonth } from '../components/ledger-history-by-month';
 import { DownloadPdfActionButton } from '../components/standard-action-buttons';
 import { Button, Card, EmptyState } from '../components/ui';
 import { calendarMonthRangeForDate } from '../domain/calendar/calendar-month-range';
 import { demoExtratoDefaultPeriod } from '../domain/demo/demo-finance-history-period';
 import { effectiveTodayForPresentation } from '../domain/demo/demo-presentation-reference-date';
+import {
+  buildInstallmentExtratoLines,
+  computeInstallmentExtratoMetrics,
+  groupInstallmentExtratoByMonth,
+} from '../domain/installments/build-installment-extrato';
+import { installmentExtratoToLedgerLines } from '../domain/installments/installment-extrato-to-ledger-lines';
 import {
   formatInstallmentDueDateRangeLabel,
   type InstallmentDueDateRange,
@@ -25,12 +33,14 @@ import {
 import { groupLedgerLinesByMonth } from '../domain/ledger/group-ledger-lines-by-month';
 import { buildCashBoxExtratoPdfFilename } from '../domain/pdf/build-cash-box-extrato-pdf-filename';
 import { buildFreeBalanceExtratoPdfFilename } from '../domain/pdf/build-free-balance-extrato-pdf-filename';
+import { buildInstallmentExtratoPdfFilename } from '../domain/pdf/build-installment-extrato-pdf-filename';
 import { downloadPdfBytes } from '../pdf/download-pdf-bytes';
 import { generateCashBoxExtratoPdf } from '../pdf/generate-cash-box-extrato-pdf';
 import { generateFreeBalanceExtratoPdf } from '../pdf/generate-free-balance-extrato-pdf';
 import { resolveExtratoPdfSettings } from '../pdf/resolve-extrato-pdf-settings';
 
 type LedgerPeriodExtratoKind = typeof ExtratoKind.CashBox | typeof ExtratoKind.FreeBalance;
+type PeriodExtratoKind = LedgerPeriodExtratoKind | typeof ExtratoKind.Installments;
 
 function extratoKindLabel(kind: ExtratoKindValue): string {
   return EXTRATO_KIND_OPTIONS.find((option) => option.value === kind)?.label ?? 'Extrato';
@@ -40,22 +50,28 @@ function rangesEqual(left: InstallmentDueDateRange, right: InstallmentDueDateRan
   return left.from === right.from && left.to === right.to;
 }
 
-function extratoPdfFilename(kind: LedgerPeriodExtratoKind, range: InstallmentDueDateRange): string {
-  return kind === ExtratoKind.CashBox
-    ? buildCashBoxExtratoPdfFilename(range)
-    : buildFreeBalanceExtratoPdfFilename(range);
+function extratoPdfFilename(kind: PeriodExtratoKind, range: InstallmentDueDateRange): string {
+  if (kind === ExtratoKind.CashBox) {
+    return buildCashBoxExtratoPdfFilename(range);
+  }
+  if (kind === ExtratoKind.FreeBalance) {
+    return buildFreeBalanceExtratoPdfFilename(range);
+  }
+  return buildInstallmentExtratoPdfFilename(range);
 }
 
 const KIND_HINTS: Record<ExtratoKind, string> = {
   [ExtratoKind.Payables]: 'Lançamentos de contas a pagar aparecerão aqui quando a área estiver ativa no Financeiro.',
   [ExtratoKind.Receivables]: 'Lançamentos de contas a receber aparecerão aqui quando a área estiver ativa no Financeiro.',
-  [ExtratoKind.Installments]: 'Extrato de parcelas pagas e pendentes (SPEC-10: integração com buildLedger).',
+  [ExtratoKind.Installments]: 'Parcelas com vencimento ou pagamento no período selecionado.',
   [ExtratoKind.CashBox]: 'Movimentos de aporte e resgate das caixinhas.',
   [ExtratoKind.FreeBalance]: 'Entradas e saídas registradas do saldo livre.',
 };
 
-function usesLedgerPeriodFilter(kind: ExtratoKindValue): kind is LedgerPeriodExtratoKind {
-  return kind === ExtratoKind.CashBox || kind === ExtratoKind.FreeBalance;
+function usesPeriodFilter(kind: ExtratoKindValue): kind is PeriodExtratoKind {
+  return (
+    kind === ExtratoKind.CashBox || kind === ExtratoKind.FreeBalance || kind === ExtratoKind.Installments
+  );
 }
 
 export function ExtratoPage() {
@@ -65,7 +81,7 @@ export function ExtratoPage() {
   const kind = parseExtratoKind(searchParams.get('tipo'));
   const isDemo = auth.session?.user.isDemo ?? false;
   const today = effectiveTodayForPresentation(isDemo);
-  const periodFilter = usesLedgerPeriodFilter(kind);
+  const periodFilter = usesPeriodFilter(kind);
   const [customRange, setCustomRange] = useState<InstallmentDueDateRange | null>(null);
   const [pdfBusy, setPdfBusy] = useState(false);
 
@@ -79,31 +95,62 @@ export function ExtratoPage() {
     return filterLedgerByExtratoKind(ledger, kind);
   }, [bank.snapshot, kind]);
 
+  const installmentDateHints = useMemo(
+    () =>
+      bank.snapshot.installments.flatMap((item) =>
+        item.paidDate ? [item.dueDate, item.paidDate] : [item.dueDate],
+      ),
+    [bank.snapshot.installments],
+  );
+
   const defaultPeriodRange = useMemo(() => {
     if (isDemo && periodFilter) {
-      return demoExtratoDefaultPeriod(
-        ledgerLinesForKind.map((line) => line.date),
-        today,
-      );
+      const dates = kind === ExtratoKind.Installments ? installmentDateHints : ledgerLinesForKind.map((line) => line.date);
+      return demoExtratoDefaultPeriod(dates, today);
     }
     return calendarMonthRangeForDate(today);
-  }, [isDemo, ledgerLinesForKind, periodFilter, today]);
+  }, [isDemo, installmentDateHints, kind, ledgerLinesForKind, periodFilter, today]);
 
   const activeRange = customRange ?? defaultPeriodRange;
   const showCustomClear =
     customRange !== null && !rangesEqual(customRange, defaultPeriodRange);
 
+  const installmentExtrato = useMemo(() => {
+    if (kind !== ExtratoKind.Installments) {
+      return null;
+    }
+    const lines = buildInstallmentExtratoLines({
+      plans: bank.snapshot.installmentPlans,
+      installments: bank.snapshot.installments,
+      range: activeRange,
+      today,
+    });
+    return {
+      lines,
+      metrics: computeInstallmentExtratoMetrics(bank.snapshot.installments, activeRange, lines),
+      groups: groupInstallmentExtratoByMonth(lines),
+    };
+  }, [activeRange, bank.snapshot.installmentPlans, bank.snapshot.installments, kind, today]);
+
   const lines = useMemo(() => {
+    if (kind === ExtratoKind.Installments) {
+      return [];
+    }
     if (periodFilter) {
       return filterLedgerLinesByDateRange(ledgerLinesForKind, activeRange);
     }
     return ledgerLinesForKind;
-  }, [activeRange, ledgerLinesForKind, periodFilter]);
+  }, [activeRange, kind, ledgerLinesForKind, periodFilter]);
 
   const lineGroups = useMemo(
-    () => (periodFilter ? groupLedgerLinesByMonth(lines) : []),
-    [lines, periodFilter],
+    () => (periodFilter && kind !== ExtratoKind.Installments ? groupLedgerLinesByMonth(lines) : []),
+    [kind, lines, periodFilter],
   );
+
+  const pdfDisabled =
+    kind === ExtratoKind.Installments
+      ? (installmentExtrato?.lines.length ?? 0) === 0
+      : lines.length === 0 && kind !== ExtratoKind.FreeBalance;
 
   async function downloadExtrato() {
     if (!periodFilter) {
@@ -122,12 +169,19 @@ export function ExtratoPage() {
               settings: pdfSettings,
               issuedAt: new Date(),
             })
-          : await generateCashBoxExtratoPdf({
-              title: extratoKindLabel(kind),
-              period: activeRange,
-              lines,
-              settings: pdfSettings,
-            });
+          : kind === ExtratoKind.Installments
+            ? await generateCashBoxExtratoPdf({
+                title: extratoKindLabel(kind),
+                period: activeRange,
+                lines: installmentExtratoToLedgerLines(installmentExtrato?.lines ?? []),
+                settings: pdfSettings,
+              })
+            : await generateCashBoxExtratoPdf({
+                title: extratoKindLabel(kind),
+                period: activeRange,
+                lines,
+                settings: pdfSettings,
+              });
       downloadPdfBytes(extratoPdfFilename(kind, activeRange), bytes);
     } finally {
       setPdfBusy(false);
@@ -158,7 +212,7 @@ export function ExtratoPage() {
               <DownloadPdfActionButton
                 label="Baixar extrato"
                 busy={pdfBusy}
-                disabled={lines.length === 0 && kind !== ExtratoKind.FreeBalance}
+                disabled={pdfDisabled}
                 onClick={() => void downloadExtrato()}
                 className="min-h-10 w-full shrink-0 sm:w-auto"
               />
@@ -176,7 +230,19 @@ export function ExtratoPage() {
           </div>
         ) : null}
       </div>
-      {periodFilter ? (
+      {kind === ExtratoKind.Installments ? (
+        <>
+          {installmentExtrato ? <InstallmentExtratoSummary metrics={installmentExtrato.metrics} /> : null}
+          <Card className="grid min-w-0 gap-3 overflow-hidden">
+            <h2 className="font-semibold">Histórico</h2>
+            {installmentExtrato && installmentExtrato.lines.length > 0 ? (
+              <InstallmentExtratoHistoryByMonth groups={installmentExtrato.groups} />
+            ) : (
+              <p className="text-sm text-muted-foreground">{KIND_HINTS[kind]}</p>
+            )}
+          </Card>
+        </>
+      ) : periodFilter ? (
         <Card className="grid min-w-0 gap-3 overflow-hidden">
           <h2 className="font-semibold">Histórico</h2>
           {lines.length === 0 ? (

@@ -15,11 +15,11 @@
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",
-    "pg": "^8.16.3",
-    "html2pdf.js": "^0.10.2",
+    "html2pdf.js": "^0.14.0",
     "lucide-react": "^1.69.0",
     "otpauth": "^9.4.1",
     "pdf-lib": "^1.17.1",
+    "pg": "^8.16.3",
     "qrcode": "^1.5.4",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
