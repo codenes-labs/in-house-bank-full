@@ -7,7 +7,7 @@ Status: pendente.
 A chrome pública (`PublicSiteChrome`) serve landing (`/`), documentação (`/docs/*`), termos e privacidade. Hoje:
 
 - Na **doc**, a marca **In House Bank / Docs** leva a `/docs` (visão geral); em telas abaixo de `sm`, o cabeçalho da doc mostra só o ícone **IH** e o sufixo **Docs** (sem quebrar o nome completo). Na **landing**, o nome **In House Bank** permanece visível também no mobile.
-- **Favicon:** ícone da marca em SVG, PNG 32×32 e `apple-touch-icon` 180×180 (Safari/iOS não usam bem só SVG).
+- **Favicon:** ícone da marca em **`favicon.ico`**, SVG, PNG 32×32 e `apple-touch-icon` 180×180 (navegadores pedem `/favicon.ico` por padrão; sem arquivo, o Worker devolve a SPA e a aba pode mostrar ícone errado).
 - O link **Página inicial** foi **removido** do cabeçalho da doc e do rodapé público (redundante e confuso com a marca).
 - O rodapé em páginas não-doc mantém **Termos**, **Privacidade** e **Documentação** apenas.
 
