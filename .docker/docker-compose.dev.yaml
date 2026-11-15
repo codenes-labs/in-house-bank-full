@@ -1,16 +1,66 @@
 services:
+  db:
+    image: postgres:17-bookworm
+    ports:
+      - "${POSTGRES_EXTERNAL}:${POSTGRES_INTERNAL}"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
   app:
     build:
       context: ..
       dockerfile: .docker/Dockerfile.dev
+    user: node
+    depends_on:
+      db:
+        condition: service_healthy
     ports:
-      - "5173:5173"
+      - "${PORT_EXTERNAL}:${PORT_INTERNAL}"
     env_file:
-      - path: .env
-        required: false
+      - .env
     volumes:
       - ..:/app
       - node_modules:/app/node_modules
 
+  # Observabilidade local (desligado para stack leve — só db + app). Ver docs/metricas.md.
+  # prometheus:
+  #   image: prom/prometheus:v3.2.1
+  #   ports:
+  #     - "${PROMETHEUS_EXTERNAL}:${PROMETHEUS_INTERNAL}"
+  #   volumes:
+  #     - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+  #   command:
+  #     - --config.file=/etc/prometheus/prometheus.yml
+  #     - --storage.tsdb.path=/prometheus
+  #   depends_on:
+  #     app:
+  #       condition: service_started
+  #   restart: unless-stopped
+
+  # grafana:
+  #   image: grafana/grafana:11.5.2
+  #   ports:
+  #     - "${GRAFANA_EXTERNAL}:${GRAFANA_INTERNAL}"
+  #   environment:
+  #     GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
+  #     GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+  #     GF_USERS_DEFAULT_THEME: dark
+  #   volumes:
+  #     - ./grafana/provisioning:/etc/grafana/provisioning:ro
+  #   depends_on:
+  #     - prometheus
+  #   restart: unless-stopped
+
 volumes:
   node_modules:
+  postgres_data:

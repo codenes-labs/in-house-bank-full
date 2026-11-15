@@ -12,6 +12,25 @@ export interface ChangelogRelease {
 /** Atualize junto com `docs/CHANGELOG.md` (mesmo conteúdo). */
 export const PRODUCT_CHANGELOG: readonly ChangelogRelease[] = [
   {
+    version: '0.2.4',
+    date: '2026-11-15',
+    sections: [
+      {
+        title: 'Adicionado',
+        items: [
+          'Extrato de parcelamento em Relatórios (SPEC-16): resumo do período, histórico e PDF Baixar extrato.',
+          'Cadastro em /cadastro no dev local (SPEC-15); em produção o cadastro público permanece desativado por padrão.',
+        ],
+      },
+      {
+        title: 'Corrigido',
+        items: [
+          'Salvar tema em dev Docker: GET /api/bank deixa de falhar após PUT em settings (transação pg-neon-compat).',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.2.3',
     date: '2026-11-11',
     sections: [

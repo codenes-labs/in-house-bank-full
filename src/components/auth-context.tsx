@@ -21,6 +21,11 @@ interface AuthContextValue {
     password: string,
     options?: { totpCode?: string; turnstileToken?: string | null },
   ) => Promise<string | null>;
+  signUp: (
+    email: string,
+    password: string,
+    options?: { turnstileToken?: string | null },
+  ) => Promise<string | null>;
   recoverPassword: (
     email: string,
     newPassword: string,
@@ -93,6 +98,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       session,
       async signIn(email, password, options) {
         return authenticate('/api/auth/sign-in', { email, password, ...options }, setSession);
+      },
+      async signUp(email, password, options) {
+        return authenticate(
+          '/api/auth/sign-up',
+          { email, password, turnstileToken: options?.turnstileToken },
+          setSession,
+        );
       },
       async recoverPassword(email, newPassword, options) {
         const response = await fetch('/api/auth/recover', {

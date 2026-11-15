@@ -1,4 +1,4 @@
-import { neon, type NeonQueryFunction } from '@neondatabase/serverless';
+import type { NeonQueryFunction } from '@neondatabase/serverless';
 import type { CashBox } from '../domain/models/cash-box';
 import type { CashBoxMovement } from '../domain/models/cash-box-movement';
 import type { FreeBalanceDeposit } from '../domain/models/free-balance-deposit';
@@ -8,6 +8,7 @@ import type { InstallmentPlan } from '../domain/models/installment-plan';
 import { createEmptySettings, type Settings } from '../domain/models/settings';
 import {
   AccountKind,
+  ADMIN_EMAIL,
   DEMO_EMAIL,
   DEMO_PASSWORD,
   ensureSeededAccounts,
@@ -62,7 +63,8 @@ import {
 
 import { ACCESS_TOKEN_TTL_SECONDS } from '../domain/auth/access-token-policy';
 import { assertAppDataBackup } from '../domain/backup/assert-app-data-backup';
-import { getApiRequestsTotal, incrementApiRequests, logApiRequest } from './request-log';
+import { incrementApiRequests, logApiRequest, renderPrometheusMetricsText } from './request-log';
+import { createSql, normalizeDatabaseUrl } from './neon-sql';
 import { jsonResponse, withSecurityHeaders } from './security-response';
 
 type Sql = NeonQueryFunction<false, false>;
@@ -74,12 +76,23 @@ type SessionUser = {
   isDemo: boolean;
 };
 
-const bootstrapReady = new Map<string, Promise<void>>();
+const bootstrapReady = getPersistentMap('__ihb_bootstrap_ready__');
 
 type AuthSecurityOptions = {
   turnstileSecret?: string;
   turnstileSiteKey?: string;
 };
+
+function getPersistentMap(name: string): Map<string, Promise<void>> {
+  const host = globalThis as typeof globalThis & { [key: string]: Map<string, Promise<void>> | undefined };
+  const existing = host[name];
+  if (existing) {
+    return existing;
+  }
+  const created = new Map<string, Promise<void>>();
+  host[name] = created;
+  return created;
+}
 
 export type ApiHandlerOptions = {
   databaseUrl?: string;
@@ -88,6 +101,10 @@ export type ApiHandlerOptions = {
   turnstileSiteKey?: string;
   /** Produção: só `true` liga POST /api/auth/recover. Dev costuma ligar por padrão no Vite. */
   passwordRecoverEnabled?: boolean;
+  /** Produção: só `true` liga POST /api/auth/sign-up. Dev costuma ligar por padrão no Vite. */
+  signUpEnabled?: boolean;
+  /** @internal Postgres local no Docker — só o Vite dev injeta isso. */
+  devSql?: Sql;
 };
 
 export function createApiHandler(options: ApiHandlerOptions): (request: Request) => Promise<Response> {
@@ -96,6 +113,7 @@ export function createApiHandler(options: ApiHandlerOptions): (request: Request)
     turnstileSiteKey: options.turnstileSiteKey?.trim(),
   };
   const passwordRecoverEnabled = options.passwordRecoverEnabled === true;
+  const signUpEnabled = options.signUpEnabled === true;
   const handle = async (request: Request): Promise<Response> => {
     const databaseUrl = options.databaseUrl?.trim() || undefined;
     const jwtSecret = options.jwtSecret?.trim() || undefined;
@@ -103,7 +121,7 @@ export function createApiHandler(options: ApiHandlerOptions): (request: Request)
 
     if (url.pathname === '/api/metrics' && request.method === 'GET') {
       return withSecurityHeaders(
-        new Response(`api_requests_total ${getApiRequestsTotal()}\n`, {
+        new Response(renderPrometheusMetricsText(), {
           status: 200,
           headers: { 'content-type': 'text/plain; charset=utf-8' },
         }),
@@ -134,9 +152,9 @@ export function createApiHandler(options: ApiHandlerOptions): (request: Request)
       return json({ configured: false, user: null, error: 'Servidor não configurado.' }, request.method === 'GET' ? 200 : 503);
     }
     try {
-      const sql = neon(normalizeDatabaseUrl(databaseUrl));
+      const sql = options.devSql ?? createSql(databaseUrl);
       await ensureBootstrapped(databaseUrl, sql);
-      return await route(sql, request, jwtSecret, authSecurity, passwordRecoverEnabled);
+      return await route(sql, request, jwtSecret, authSecurity, passwordRecoverEnabled, signUpEnabled);
     } catch {
       return json({ error: 'Falha interna. Tente de novo.' }, 500);
     }
@@ -165,6 +183,7 @@ async function route(
   jwtSecret: string,
   authSecurity: AuthSecurityOptions,
   passwordRecoverEnabled: boolean,
+  signUpEnabled: boolean,
 ): Promise<Response> {
   const url = new URL(request.url);
   const { pathname } = url;
@@ -174,6 +193,7 @@ async function route(
       turnstileSiteKey: authSecurity.turnstileSiteKey ?? null,
       captchaRequired: Boolean(authSecurity.turnstileSecret),
       passwordRecoverEnabled,
+      signUpEnabled,
     });
   }
 
@@ -182,7 +202,10 @@ async function route(
     return json({ configured: true, user });
   }
   if (pathname === '/api/auth/sign-up' && request.method === 'POST') {
-    return json({ error: 'Cadastro fechado. Use uma conta existente.' }, 403);
+    if (!signUpEnabled) {
+      return json({ error: 'Cadastro público desativado neste ambiente. Use uma conta existente.' }, 403);
+    }
+    return signUp(sql, request, jwtSecret, authSecurity);
   }
   if (pathname === '/api/auth/sign-in' && request.method === 'POST') {
     return signIn(sql, request, jwtSecret, authSecurity);
@@ -325,6 +348,80 @@ async function route(
     return json({ ok: true });
   }
   return json({ error: 'Rota não encontrada.' }, 404);
+}
+
+async function signUp(
+  sql: Sql,
+  request: Request,
+  jwtSecret: string,
+  authSecurity: AuthSecurityOptions,
+): Promise<Response> {
+  const body = (await request.json()) as { email?: string; password?: string; turnstileToken?: string };
+  const email = normalizeLoginEmail(String(body.email ?? ''));
+  const password = String(body.password ?? '');
+  const clientIp = readClientIp(request);
+
+  const rateKeys: RateLimitKey[] = [
+    { scope: AUTH_RATE_SIGN_IN_EMAIL, subject: email },
+    { scope: AUTH_RATE_SIGN_IN_IP, subject: clientIp },
+  ];
+  const nowMs = Date.now();
+  const [captchaOk, rateStates] = await Promise.all([
+    verifyTurnstileToken(authSecurity.turnstileSecret, body.turnstileToken, clientIp),
+    loadRateLimitStates(sql, rateKeys),
+  ]);
+  if (!captchaOk) {
+    return json({ error: 'Confirme o desafio de segurança (captcha) e tente de novo.' }, 400);
+  }
+
+  if (!email.includes('@') || password.length < 6) {
+    return json({ error: 'Informe um e-mail válido e uma senha com pelo menos 6 caracteres.' }, 400);
+  }
+  if (email === ADMIN_EMAIL || email === DEMO_EMAIL) {
+    return json({ error: 'Este e-mail não pode ser usado no cadastro.' }, 400);
+  }
+  const blocked = rateLimitBlockedResponse(rateStates, nowMs, json);
+  if (blocked) {
+    return blocked;
+  }
+
+  const existing = await sql`select id from users where email = ${email}`;
+  if (existing.length > 0) {
+    const worst = await recordRateLimitFailures(sql, rateKeys, nowMs);
+    if (worst.locked) {
+      return json(
+        { error: formatLoginLockoutMessage(worst.retryAfterSeconds), retryAfterSeconds: worst.retryAfterSeconds },
+        429,
+        { 'retry-after': String(worst.retryAfterSeconds) },
+      );
+    }
+    return json({ error: 'Este e-mail já está em uso.' }, 400);
+  }
+
+  const userId = crypto.randomUUID();
+  const passwordHash = await hashPassword(password);
+  await sql`
+    insert into users (id, email, password_hash, account_kind, must_change_password)
+    values (
+      ${userId}::uuid,
+      ${email},
+      ${passwordHash},
+      ${AccountKind.Standard},
+      false
+    )
+  `;
+
+  await clearRateLimitKeys(sql, rateKeys);
+  const sessionUser: SessionUser = {
+    id: userId,
+    email,
+    mustChangePassword: false,
+    isDemo: false,
+  };
+  return json({
+    user: sessionUser,
+    accessToken: await issueAccessToken(jwtSecret, userId, email),
+  });
 }
 
 async function signIn(
@@ -573,22 +670,16 @@ async function loadBank(sql: Sql, userId: string) {
 
 function ensureBootstrapped(databaseUrl: string, sql: Sql): Promise<void> {
   const key = normalizeDatabaseUrl(databaseUrl);
-  const existing = bootstrapReady.get(key);
-  if (existing) {
-    return existing;
+  if (!bootstrapReady.has(key)) {
+    bootstrapReady.set(
+      key,
+      (async () => {
+        await sql.transaction(schemaStatements.map((statement) => sql.query(statement)));
+        await ensureSeededAccounts(key, sql);
+      })(),
+    );
   }
-  const pending = (async () => {
-    await sql.transaction(schemaStatements.map((statement) => sql.query(statement)));
-    await ensureSeededAccounts(key, sql);
-  })();
-  bootstrapReady.set(key, pending);
-  return pending;
-}
-
-function normalizeDatabaseUrl(databaseUrl: string): string {
-  const url = new URL(databaseUrl);
-  url.searchParams.delete('channel_binding');
-  return url.toString();
+  return bootstrapReady.get(key)!;
 }
 
 function json(body: unknown, status = 200, extraHeaders?: Record<string, string>): Response {

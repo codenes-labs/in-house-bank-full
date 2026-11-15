@@ -13,4 +13,4 @@
 ## Observações
 
 - A API roda no **Cloudflare Worker**; o contador `api_requests_total` (`GET /api/metrics`) é **por isolate** e zera quando o isolate reinicia — adequado para demo do Projeto B, não para Prometheus em produção.
-- Logs estruturados: uma linha JSON por requisição `/api/*` (`time`, `level`, `method`, `path`, `status`, `durationMs`), sem corpo, token nem segredos.
+- Logs estruturados: uma linha JSON por requisição `/api/*` (`time`, `level`, `method`, `path`, `status`, `durationMs`), sem corpo, token nem segredos. Como visualizar: [`docs/observabilidade.md`](observabilidade.md).

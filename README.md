@@ -27,62 +27,76 @@ React 19, Vite, TypeScript, Tailwind CSS 4, Vitest, Neon (Postgres), JWT, `pdf-l
 
 Relatórios → Extrato (`tipo=caixinha` ou `tipo=saldo-livre`): filtro de período, histórico por mês na tela e download do PDF. O extrato de saldo livre calcula resumo e saldo após cada linha a partir do histórico e do `free_balance_cents` (ver `compute-free-balance-extrato-metrics.ts`).
 
-## Desenvolvimento local
+## Dev Container (desenvolvimento)
 
-Atalhos via [`Makefile`](Makefile) (`make help`). Equivalente em npm:
+Caminho recomendado: **Dev Containers: Reopen in Container** no Cursor (Docker acessível no WSL). Usa [`.docker/docker-compose.dev.yaml`](.docker/docker-compose.dev.yaml) — serviços **app** (onde você edita o código) + **db** (Postgres local).
+
+### Primeira vez
 
 ```bash
-npm install
-npm test
-npm run test:coverage   # mesmo que o CI; falha se coverage cair abaixo do piso
-npm run dev
+cp .docker/.env.example .docker/.env   # DATABASE_URL @db:5432 + JWT (≥ 32 chars)
 ```
+
+Reabra no Dev Container. Na criação roda `npm ci`; no start, [`.devcontainer/start-dev-server.sh`](.devcontainer/start-dev-server.sh) sobe o **Vite** se a porta ainda estiver livre.
+
+**Não** rode `make dev` nem `npm run dev` ao abrir o container se o app já responder em `http://localhost:<PORT_EXTERNAL>` (padrão **5173**). Segunda instância do Vite gera conflito de porta e erros tipo tela branca / `504 Outdated Optimize Dep`. Se o servidor não subiu, veja `/tmp/vite.log` e só então `make dev`.
+
+No browser (host): `http://localhost:<PORT_EXTERNAL>`. Com `DATABASE_URL` e `JWT_SECRET` em `.docker/.env`, `GET /api/health` deve retornar `configured`, `database` e `jwt` em `true`.
+
+### Comandos no terminal do Dev Container
+
+Atalhos via [`Makefile`](Makefile) — `make help`:
+
+| Comando | Uso |
+| --- | --- |
+| `make test` / `make test-coverage` | Vitest (coverage = gate do CI) |
+| `make api-token` | JWT da conta demo (`teste`/`teste`) para Swagger ou `curl` |
+| `make lint` / `make build` | oxlint / build de produção |
+| `make health` | `curl` em `/api/health` (Vite em 5173) |
+| `make k6` | Smoke p95 de health (k6 na imagem dev) |
+
+O Vite encaminha `/api/*` para o handler local (`pg` + Postgres do compose em dev).
 
 ### Smoke de latência (k6)
 
-Com o app no ar (`npm run dev` ou Docker na porta 5173):
+Com o Vite no ar:
 
 ```bash
 make k6
-# ou: k6 run -e BASE_URL=http://localhost:5173 perf/health-smoke.js
 ```
 
-Meta p95 &lt; 500 ms para `GET /api/health` — ver [`docs/slo.md`](docs/slo.md). Contrato estático mínimo: [`docs/openapi.yaml`](docs/openapi.yaml).
+Meta p95 &lt; 500 ms — [`docs/slo.md`](docs/slo.md). O binário **k6** vem na imagem [`.docker/Dockerfile.dev`](.docker/Dockerfile.dev). Após mudar o Dockerfile, **rebuild** do Dev Container (`Dev Containers: Rebuild Container`). Sem k6 no PATH, o `make k6` indica o `docker run` com `grafana/k6`.
 
-### Variáveis de ambiente
-
-Copie `.docker/.env.example` para `.docker/.env` e preencha:
+### Variáveis (`.docker/.env`)
 
 | Variável | Descrição |
 | --- | --- |
-| `DATABASE_URL` | Connection string do Neon |
-| `JWT_SECRET` | Pelo menos 32 caracteres (`openssl rand -base64 48`) |
+| `PORT_INTERNAL` / `PORT_EXTERNAL` | Vite no container / porta no host |
+| `POSTGRES_*` | Credenciais e portas do Postgres (`db`) |
+| `DATABASE_URL` | `postgresql://USER:PASS@db:5432/DB` (não use URL de produção) |
+| `JWT_SECRET` | ≥ 32 caracteres (`openssl rand -base64 48`) |
 
-Em dev, o Vite encaminha `/api/*` para o handler local.
+Métricas locais (Prometheus + Grafana, só compose dev): [`docs/metricas.md`](docs/metricas.md). Logs: [`docs/observabilidade.md`](docs/observabilidade.md). OpenAPI: [`docs/openapi.yaml`](docs/openapi.yaml).
 
-### Docker (desenvolvimento)
+### Problemas comuns
 
-Com Docker instalado, na raiz do repositório:
+- **`Git: cannot run ssh` no Cursor** — o container não tem `ssh`; o script `ensure-git-https-remote.sh` troca `origin` para HTTPS. **Push** siga fazendo no **host** (WSL), onde você já tem SSH ou PAT.
+- **`localhost:5173` com `ERR_EMPTY_RESPONSE`** — o Vite ainda não subiu ou a porta do Docker não está mapeada. No terminal do container: `bash .devcontainer/start-dev-server.sh` ou `make dev`. Confira `tail -f /tmp/vite.log`. A porta vem do compose (`PORT_EXTERNAL` no host = `PORT_INTERNAL` no app); o Dev Container **não** reencaminha a 5173 (evita conflito com o publish do Docker). Use a mesma porta do `.docker/.env` (padrão 5173).
+- **`npm ci` com permissão negada** — `make docker-dev-down`, remova o volume `node_modules` (`docker volume ls`) e reabra o Dev Container.
+- **Postgres no DBeaver (host)** — host `localhost:5432`, não `db` (só resolve dentro do compose).
+- **Sem Dev Container** — na máquina com Docker: `make docker-dev` sobe o mesmo compose (Vite na porta publicada).
 
-```bash
-cp .docker/.env.example .docker/.env   # opcional: Neon + JWT
-docker compose -f .docker/docker-compose.dev.yaml up --build
-```
+## Produção local (validação)
 
-O app fica em [http://localhost:5173](http://localhost:5173). Com `.docker/.env` preenchido, [`/api/health`](http://localhost:5173/api/health) deve mostrar `configured`, `database` e `jwt` como `true`. Sem o arquivo, o container sobe e o health responde com tudo `false`.
-
-O código do host é montado no container (hot reload do Vite).
-
-### Docker (produção local)
-
-Imagem com build da SPA e **Worker via Wrangler** (mesmo modelo do deploy na Cloudflare), útil para validar o pacote antes do `wrangler deploy`:
+Antes de `wrangler deploy`, opcionalmente valide o pacote Worker + SPA:
 
 ```bash
-cp .docker/.env.example .docker/.env   # recomendado para API funcional
-docker compose -f compose.prod.yaml up --build
+cp .docker/.env.example .docker/.env   # Neon ou URL que o teste exigir
+make docker-prod
+# ou: docker compose -f compose.prod.yaml up --build
 ```
 
-Acesse [http://localhost:8787](http://localhost:8787). Deploy real de produção continua sendo Cloudflare Worker (`npm run deploy`), não este container.
+Acesse [http://localhost:8787](http://localhost:8787). Smoke: `make k6-prod`. Deploy real: Cloudflare (`npm run deploy` / push na `master`), não esta imagem.
 
 ## Deploy
 
@@ -112,6 +126,16 @@ O front chama `/api/*` no **mesmo domínio** do Worker (`in-house-bank-full`), n
 
 Domínio customizado: **Workers & Pages → in-house-bank-full → Settings → Domains & Routes**.
 
+### Rollback em produção
+
+| Situação | Ação |
+| --- | --- |
+| Workflow **Deploy** falhou | Produção não foi atualizada; corrija e faça push na `master`. |
+| Deploy OK, mas site/API com defeito | **Cloudflare:** Workers & Pages → `in-house-bank-full` → Deployments → rollback na versão anterior. Ou `npx wrangler deployments list` e `npx wrangler rollback <version-id> -y`. |
+| Defeito no código mergeado | `git revert` na `master` + `git push` (dispara Deploy de novo). |
+
+Rollback do Worker reverte código e assets estáticos; **não** altera secrets nem o Neon. Depois confira [`/api/health`](https://inhousebank.codenes.com.br/api/health) e um fluxo crítico. Detalhes em [`/docs/ci-cd`](https://inhousebank.codenes.com.br/docs/ci-cd) (seção *Rollback em produção*).
+
 ## Documentação no repositório
 
 | Documento | Conteúdo |
@@ -122,7 +146,10 @@ Domínio customizado: **Workers & Pages → in-house-bank-full → Settings → 
 | [`docs/estado-atual.md`](docs/estado-atual.md) | UI e rotas atuais |
 | [`docs/specs/`](docs/specs/) | Especificações (SPEC-01+) |
 | [`docs/slo.md`](docs/slo.md) | SLO Projeto B (p95 health) |
+| [`docs/openapi.yaml`](docs/openapi.yaml) | Contrato HTTP `/api/*` (auth JWT, banco, sistema) |
 | [`docs/adr/`](docs/adr/) | Decisões de arquitetura (MADR) |
 | [`AGENTS.md`](AGENTS.md) | Regras para agentes e contribuidores |
+
+As decisões de arquitetura seguem **SOLID** na prática — domínio isolado, `BankRepository` como abstração única de dados e implementações trocáveis (HTTP vs memória). O padrão e a rejeição de SQL na UI estão no [ADR 0001](docs/adr/0001-bank-repository.md) e em [`docs/arquitetura.md`](docs/arquitetura.md).
 
 Para implementar features: spec em `docs/specs` → testes → código (ver skills em `.cursor/skills`).

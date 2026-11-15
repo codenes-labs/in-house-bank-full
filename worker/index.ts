@@ -8,6 +8,7 @@ export interface Env {
   TURNSTILE_SECRET_KEY?: string;
   TURNSTILE_SITE_KEY?: string;
   AUTH_PASSWORD_RECOVER_ENABLED?: string;
+  AUTH_SIGN_UP_ENABLED?: string;
   ASSETS: Fetcher;
 }
 
@@ -21,6 +22,7 @@ export default {
         turnstileSecret: env.TURNSTILE_SECRET_KEY?.trim(),
         turnstileSiteKey: env.TURNSTILE_SITE_KEY?.trim(),
         passwordRecoverEnabled: env.AUTH_PASSWORD_RECOVER_ENABLED?.trim() === 'true',
+        signUpEnabled: env.AUTH_SIGN_UP_ENABLED?.trim() === 'true',
       });
       return handler(request);
     }

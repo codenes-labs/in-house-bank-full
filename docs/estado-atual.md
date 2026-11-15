@@ -1,6 +1,6 @@
 # Estado atual do projeto
 
-Última atualização: 2026-11-11 (SPEC-09 Projeto B concluída: health integration, metrics, coverage, ADR, k6).
+Última atualização: 2026-11-15 (SPEC-09 alinhada: Postgres no compose dev; observabilidade em `docs/observabilidade.md`).
 
 Referência rápida para agentes e implementadores. Detalhes de domínio seguem em `docs/principios.md`, `docs/arquitetura.md` e `docs/banco.md`.
 
@@ -43,7 +43,7 @@ Rotas públicas extras: `/docs` (hub técnico: stack, arquitetura, Neon, CI/CD, 
 
 - **Início:** dashboard (SPEC-08 pendente em parte).
 - **Financeiro:** KPIs clicáveis (saldo livre, caixinhas), patrimônio e rendimento estimado; cards **Contas a receber** e **Contas a pagar** só visuais (não clicáveis, SPEC-10). **Saldo livre** → `/financeiro/saldo-livre` (entrada/saída; card **Histórico** por mês, últimos 30 dias). Ao **excluir caixinha**, o saldo vira entrada no saldo livre com nota `Resgate da caixinha {nome}`. Parcela paga credita o saldo livre. Conta **demo:** até 3 caixinhas com movimentos e saldo livre fictício no snapshot (`demo-cash-box-data.ts`); extrato e histórico mostram **todos os meses** das movimentações fictícias (contas reais usam mês atual / 30 dias).
-- **Relatórios / Extrato:** **Saldo livre** (`tipo=saldo-livre`) e **Caixinha** (`tipo=caixinha`) com período (demo: intervalo das movimentações fictícias; conta real: mês atual), **Limpar filtro**, card **Histórico** por mês e **Baixar extrato**. PDF caixinha: `pdf-lib`, blocos mensais. PDF saldo livre: HTML + `html2pdf.js`, cabeçalho fintech, quatro cards de resumo (saldo inicial, entradas, saídas, saldo final), coluna **Saldo** após cada linha, rodapé com paginação via jsPDF. Demais tipos de extrato ainda em desenvolvimento. **Relatórios / Resumo:** gráficos Recharts (SPEC-10 prevê extrato em texto no resumo — não implementado).
+- **Relatórios / Extrato:** **Saldo livre**, **Caixinha** e **Parcelamento** (`tipo=INSTALLMENTS`, SPEC-16) com período, **Limpar filtro**, **Baixar extrato** e card **Histórico** por mês. Parcelamento: três cards de resumo (pagas, recebido, em atraso no período) e linhas com vencimento, valor, status e pagador/referência. PDF parcelamento: `pdf-lib` via layout caixinha (`extrato-parcelamento-*.pdf`). PDF caixinha/saldo livre inalterados. Contas a pagar/receber ainda em desenvolvimento. **Relatórios / Resumo:** gráficos Recharts (SPEC-10 prevê extrato em texto no resumo — não implementado).
 - **Configurações:** hub com Usuário, Beneficiário, Parcelamentos, Financeiro, Gerais e Backup (SPEC-12).
 
 ## Contas e seed
@@ -52,7 +52,7 @@ Cadastro público fechado. Contas seed: admin e demo (`docs/banco.md`). RLS por 
 
 ## CI
 
-GitHub Actions: lint (oxlint), `test:coverage` com piso no Vitest. Deploy em `master` para Cloudflare. Docker: dev em `.docker/` (`docker compose -f .docker/docker-compose.dev.yaml up`, porta 5173); produção local com `compose.prod.yaml` (8787). Observabilidade B: log JSON por `/api/*`, `GET /api/metrics`, `docs/slo.md`, smoke `perf/health-smoke.js`.
+GitHub Actions: lint (oxlint), `test:coverage` com piso no Vitest. Deploy em `master` para Cloudflare. Docker: dev em `.docker/` (serviços `app` + Postgres `db`, `user: node`, volumes `node_modules` e `postgres_data`); produção local com `compose.prod.yaml` (8787). Observabilidade B: log JSON por `/api/*`, `GET /api/metrics`, `docs/slo.md`, smoke `perf/health-smoke.js`.
 
 ## Decisões recentes (UI)
 

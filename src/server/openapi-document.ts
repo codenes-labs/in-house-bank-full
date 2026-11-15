@@ -76,6 +76,41 @@ export function buildOpenApiDocument(serverUrl = '/'): Record<string, unknown> {
           },
         },
       },
+      '/api/metrics': {
+        get: {
+          tags: ['Sistema'],
+          summary: 'Métricas (texto Prometheus)',
+          responses: {
+            '200': {
+              description: 'api_requests_total',
+              content: { 'text/plain': { schema: { type: 'string' } } },
+            },
+          },
+        },
+      },
+      '/api/auth/security': {
+        get: {
+          tags: ['Auth'],
+          summary: 'Captcha e recuperação de senha',
+          responses: {
+            '200': {
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      turnstileSiteKey: { type: 'string', nullable: true },
+                      captchaRequired: { type: 'boolean' },
+                      passwordRecoverEnabled: { type: 'boolean' },
+                      signUpEnabled: { type: 'boolean' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
       '/api/auth/session': {
         get: {
           tags: ['Auth'],
@@ -206,8 +241,76 @@ export function buildOpenApiDocument(serverUrl = '/'): Record<string, unknown> {
       '/api/auth/sign-up': {
         post: {
           tags: ['Auth'],
-          summary: 'Cadastro (fechado)',
-          responses: { '403': { description: 'Cadastro fechado' } },
+          summary: 'Cadastro público (só se signUpEnabled no servidor)',
+          requestBody: {
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['email', 'password'],
+                  properties: {
+                    email: { type: 'string' },
+                    password: { type: 'string' },
+                    turnstileToken: { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            '200': { description: 'Conta criada (mesmo formato do sign-in)' },
+            '400': { description: 'Dados inválidos ou e-mail em uso' },
+            '403': { description: 'Cadastro desativado' },
+          },
+        },
+      },
+      '/api/auth/totp/status': {
+        get: {
+          tags: ['Auth'],
+          summary: 'Status do 2FA',
+          security: bearer,
+          responses: {
+            '200': {
+              content: { 'application/json': { schema: { type: 'object', properties: { enabled: { type: 'boolean' } } } } },
+            },
+            '401': { description: 'Não autenticado' },
+          },
+        },
+      },
+      '/api/auth/totp/begin': {
+        post: {
+          tags: ['Auth'],
+          summary: 'Iniciar TOTP',
+          security: bearer,
+          responses: {
+            '200': {
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: { secret: { type: 'string' }, otpauthUrl: { type: 'string' } },
+                  },
+                },
+              },
+            },
+            '400': { content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorBody' } } } },
+          },
+        },
+      },
+      '/api/auth/totp/enable': {
+        post: {
+          tags: ['Auth'],
+          summary: 'Ativar TOTP',
+          security: bearer,
+          responses: { '200': { content: { 'application/json': { schema: { $ref: '#/components/schemas/OkBody' } } } } },
+        },
+      },
+      '/api/auth/totp/disable': {
+        post: {
+          tags: ['Auth'],
+          summary: 'Desativar TOTP',
+          security: bearer,
+          responses: { '200': { content: { 'application/json': { schema: { $ref: '#/components/schemas/OkBody' } } } } },
         },
       },
       '/api/bank': {

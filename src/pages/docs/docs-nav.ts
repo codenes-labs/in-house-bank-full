@@ -6,6 +6,5 @@ export const DOCS_NAV = [
   { to: '/docs/ci-cd', label: 'CI/CD' },
   { to: '/docs/deploy', label: 'Deploy' },
   { to: '/docs/api', label: 'API (OpenAPI)' },
-  { to: '/docs/apresentacao', label: 'Apresentação' },
   { to: '/docs/changelog', label: 'Changelog' },
 ] as const;

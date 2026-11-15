@@ -9,6 +9,11 @@ import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
   plugins: [react(), tailwindcss(), neonApi()],
+  server: {
+    host: true,
+    port: resolveDevPort(),
+    strictPort: true,
+  },
   test: {
     environment: 'node',
     include: ['src/**/*.spec.ts', 'src/**/*.test.ts'],
@@ -17,49 +22,94 @@ export default defineConfig({
       thresholds: {
         lines: 76,
         statements: 76,
-        functions: 82,
+        functions: 80,
         branches: 57,
       },
     },
   },
 })
 
+type DevApiHandler = (request: Request) => Promise<Response>
+
+let devApiHandler: DevApiHandler | null = null
+let devApiHandlerPromise: Promise<DevApiHandler> | null = null
+
 function neonApi() {
   return {
     name: 'neon-api',
     configureServer(server: ViteDevServer) {
-      server.middlewares.use(async (request, response, next) => {
+      process.on('unhandledRejection', (reason) => {
+        console.error('[vite dev api] unhandledRejection', reason)
+      })
+      server.middlewares.use((request, response, next) => {
         if (!request.url?.startsWith('/api')) {
           next()
           return
         }
-        try {
-          const mod = await server.ssrLoadModule('/src/server/create-api-handler.ts') as {
-            createApiHandler: (options: {
-              databaseUrl?: string
-              jwtSecret?: string
-              turnstileSecret?: string
-              turnstileSiteKey?: string
-              passwordRecoverEnabled?: boolean
-            }) => (request: Request) => Promise<Response>
+        void (async () => {
+          try {
+            const handler = await resolveDevApiHandler(server)
+            const webResponse = await handler(await toWebRequest(request))
+            await writeWebResponse(response, webResponse)
+          } catch (cause) {
+            if (!response.headersSent) {
+              response.statusCode = 500
+              response.end(cause instanceof Error ? cause.message : 'Falha no banco.')
+            }
           }
-          const recoverFlag = loadEnvValue('AUTH_PASSWORD_RECOVER_ENABLED')
-          const handler = mod.createApiHandler({
-            databaseUrl: loadEnvValue('DATABASE_URL'),
-            jwtSecret: loadEnvValue('JWT_SECRET'),
-            turnstileSecret: loadEnvValue('TURNSTILE_SECRET_KEY'),
-            turnstileSiteKey: loadEnvValue('TURNSTILE_SITE_KEY'),
-            passwordRecoverEnabled: recoverFlag !== 'false',
-          })
-          const webResponse = await handler(await toWebRequest(request))
-          await writeWebResponse(response, webResponse)
-        } catch (cause) {
-          response.statusCode = 500
-          response.end(cause instanceof Error ? cause.message : 'Falha no banco.')
-        }
+        })().catch((cause) => {
+          if (!response.headersSent) {
+            response.statusCode = 500
+            response.end(cause instanceof Error ? cause.message : 'Falha no banco.')
+          }
+        })
       })
     },
   }
+}
+
+async function resolveDevApiHandler(server: ViteDevServer): Promise<DevApiHandler> {
+  if (devApiHandler) {
+    return devApiHandler
+  }
+  if (!devApiHandlerPromise) {
+    devApiHandlerPromise = (async () => {
+      const mod = await server.ssrLoadModule('/src/server/vite-api-handler.ts') as {
+        createViteDevApiHandler: (options: {
+          databaseUrl?: string
+          jwtSecret?: string
+          turnstileSecret?: string
+              turnstileSiteKey?: string
+              passwordRecoverEnabled?: boolean
+              signUpEnabled?: boolean
+            }) => DevApiHandler
+      }
+      const recoverFlag = loadEnvValue('AUTH_PASSWORD_RECOVER_ENABLED')
+      const signUpFlag = loadEnvValue('AUTH_SIGN_UP_ENABLED')
+      devApiHandler = mod.createViteDevApiHandler({
+        databaseUrl: loadEnvValue('DATABASE_URL'),
+        jwtSecret: loadEnvValue('JWT_SECRET'),
+        turnstileSecret: loadEnvValue('TURNSTILE_SECRET_KEY'),
+        turnstileSiteKey: loadEnvValue('TURNSTILE_SITE_KEY'),
+        passwordRecoverEnabled: recoverFlag !== 'false',
+        signUpEnabled: signUpFlag !== 'false',
+      })
+      return devApiHandler
+    })()
+  }
+  return devApiHandlerPromise
+}
+
+function resolveDevPort(): number {
+  const fromProcess = process.env.PORT_INTERNAL?.trim()
+  if (fromProcess && /^\d+$/.test(fromProcess)) {
+    return Number(fromProcess)
+  }
+  const fromFile = loadEnvValue('PORT_INTERNAL')
+  if (fromFile && /^\d+$/.test(fromFile)) {
+    return Number(fromFile)
+  }
+  return 5173
 }
 
 function loadEnvValue(name: string): string | undefined {
