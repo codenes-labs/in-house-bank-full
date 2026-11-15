@@ -10,6 +10,10 @@ Gravação por registro. O backup JSON `version: 1` é a única substituição c
 
 Segredos só no servidor (Worker ou dev Vite). Variáveis: `DATABASE_URL` e `JWT_SECRET` (mínimo 32 caracteres).
 
+## Desenvolvimento local (Docker / Dev Container)
+
+O compose [`.docker/docker-compose.dev.yaml`](../.docker/docker-compose.dev.yaml) sobe **Postgres** (`postgres:17-bookworm`, serviço `db`). Em [`.docker/.env`](../.docker/.env.example), `DATABASE_URL` aponta para `db:5432` — não use a URL de produção. O Vite usa `pg` via `src/server/pg-neon-compat.ts` (`src/server/vite-api-handler.ts`). Produção (Worker, CI) continua com Neon e `@neondatabase/serverless` (`src/server/neon-sql.ts`).
+
 ## Contas iniciais (seed)
 
 Cadastro público fechado. Contas criadas pelo seed em `src/server/account-seed.ts`:
@@ -20,3 +24,5 @@ Cadastro público fechado. Contas criadas pelo seed em `src/server/account-seed.
 | Demo | `teste` ou `teste@teste.com` | `teste` | Dados fictícios; mutações ficam só na sessão (memória no app). O banco não grava alterações; cada login restaura o mock |
 
 Recuperação de senha: em **produção** desligada por padrão (`AUTH_PASSWORD_RECOVER_ENABLED=true` no Worker só se precisar do fluxo legado e-mail + nova senha com Turnstile). Em dev, ligada salvo `AUTH_PASSWORD_RECOVER_ENABLED=false`. Não vale para a conta demo. Ver [SPEC-14](specs/SPEC-14-recuperacao-senha.md).
+
+Cadastro público (`/cadastro`): em **produção** desligado por padrão (`AUTH_SIGN_UP_ENABLED=true` no Worker só se aceitar cadastro aberto). Em dev, ligado salvo `AUTH_SIGN_UP_ENABLED=false`. Ver [SPEC-15](specs/SPEC-15-cadastro-dev-local.md).

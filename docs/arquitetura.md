@@ -8,7 +8,7 @@ React, Vite, TypeScript, Tailwind, Vitest, Neon (`@neondatabase/serverless`), JW
 
 ## Produção
 
-Cloudflare Worker (`worker/index.ts`) serve a API e os arquivos estáticos de `dist` (SPA). Deploy com `wrangler deploy` após `npm run build`.
+Cloudflare Worker (`worker/index.ts`) serve a API e os arquivos estáticos de `dist` (SPA). Deploy com `wrangler deploy` após `npm run build`. Rotas: [`openapi.yaml`](openapi.yaml).
 
 ## Rotas
 
@@ -28,6 +28,12 @@ Login -> JWT + BankRepository HTTP -> áreas internas
 ```
 
 A implementação em memória existe para testes e para o contrato do repositório.
+
+## Persistência (Repository)
+
+## Observabilidade
+
+**Produção:** log JSON por `/api/*` no Worker; `GET /api/metrics` expõe `api_requests_total` (contador por isolate). **Dev:** o compose adiciona Postgres, **Prometheus** e **Grafana** para scrape local do endpoint — ver [`metricas.md`](metricas.md) e [`observabilidade.md`](observabilidade.md). Produção não inclui Prometheus/Grafana.
 
 ## Persistência (Repository)
 

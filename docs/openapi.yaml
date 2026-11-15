@@ -1,47 +1,787 @@
 openapi: 3.1.0
 info:
-  title: In House Bank — contrato mínimo (Projeto B)
+  title: In House Bank API
   version: 1.0.0
-  description: Endpoints de saúde e métrica leve. Contrato completo em GET /api/openapi.json em runtime.
+  description: |
+    Rotas HTTP expostas em `src/server/create-api-handler.ts`.
+    O app **não movimenta dinheiro**. Rotas de banco e a maioria de auth exigem JWT Bearer (`accessToken` de `POST /api/auth/sign-in`).
+    Cópia dinâmica em runtime: `GET /api/openapi.json`.
 servers:
   - url: /
+security: []
+tags:
+  - name: Sistema
+    description: Saúde, métricas e documentação
+  - name: Auth
+    description: Sessão, credenciais e 2FA
+  - name: Bank
+    description: Dados da conta autenticada
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Header `Authorization: Bearer <accessToken>`
+  schemas:
+    ErrorBody:
+      type: object
+      properties:
+        error:
+          type: string
+    OkBody:
+      type: object
+      properties:
+        ok:
+          type: boolean
+    HealthBody:
+      type: object
+      required: [configured, database, jwt]
+      properties:
+        configured:
+          type: boolean
+        database:
+          type: boolean
+        jwt:
+          type: boolean
+    UnconfiguredBody:
+      type: object
+      properties:
+        configured:
+          type: boolean
+          const: false
+        user:
+          type: 'null'
+        error:
+          type: string
+    SessionBody:
+      type: object
+      properties:
+        configured:
+          type: boolean
+        user:
+          nullable: true
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            email:
+              type: string
+            mustChangePassword:
+              type: boolean
+            isDemo:
+              type: boolean
+    SignInRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+          minLength: 6
+        totpCode:
+          type: string
+          description: Obrigatório quando a conta tem 2FA ativo
+        turnstileToken:
+          type: string
+          description: Quando Turnstile está configurado no servidor
+    SignInSuccess:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/SessionBody/properties/user'
+        accessToken:
+          type: string
+        totpRequired:
+          type: boolean
+          description: Presente quando falta código 2FA
+    AuthSecurityBody:
+      type: object
+      properties:
+        turnstileSiteKey:
+          type: string
+          nullable: true
+        captchaRequired:
+          type: boolean
+        passwordRecoverEnabled:
+          type: boolean
+        signUpEnabled:
+          type: boolean
+    TotpStatusBody:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+    TotpBeginSuccess:
+      type: object
+      properties:
+        secret:
+          type: string
+        otpauthUrl:
+          type: string
+    RecoverRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        newPassword:
+          type: string
+        turnstileToken:
+          type: string
+    ChangePasswordRequest:
+      type: object
+      required: [newPassword]
+      properties:
+        newPassword:
+          type: string
+        currentPassword:
+          type: string
+          description: Obrigatória exceto no primeiro acesso (`mustChangePassword`)
+    RateLimitError:
+      type: object
+      properties:
+        error:
+          type: string
+        retryAfterSeconds:
+          type: integer
+  responses:
+    Error401:
+      description: Não autenticado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
+    Error403:
+      description: Proibido (demo, cadastro fechado, senha provisória, recuperação desligada, etc.)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
+    Error404:
+      description: Rota não encontrada
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
+    Error500:
+      description: Falha interna
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
+    Error503:
+      description: Servidor não configurado (`DATABASE_URL` / `JWT_SECRET`)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UnconfiguredBody'
+
 paths:
   /api/health:
     get:
-      summary: Verifica se DATABASE_URL e JWT_SECRET estão configurados
+      tags: [Sistema]
+      summary: Verifica configuração do servidor (não consulta o banco)
       operationId: getHealth
-      tags:
-        - Sistema
       responses:
         '200':
-          description: Status de configuração (não acessa o banco)
+          description: Flags de configuração
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - configured
-                  - database
-                  - jwt
-                properties:
-                  configured:
-                    type: boolean
-                  database:
-                    type: boolean
-                  jwt:
-                    type: boolean
+                $ref: '#/components/schemas/HealthBody'
+
   /api/metrics:
     get:
-      summary: Contador de requisições /api no isolate atual
+      tags: [Sistema]
+      summary: Exposição Prometheus do contador de requisições /api (por processo)
       operationId: getMetrics
-      tags:
-        - Sistema
       responses:
         '200':
-          description: Texto plano estilo Prometheus (uma série)
+          description: Texto `text/plain` com `# TYPE` e `api_requests_total`
           content:
             text/plain:
               schema:
                 type: string
-                example: |
-                  api_requests_total 42
+
+  /api/openapi.json:
+    get:
+      tags: [Sistema]
+      summary: Documento OpenAPI gerado em runtime
+      operationId: getOpenApiJson
+      responses:
+        '200':
+          description: Objeto OpenAPI 3.0.3
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /api/auth/security:
+    get:
+      tags: [Auth]
+      summary: Flags de captcha, recuperação e cadastro para o front
+      operationId: getAuthSecurity
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSecurityBody'
+
+  /api/auth/session:
+    get:
+      tags: [Auth]
+      summary: Sessão atual
+      operationId: getSession
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionBody'
+        '401':
+          $ref: '#/components/responses/Error401'
+
+  /api/auth/sign-up:
+    post:
+      tags: [Auth]
+      summary: Cadastro público (só com signUpEnabled no servidor)
+      operationId: postSignUp
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string }
+                password: { type: string, minLength: 6 }
+                turnstileToken: { type: string }
+      responses:
+        '200':
+          description: Conta criada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignInSuccess'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '403':
+          $ref: '#/components/responses/Error403'
+
+  /api/auth/sign-in:
+    post:
+      tags: [Auth]
+      summary: Entrar
+      operationId: postSignIn
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignInRequest'
+      responses:
+        '200':
+          description: Token ou indicação de 2FA pendente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignInSuccess'
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitError'
+
+  /api/auth/sign-out:
+    post:
+      tags: [Auth]
+      summary: Sair (stateless; cliente descarta o token)
+      operationId: postSignOut
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkBody'
+
+  /api/auth/recover:
+    post:
+      tags: [Auth]
+      summary: Recuperar senha por e-mail
+      operationId: postRecover
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecoverRequest'
+      responses:
+        '200':
+          description: OK ou resposta silenciosa se o e-mail não existir
+        '403':
+          description: Fluxo desativado neste ambiente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+
+  /api/auth/password:
+    post:
+      tags: [Auth]
+      summary: Alterar senha (logado)
+      operationId: postChangePassword
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '200':
+          description: Novo token na resposta (mesmo formato do sign-in)
+        '401':
+          $ref: '#/components/responses/Error401'
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+
+  /api/auth/totp/status:
+    get:
+      tags: [Auth]
+      summary: 2FA ativo?
+      operationId: getTotpStatus
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TotpStatusBody'
+        '401':
+          $ref: '#/components/responses/Error401'
+
+  /api/auth/totp/begin:
+    post:
+      tags: [Auth]
+      summary: Iniciar ou rotacionar segredo TOTP
+      operationId: postTotpBegin
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                password:
+                  type: string
+                code:
+                  type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TotpBeginSuccess'
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '401':
+          $ref: '#/components/responses/Error401'
+
+  /api/auth/totp/enable:
+    post:
+      tags: [Auth]
+      summary: Ativar 2FA
+      operationId: postTotpEnable
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkBody'
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '401':
+          $ref: '#/components/responses/Error401'
+
+  /api/auth/totp/disable:
+    post:
+      tags: [Auth]
+      summary: Desativar 2FA
+      operationId: postTotpDisable
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                password:
+                  type: string
+                code:
+                  type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkBody'
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '401':
+          $ref: '#/components/responses/Error401'
+
+  /api/bank:
+    get:
+      tags: [Bank]
+      summary: Snapshot completo da conta
+      operationId: getBank
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: BankSnapshot (conta demo retorna mock em memória)
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+
+  /api/bank/settings:
+    put:
+      tags: [Bank]
+      summary: Salvar settings
+      operationId: putBankSettings
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkBody'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+
+  /api/bank/plans:
+    put:
+      tags: [Bank]
+      summary: Salvar plano de parcelamento
+      operationId: putBankPlan
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkBody'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+
+  /api/bank/plans/{planId}:
+    delete:
+      tags: [Bank]
+      summary: Excluir plano
+      operationId: deleteBankPlan
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkBody'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+
+  /api/bank/installments:
+    put:
+      tags: [Bank]
+      summary: Salvar parcela
+      operationId: putBankInstallment
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkBody'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+
+  /api/bank/installments/{installmentId}:
+    delete:
+      tags: [Bank]
+      summary: Excluir parcela
+      operationId: deleteBankInstallment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: installmentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkBody'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+
+  /api/bank/cash-boxes:
+    put:
+      tags: [Bank]
+      summary: Salvar caixinha
+      operationId: putBankCashBox
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkBody'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+
+  /api/bank/cash-boxes/{cashBoxId}:
+    delete:
+      tags: [Bank]
+      summary: Excluir caixinha
+      operationId: deleteBankCashBox
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: cashBoxId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkBody'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+
+  /api/bank/movements:
+    put:
+      tags: [Bank]
+      summary: Salvar movimento de caixinha
+      operationId: putBankMovement
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkBody'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+
+  /api/bank/movements/{movementId}:
+    delete:
+      tags: [Bank]
+      summary: Excluir movimento
+      operationId: deleteBankMovement
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: movementId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkBody'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+
+  /api/bank/free-balance-deposits:
+    put:
+      tags: [Bank]
+      summary: Registrar entrada no saldo livre
+      operationId: putFreeBalanceDeposit
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                deposit:
+                  type: object
+                settings:
+                  type: object
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkBody'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+
+  /api/bank/free-balance-withdrawals:
+    put:
+      tags: [Bank]
+      summary: Registrar resgate do saldo livre
+      operationId: putFreeBalanceWithdrawal
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                withdrawal:
+                  type: object
+                settings:
+                  type: object
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkBody'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+
+  /api/bank/import:
+    post:
+      tags: [Bank]
+      summary: Importar backup JSON (substitui dados do usuário)
+      operationId: postBankImport
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Backup `version: 1` validado por `assertAppDataBackup`
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkBody'
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'

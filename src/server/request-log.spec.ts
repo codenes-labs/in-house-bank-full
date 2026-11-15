@@ -1,7 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { getApiRequestsTotal, incrementApiRequests, logApiRequest, resetApiMetricsForTests } from './request-log';
+import {
+  getApiRequestsTotal,
+  incrementApiRequests,
+  logApiRequest,
+  renderPrometheusMetricsText,
+  resetApiMetricsForTests,
+} from './request-log';
 
 describe('request-log', () => {
+  it('renderPrometheusMetricsText includes TYPE and counter value', () => {
+    resetApiMetricsForTests();
+    incrementApiRequests();
+    const text = renderPrometheusMetricsText();
+    expect(text).toContain('# TYPE api_requests_total counter');
+    expect(text).toMatch(/api_requests_total 1$/m);
+  });
+
   it('increments api_requests_total', () => {
     resetApiMetricsForTests();
     incrementApiRequests();

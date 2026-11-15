@@ -1,6 +1,6 @@
 # Estado atual do projeto
 
-Última atualização: 2026-11-11 (SPEC-09 Projeto B concluída: health integration, metrics, coverage, ADR, k6).
+Última atualização: 2026-11-15 (SPEC-09 alinhada: Postgres no compose dev; observabilidade em `docs/observabilidade.md`).
 
 Referência rápida para agentes e implementadores. Detalhes de domínio seguem em `docs/principios.md`, `docs/arquitetura.md` e `docs/banco.md`.
 
@@ -52,7 +52,7 @@ Cadastro público fechado. Contas seed: admin e demo (`docs/banco.md`). RLS por 
 
 ## CI
 
-GitHub Actions: lint (oxlint), `test:coverage` com piso no Vitest. Deploy em `master` para Cloudflare. Docker: dev em `.docker/` (`docker compose -f .docker/docker-compose.dev.yaml up`, porta 5173); produção local com `compose.prod.yaml` (8787). Observabilidade B: log JSON por `/api/*`, `GET /api/metrics`, `docs/slo.md`, smoke `perf/health-smoke.js`.
+GitHub Actions: lint (oxlint), `test:coverage` com piso no Vitest. Deploy em `master` para Cloudflare. Docker: dev em `.docker/` (serviços `app` + Postgres `db`, `user: node`, volumes `node_modules` e `postgres_data`); produção local com `compose.prod.yaml` (8787). Observabilidade B: log JSON por `/api/*`, `GET /api/metrics`, `docs/slo.md`, smoke `perf/health-smoke.js`.
 
 ## Decisões recentes (UI)
 

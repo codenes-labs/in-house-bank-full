@@ -95,8 +95,10 @@ describe('health integration (HTTP)', () => {
       expect(metrics.status).toBe(200);
       expect(metrics.headers.get('content-type')).toContain('text/plain');
       const text = await metrics.text();
-      expect(text.trim()).toMatch(/^api_requests_total \d+$/);
-      const total = Number(text.trim().split(/\s+/)[1]);
+      expect(text).toContain('# TYPE api_requests_total counter');
+      const totalLine = text.split('\n').find((line) => line.startsWith('api_requests_total '));
+      expect(totalLine).toBeDefined();
+      const total = Number(totalLine?.split(/\s+/)[1]);
       expect(total).toBeGreaterThanOrEqual(1);
     });
   });

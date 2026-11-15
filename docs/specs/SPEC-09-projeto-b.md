@@ -14,11 +14,11 @@ Um implementador sobe o app com um comando, justifica o Repository, prova a API 
 
 ### 1. Compose com um comando
 
-O banco continua o Neon remoto. O Compose não sobe Postgres.
+**Desenvolvimento:** o compose sobe **app** + **Postgres** (`postgres:17-bookworm`, serviço `db`). `DATABASE_URL` em `.docker/.env` aponta para `db:5432` (não use URL de produção). **Produção** continua Neon no Worker (secrets remotos).
 
-- Criar `.docker/Dockerfile.dev`: Node 22, `npm ci`, comando `npm run dev -- --host 0.0.0.0 --port 5173`.
-- Criar `.docker/docker-compose.dev.yaml` com um serviço `app`. Publica `5173:5173`. Lê variáveis de `.docker/.env` (`env_file`). Não copia `.env` para a imagem e não grava segredo no repositório.
-- O comando único é `docker compose -f .docker/docker-compose.dev.yaml up`. Com o env preenchido, `http://localhost:5173` responde e `/api/health` reflete `DATABASE_URL` e `JWT_SECRET`. Sem o arquivo, o container sobe e `/api/health` responde `configured: false`.
+- `.docker/Dockerfile.dev`: Node 22, usuário `node`, ferramentas de dev; Vite com `--host 0.0.0.0`; portas via `PORT_INTERNAL` / `PORT_EXTERNAL`.
+- `.docker/docker-compose.dev.yaml`: serviços `app` e `db`, `env_file` `.docker/.env`, volume `postgres_data` e `node_modules`.
+- Comando: `make docker-dev` ou `docker compose -f .docker/docker-compose.dev.yaml up`. Com env preenchido (`DATABASE_URL`, `JWT_SECRET`, credenciais `POSTGRES_*`), `http://localhost:<PORT_EXTERNAL>` e `/api/health` refletem configuração. Schema e seed na primeira requisição autenticada (Vite usa `pg` em dev — `pg-neon-compat.ts`; Worker usa Neon remoto).
 
 ### 2. Texto que justifica o Repository
 
@@ -74,12 +74,12 @@ Não abrir ADR de ORM, cache ou fila. Isso é Projeto A.
 ## Fora de escopo
 
 - Projeto A: contrato Pact, Testcontainers, Codecov, npm audit, Trivy, gitleaks, dois GitHub Environments, métricas RED, trace, feature flag, C4, cache, fila, k6 em três estágios, `EXPLAIN ANALYZE`.
-- Trocar Neon por Postgres no Compose, Prisma, TypeORM ou Knex.
+- Substituir Neon **em produção** por Postgres no compose; Prisma, TypeORM ou Knex.
 - Mudar rotas de negócio, auth, RLS ou o formato do backup.
 
 ## Critérios de aceite
 
-1. `docker compose -f .docker/docker-compose.dev.yaml up` sobe o app na porta 5173 sem segundo comando. Segredos continuam só em `.docker/.env` ou no Worker.
+1. `docker compose -f .docker/docker-compose.dev.yaml up` sobe **app** e **db**; Vite na porta configurada (`PORT_EXTERNAL`). Segredos só em `.docker/.env` ou no Worker (produção).
 2. `docs/arquitetura.md` justifica o Repository e aponta o ADR. `docs/adr/0001-bank-repository.md` tem contexto, opção descartada, decisão e consequências.
 3. `src/server/health.integration.spec.ts` sobe HTTP, chama `/api/health` e `/api/metrics`, e passa sem `DATABASE_URL` real.
 4. `vite.config.ts` declara os quatro pisos. Os dois workflows falham se o coverage cair abaixo deles.
