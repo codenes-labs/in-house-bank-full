@@ -69,21 +69,27 @@ Meta p95 &lt; 500 ms — [`docs/slo.md`](docs/slo.md). O binário **k6** vem na 
 
 ### Variáveis (`.docker/.env`)
 
+Copie de [`.docker/.env.example`](.docker/.env.example) (`make env-example` só cria o arquivo se ainda não existir — se o exemplo mudou, mescle as chaves novas no seu `.env`).
+
 | Variável | Descrição |
 | --- | --- |
 | `PORT_INTERNAL` / `PORT_EXTERNAL` | Vite no container / porta no host |
-| `POSTGRES_*` | Credenciais e portas do Postgres (`db`) |
-| `DATABASE_URL` | `postgresql://USER:PASS@db:5432/DB` (não use URL de produção) |
+| `POSTGRES_INTERNAL` / `POSTGRES_EXTERNAL` | Postgres no container / porta no host (`DBeaver`: `localhost:<POSTGRES_EXTERNAL>`) |
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | Credenciais do serviço `db` (devem bater com `DATABASE_URL`) |
+| `DATABASE_URL` | `postgresql://USER:PASS@db:5432/DB` no Dev Container; `@localhost:5432` se `npm run dev` no host com só o `db` do compose |
 | `JWT_SECRET` | ≥ 32 caracteres (`openssl rand -base64 48`) |
+| `PROMETHEUS_*` / `GRAFANA_*` | Portas e login admin do stack de métricas (serviços **comentados** no compose leve — [`docs/metricas.md`](docs/metricas.md)) |
+| `TURNSTILE_*` (opcional) | Cloudflare Turnstile em `/entrar` e `/recuperar-senha` |
+| `AUTH_PASSWORD_RECOVER_ENABLED` / `AUTH_SIGN_UP_ENABLED` (opcional) | Dev: ligados por padrão; `false` simula produção |
 
-Métricas locais (Prometheus + Grafana, só compose dev): [`docs/metricas.md`](docs/metricas.md). Logs: [`docs/observabilidade.md`](docs/observabilidade.md). OpenAPI: [`docs/openapi.yaml`](docs/openapi.yaml).
+Métricas locais (Prometheus + Grafana): [`docs/metricas.md`](docs/metricas.md). Logs: [`docs/observabilidade.md`](docs/observabilidade.md). OpenAPI: [`docs/openapi.yaml`](docs/openapi.yaml).
 
 ### Problemas comuns
 
 - **`Git: cannot run ssh` no Cursor** — o container não tem `ssh`; o script `ensure-git-https-remote.sh` troca `origin` para HTTPS. **Push** siga fazendo no **host** (WSL), onde você já tem SSH ou PAT.
 - **`localhost:5173` com `ERR_EMPTY_RESPONSE`** — o Vite ainda não subiu ou a porta do Docker não está mapeada. No terminal do container: `bash .devcontainer/start-dev-server.sh` ou `make dev`. Confira `tail -f /tmp/vite.log`. A porta vem do compose (`PORT_EXTERNAL` no host = `PORT_INTERNAL` no app); o Dev Container **não** reencaminha a 5173 (evita conflito com o publish do Docker). Use a mesma porta do `.docker/.env` (padrão 5173).
 - **`npm ci` com permissão negada** — `make docker-dev-down`, remova o volume `node_modules` (`docker volume ls`) e reabra o Dev Container.
-- **Postgres no DBeaver (host)** — host `localhost:5432`, não `db` (só resolve dentro do compose).
+- **Postgres no DBeaver (host)** — `localhost:<POSTGRES_EXTERNAL>` (padrão 5432), não `db` (só resolve dentro do compose).
 - **Sem Dev Container** — na máquina com Docker: `make docker-dev` sobe o mesmo compose (Vite na porta publicada).
 
 ## Produção local (validação)

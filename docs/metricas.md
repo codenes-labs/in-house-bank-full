@@ -10,12 +10,14 @@ No repositório não há material completo do Projeto A; a [SPEC-09](specs/SPEC-
 
 ## O que sobe no compose dev
 
+Por padrão o [`.docker/docker-compose.dev.yaml`](../.docker/docker-compose.dev.yaml) sobe só **`app`** + **`db`** (stack leve). Os serviços `prometheus` e `grafana` vêm **comentados** no arquivo; descomente os blocos se quiser o stack completo.
+
 | Serviço | Imagem | Porta no host (padrão) |
 | --- | --- | --- |
 | `prometheus` | `prom/prometheus` | `PROMETHEUS_EXTERNAL` (9090) |
 | `grafana` | `grafana/grafana` | `GRAFANA_EXTERNAL` (3000) |
 
-Variáveis em [`.docker/.env.example`](../.docker/.env.example): `PROMETHEUS_*`, `GRAFANA_*`, `GRAFANA_ADMIN_USER`, `GRAFANA_ADMIN_PASSWORD`.
+Variáveis em [`.docker/.env.example`](../.docker/.env.example): `PROMETHEUS_*`, `GRAFANA_*`, `GRAFANA_ADMIN_USER`, `GRAFANA_ADMIN_PASSWORD` (já presentes no exemplo mesmo com os serviços comentados).
 
 Config: [`.docker/prometheus/prometheus.yml`](../.docker/prometheus/prometheus.yml) scrape `http://app:5173/api/metrics` (job `in-house-bank-api`).
 
@@ -30,7 +32,7 @@ Sem Vite, o target fica **DOWN** no Prometheus (esperado).
 
 ## Dev Container
 
-1. **Reopen in Container** (sobe `app`, `db`, `prometheus`, `grafana`).
+1. **Reopen in Container** (sobe `app` e `db`; Prometheus/Grafana só se descomentados no compose).
 2. Terminal: `npm run dev`
 3. Abra no navegador do host:
    - **Prometheus:** [http://localhost:9090](http://localhost:9090) → Status → Targets (`in-house-bank-api` = UP após tráfego)
