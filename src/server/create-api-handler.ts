@@ -87,17 +87,16 @@ import { assertAppDataBackup } from '../domain/backup/assert-app-data-backup';
 import { incrementApiRequests, logApiRequest, renderPrometheusMetricsText } from './request-log';
 import { createSql, normalizeDatabaseUrl } from './neon-sql';
 import { jsonResponse, withSecurityHeaders } from './security-response';
+import { resolveAuthSession, type ResolvedAuthSession, type SessionUser } from './resolve-auth-session';
 
 type Sql = NeonQueryFunction<false, false>;
 
-type SessionUser = {
-  id: string;
-  email: string;
-  mustChangePassword: boolean;
-  isDemo: boolean;
-  holdingDelegate: boolean;
-  menuAccess: CompanyMenuAccess;
-};
+function accountRequiredResponse(authState: ResolvedAuthSession): Response {
+  if (authState.accountInactive) {
+    return json({ error: INACTIVE_ACCOUNT_LOGIN_MESSAGE, accountInactive: true }, 403);
+  }
+  return json({ error: 'Entre na conta para continuar.' }, 401);
+}
 
 const bootstrapReady = getPersistentMap('__ihb_bootstrap_ready__');
 
@@ -222,8 +221,12 @@ async function route(
   }
 
   if (pathname === '/api/auth/session' && request.method === 'GET') {
-    const user = await sessionUser(sql, jwtSecret, readBearerToken(request));
-    return json({ configured: true, user });
+    const authState = await resolveAuthSession(sql, jwtSecret, readBearerToken(request));
+    return json({
+      configured: true,
+      user: authState.user,
+      accountInactive: authState.accountInactive,
+    });
   }
   if (pathname === '/api/auth/sign-up' && request.method === 'POST') {
     if (!signUpEnabled) {
@@ -253,10 +256,11 @@ async function route(
     return changePassword(sql, request, jwtSecret);
   }
 
-  const account = await sessionUser(sql, jwtSecret, readBearerToken(request));
+  const authState = await resolveAuthSession(sql, jwtSecret, readBearerToken(request));
+  const account = authState.user;
   if (pathname === '/api/auth/totp/status' && request.method === 'GET') {
     if (!account) {
-      return json({ error: 'Entre na conta para continuar.' }, 401);
+      return accountRequiredResponse(authState);
     }
     const rows = await sql`select totp_enabled from users where id = ${account.id}::uuid`;
     const enabled = Boolean((rows[0] as { totp_enabled?: boolean } | undefined)?.totp_enabled);
@@ -264,7 +268,7 @@ async function route(
   }
   if (pathname === '/api/auth/totp/begin' && request.method === 'POST') {
     if (!account) {
-      return json({ error: 'Entre na conta para continuar.' }, 401);
+      return accountRequiredResponse(authState);
     }
     const body = (await request.json()) as { password?: string; code?: string };
     const result = await totpBegin(sql, account.id, {
@@ -278,7 +282,7 @@ async function route(
   }
   if (pathname === '/api/auth/totp/enable' && request.method === 'POST') {
     if (!account) {
-      return json({ error: 'Entre na conta para continuar.' }, 401);
+      return accountRequiredResponse(authState);
     }
     const body = (await request.json()) as { code?: string };
     const result = await totpEnable(sql, account.id, String(body.code ?? ''));
@@ -289,7 +293,7 @@ async function route(
   }
   if (pathname === '/api/auth/totp/disable' && request.method === 'POST') {
     if (!account) {
-      return json({ error: 'Entre na conta para continuar.' }, 401);
+      return accountRequiredResponse(authState);
     }
     const body = (await request.json()) as { password?: string; code?: string };
     const result = await totpDisable(sql, account.id, String(body.password ?? ''), String(body.code ?? ''));
@@ -300,7 +304,7 @@ async function route(
   }
 
   if (!account) {
-    return json({ error: 'Entre na conta para continuar.' }, 401);
+    return accountRequiredResponse(authState);
   }
   if (account.mustChangePassword) {
     return json({ error: 'Defina uma nova senha para continuar.' }, 403);
@@ -860,26 +864,6 @@ type UserRow = {
   totp_enabled?: boolean;
   account_active?: boolean;
 };
-
-async function sessionUser(sql: Sql, jwtSecret: string, token: string | null): Promise<SessionUser | null> {
-  if (!token) {
-    return null;
-  }
-  try {
-    const claims = await verifyAccessToken(jwtSecret, token);
-    const rows = await sql`
-      select id, email, account_kind, must_change_password, holding_delegate, menu_access, account_active
-      from users where id = ${claims.userId}::uuid
-    `;
-    const row = rows[0] as UserRow | undefined;
-    if (!row || row.account_active === false) {
-      return null;
-    }
-    return toSessionUser(row);
-  } catch {
-    return null;
-  }
-}
 
 function toSessionUser(row: UserRow): SessionUser {
   return {

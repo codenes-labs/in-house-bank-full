@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { isAccessTokenExpired } from '../lib/access-token-expiry';
 import { useSessionGuard } from '../lib/use-session-guard';
+import { AUTH_ACCOUNT_INACTIVE_EVENT } from '../lib/auth-account-inactive';
 import { authRequestInit, readAccessToken, writeAccessToken } from '../lib/auth-token';
 
 export interface AuthSession {
@@ -58,6 +59,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [expireSession]);
 
+  const applySessionResponse = useCallback(
+    (body: { configured?: boolean; user?: AuthSession['user'] | null; accountInactive?: boolean }) => {
+      if (body.accountInactive) {
+        expireSession();
+        return;
+      }
+      setConfigured(body.configured !== false);
+      if (!body.user) {
+        expireSession();
+      } else {
+        setSession({ user: body.user });
+      }
+    },
+    [expireSession],
+  );
+
+  const refreshSession = useCallback(async () => {
+    if (!readAccessToken()) {
+      return;
+    }
+    try {
+      const response = await fetch('/api/auth/session', authRequestInit());
+      if (!response.ok) {
+        expireSession();
+        return;
+      }
+      const body = (await response.json()) as {
+        configured?: boolean;
+        user?: AuthSession['user'] | null;
+        accountInactive?: boolean;
+      };
+      applySessionResponse(body);
+    } catch {
+      // Mantém sessão local se a rede falhar; próxima requisição ou nova checagem trata inatividade.
+    }
+  }, [applySessionResponse, expireSession]);
+
   useEffect(() => {
     let active = true;
     void fetch('/api/auth/session', authRequestInit())
@@ -65,19 +103,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!response.ok) {
           return { configured: false, user: null };
         }
-        return (await response.json()) as { configured?: boolean; user?: AuthSession['user'] | null };
+        return (await response.json()) as {
+          configured?: boolean;
+          user?: AuthSession['user'] | null;
+          accountInactive?: boolean;
+        };
       })
       .then((body) => {
         if (!active) {
           return;
         }
-        setConfigured(body.configured !== false);
-        if (!body.user) {
-          writeAccessToken(null);
-          setSession(null);
-        } else {
-          setSession({ user: body.user });
-        }
+        applySessionResponse(body);
         setLoading(false);
       })
       .catch(() => {
@@ -85,13 +121,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
         setConfigured(false);
-        setSession(null);
+        expireSession();
         setLoading(false);
       });
     return () => {
       active = false;
     };
-  }, []);
+  }, [applySessionResponse, expireSession]);
+
+  useEffect(() => {
+    const onInactive = () => expireSession();
+    window.addEventListener(AUTH_ACCOUNT_INACTIVE_EVENT, onInactive);
+    return () => window.removeEventListener(AUTH_ACCOUNT_INACTIVE_EVENT, onInactive);
+  }, [expireSession]);
+
+  useEffect(() => {
+    if (!session) {
+      return;
+    }
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        void refreshSession();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    const intervalId = window.setInterval(() => {
+      void refreshSession();
+    }, 60_000);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.clearInterval(intervalId);
+    };
+  }, [session, refreshSession]);
 
   const value = useMemo<AuthContextValue>(
     () => ({

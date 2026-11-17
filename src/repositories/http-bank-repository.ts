@@ -6,6 +6,7 @@ import type { FreeBalanceWithdrawal } from '../domain/models/free-balance-withdr
 import type { Installment } from '../domain/models/installment';
 import type { InstallmentPlan } from '../domain/models/installment-plan';
 import type { Settings } from '../domain/models/settings';
+import { dispatchAccountInactive, isAccountInactiveApiBody } from '../lib/auth-account-inactive';
 import { authRequestInit } from '../lib/auth-token';
 import type { BankRepository, BankSnapshot } from './bank-repository';
 
@@ -52,7 +53,13 @@ async function send(
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, init);
   if (!response.ok) {
-    const body = (await response.json().catch(() => null)) as { error?: string } | null;
+    const body = (await response.json().catch(() => null)) as {
+      error?: string;
+      accountInactive?: boolean;
+    } | null;
+    if (isAccountInactiveApiBody(response.status, body)) {
+      dispatchAccountInactive();
+    }
     throw new Error(body?.error ?? 'Não foi possível falar com o banco.');
   }
   return (await response.json()) as T;
