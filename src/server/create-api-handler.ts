@@ -7,7 +7,11 @@ import type { Installment } from '../domain/models/installment';
 import type { InstallmentPlan } from '../domain/models/installment-plan';
 import { createEmptySettings, type Settings } from '../domain/models/settings';
 import { canManageHoldingAccounts, canProvisionHoldingCompanies } from '../domain/holding/holding-provision';
-import { normalizeCompanyMenuAccess, type CompanyMenuAccess } from '../domain/holding/company-menu-access';
+import {
+  menuAccessForAccount,
+  normalizeCompanyMenuAccess,
+  type CompanyMenuAccess,
+} from '../domain/holding/company-menu-access';
 import {
   getHoldingCompanyDetail,
   setHoldingCompanyPassword,
@@ -26,6 +30,8 @@ import { validateHoldingCompanyProvision } from '../domain/holding/validate-hold
 import { createInitialCompanySettings } from './create-initial-company-settings';
 import { ensureSchemaPatches } from './schema-patches';
 import { deleteHoldingCompany } from './delete-holding-company';
+import { updateHoldingCompanyActive } from './holding-company-active';
+import { INACTIVE_ACCOUNT_LOGIN_MESSAGE } from '../domain/auth/inactive-account-login';
 import { listHoldingCompanies, updateHoldingCompanyAccess } from './holding-companies';
 import { provisionStandardAccount, validateStandardAccountCredentials } from './provision-standard-account';
 import { signAccessToken, verifyAccessToken } from './jwt';
@@ -76,6 +82,7 @@ import {
 } from './user-backup';
 
 import { ACCESS_TOKEN_TTL_SECONDS } from '../domain/auth/access-token-policy';
+import { syncHoldingRevealPassword } from '../domain/holding/sync-holding-reveal-password';
 import { assertAppDataBackup } from '../domain/backup/assert-app-data-backup';
 import { incrementApiRequests, logApiRequest, renderPrometheusMetricsText } from './request-log';
 import { createSql, normalizeDatabaseUrl } from './neon-sql';
@@ -328,6 +335,7 @@ async function route(
   const holdingCompanyPassword = pathname.match(/^\/api\/holding\/companies\/([^/]+)\/password$/);
   const holdingCompanyProfile = pathname.match(/^\/api\/holding\/companies\/([^/]+)\/profile$/);
   const holdingCompanyMenuAccess = pathname.match(/^\/api\/holding\/companies\/([^/]+)\/menu-access$/);
+  const holdingCompanyActive = pathname.match(/^\/api\/holding\/companies\/([^/]+)\/active$/);
 
   if (
     holdingCompanyId &&
@@ -335,7 +343,8 @@ async function route(
     holdingCompanyAccess === null &&
     holdingCompanyPassword === null &&
     holdingCompanyProfile === null &&
-    holdingCompanyMenuAccess === null
+    holdingCompanyMenuAccess === null &&
+    holdingCompanyActive === null
   ) {
     if (!canProvisionHoldingCompanies(account)) {
       return json({ error: 'Sem permissão.' }, 403);
@@ -423,6 +432,21 @@ async function route(
       });
     }
     return json({ error: 'Informe menu (categorias) e/ou mustChangePassword.' }, 400);
+  }
+
+  if (holdingCompanyActive && request.method === 'PATCH') {
+    if (!canManageHoldingAccounts(account)) {
+      return json({ error: 'Sem permissão.' }, 403);
+    }
+    const body = (await request.json()) as { active?: boolean };
+    if (typeof body.active !== 'boolean') {
+      return json({ error: 'Informe active (verdadeiro ou falso).' }, 400);
+    }
+    const updated = await updateHoldingCompanyActive(sql, holdingCompanyActive[1] ?? '', body.active);
+    if ('error' in updated) {
+      return json({ error: updated.error }, updated.status);
+    }
+    return json(updated);
   }
 
   if (holdingCompanyAccess && request.method === 'PATCH') {
@@ -664,11 +688,22 @@ async function signIn(
   }
 
   const rows = await sql`
-    select id, email, password_hash, account_kind, must_change_password, holding_delegate, menu_access, totp_secret, totp_enabled
+    select id, email, password_hash, account_kind, must_change_password, holding_delegate, menu_access, totp_secret, totp_enabled, account_active
     from users where email = ${email}
   `;
   const row = rows[0] as UserRow | undefined;
   const passwordOk = row ? await verifyPassword(password, row.password_hash) : false;
+  if (row && passwordOk && row.account_active === false) {
+    const worst = await recordRateLimitFailures(sql, rateKeys, nowMs);
+    if (worst.locked) {
+      return json(
+        { error: formatLoginLockoutMessage(worst.retryAfterSeconds), retryAfterSeconds: worst.retryAfterSeconds },
+        429,
+        { 'retry-after': String(worst.retryAfterSeconds) },
+      );
+    }
+    return json({ error: INACTIVE_ACCOUNT_LOGIN_MESSAGE }, 400);
+  }
   if (!row || !passwordOk) {
     const worst = await recordRateLimitFailures(sql, rateKeys, nowMs);
     if (worst.locked) {
@@ -756,7 +791,7 @@ async function recoverPassword(sql: Sql, request: Request, authSecurity: AuthSec
     set
       password_hash = ${await hashPassword(newPassword)},
       must_change_password = false,
-      holding_reveal_password = null
+      holding_reveal_password = ${syncHoldingRevealPassword(row.account_kind, newPassword)}
     where id = ${String(row.id)}::uuid
   `;
   await clearRateLimitKeys(sql, rateKeys);
@@ -804,7 +839,7 @@ async function changePassword(sql: Sql, request: Request, jwtSecret: string): Pr
     set
       password_hash = ${await hashPassword(newPassword)},
       must_change_password = false,
-      holding_reveal_password = null
+      holding_reveal_password = ${syncHoldingRevealPassword(row.account_kind, newPassword)}
     where id = ${claims.userId}::uuid
   `;
   return json({
@@ -823,6 +858,7 @@ type UserRow = {
   menu_access?: unknown;
   totp_secret?: string | null;
   totp_enabled?: boolean;
+  account_active?: boolean;
 };
 
 async function sessionUser(sql: Sql, jwtSecret: string, token: string | null): Promise<SessionUser | null> {
@@ -832,11 +868,14 @@ async function sessionUser(sql: Sql, jwtSecret: string, token: string | null): P
   try {
     const claims = await verifyAccessToken(jwtSecret, token);
     const rows = await sql`
-      select id, email, account_kind, must_change_password, holding_delegate, menu_access
+      select id, email, account_kind, must_change_password, holding_delegate, menu_access, account_active
       from users where id = ${claims.userId}::uuid
     `;
     const row = rows[0] as UserRow | undefined;
-    return row ? toSessionUser(row) : null;
+    if (!row || row.account_active === false) {
+      return null;
+    }
+    return toSessionUser(row);
   } catch {
     return null;
   }
@@ -849,7 +888,7 @@ function toSessionUser(row: UserRow): SessionUser {
     mustChangePassword: row.must_change_password,
     isDemo: row.account_kind === AccountKind.Demo,
     holdingDelegate: Boolean(row.holding_delegate),
-    menuAccess: normalizeCompanyMenuAccess(row.menu_access),
+    menuAccess: menuAccessForAccount(row.email, row.account_kind, row.menu_access),
   };
 }
 

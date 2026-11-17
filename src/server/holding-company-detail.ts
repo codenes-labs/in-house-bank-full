@@ -2,18 +2,22 @@ import type { NeonQueryFunction } from '@neondatabase/serverless';
 import { canAdminDeleteHoldingCompany } from '../domain/holding/holding-company-operational-data';
 import { holdingCompanyHasOperationalData } from '../domain/holding/holding-company-operational-data';
 import {
-  HoldingAccountProfile,
   resolveHoldingAccountProfile,
   canAdminEditHoldingAccess,
+  canAdminEditHoldingLoginEmail,
 } from '../domain/holding/holding-account-profile';
-import { isHoldingAdminEmail } from '../domain/holding/holding-admin';
 import {
   type CompanyMenuAccess,
-  DEFAULT_COMPANY_MENU_ACCESS,
   holdingDelegateFromMenuAccess,
+  menuAccessForAccount,
   normalizeCompanyMenuAccess,
 } from '../domain/holding/company-menu-access';
-import { normalizeLoginEmail, ADMIN_EMAIL, DEMO_EMAIL, AccountKind } from './account-seed';
+import {
+  canAdminEditHoldingMenuAccess,
+  canAdminEditHoldingMustChangePassword,
+} from '../domain/holding/holding-account-profile';
+import { canToggleHoldingAccountActive } from '../domain/holding/holding-account-active';
+import { normalizeLoginEmail, ADMIN_EMAIL, DEMO_EMAIL } from './account-seed';
 import { effectiveHoldingRegistrationCode } from '../domain/holding/holding-company-list-order';
 import { generateProvisionalPassword } from '../domain/holding/generate-provisional-password';
 import { loadHoldingCompanyDataMetrics } from './delete-holding-company';
@@ -27,6 +31,8 @@ export type HoldingCompanyDetail = {
   email: string;
   accountKind: string;
   profile: ReturnType<typeof resolveHoldingAccountProfile>;
+  accountActive: boolean;
+  canToggleAccountActive: boolean;
   mustChangePassword: boolean;
   totpEnabled: boolean;
   holdingDelegate: boolean;
@@ -38,6 +44,7 @@ export type HoldingCompanyDetail = {
   canEditAccess: boolean;
   canDelete: boolean;
   canManagePermissions: boolean;
+  canEditMenuAccess: boolean;
   hasOperationalData: boolean;
   dataMetrics: NonNullable<Awaited<ReturnType<typeof loadHoldingCompanyDataMetrics>>>;
   /** Última senha definida pelo admin holding (para repasse ao cliente). */
@@ -55,6 +62,7 @@ export async function getHoldingCompanyDetail(
       u.email,
       u.account_kind,
       u.must_change_password,
+      u.account_active,
       u.totp_enabled,
       u.holding_delegate,
       u.menu_access,
@@ -75,6 +83,7 @@ export async function getHoldingCompanyDetail(
         email: string;
         account_kind: string;
         must_change_password: boolean;
+        account_active: boolean;
         totp_enabled: boolean;
         holding_delegate: boolean;
         menu_access: unknown;
@@ -93,17 +102,19 @@ export async function getHoldingCompanyDetail(
     return null;
   }
   const profile = resolveHoldingAccountProfile(row.email, row.account_kind);
-  const canManage = !isHoldingAdminEmail(row.email) && profile === HoldingAccountProfile.Company;
+  const canManage = canAdminEditHoldingAccess(profile);
   return {
     id: row.id,
     registrationCode: effectiveHoldingRegistrationCode(profile, row.registration_code),
     email: row.email,
     accountKind: row.account_kind,
     profile,
+    accountActive: row.account_active !== false,
+    canToggleAccountActive: canToggleHoldingAccountActive(profile),
     mustChangePassword: row.must_change_password,
     totpEnabled: Boolean(row.totp_enabled),
     holdingDelegate: Boolean(row.holding_delegate),
-    menuAccess: normalizeCompanyMenuAccess(row.menu_access ?? DEFAULT_COMPANY_MENU_ACCESS),
+    menuAccess: menuAccessForAccount(row.email, row.account_kind, row.menu_access),
     createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at),
     businessName: String(row.business_name ?? '').trim(),
     city: String(row.city ?? '').trim(),
@@ -111,6 +122,7 @@ export async function getHoldingCompanyDetail(
     canEditAccess: canAdminEditHoldingAccess(profile),
     canDelete: canAdminDeleteHoldingCompany(profile),
     canManagePermissions: canManage,
+    canEditMenuAccess: canAdminEditHoldingMenuAccess(profile),
     hasOperationalData: holdingCompanyHasOperationalData(metrics),
     dataMetrics: metrics,
     revealPassword: row.holding_reveal_password?.trim() || null,
@@ -145,9 +157,6 @@ export async function setHoldingCompanyPassword(
   if (!row) {
     return { error: 'Conta não encontrada.', status: 404 };
   }
-  if (isHoldingAdminEmail(row.email) || row.account_kind === AccountKind.Demo) {
-    return { error: 'Não é possível alterar a senha desta conta por aqui.', status: 400 };
-  }
   await sql`
     update users
     set
@@ -179,10 +188,10 @@ export async function updateHoldingCompanyProfile(
   }
   const accountProfile = resolveHoldingAccountProfile(row.email, row.account_kind);
   if (!canAdminEditHoldingAccess(accountProfile)) {
-    return { error: 'Só é possível editar cadastro de contas empresa.', status: 400 };
+    return { error: 'Não é possível editar este cadastro.', status: 400 };
   }
   let nextEmail: string | undefined;
-  if (profile.email !== undefined) {
+  if (profile.email !== undefined && canAdminEditHoldingLoginEmail(accountProfile)) {
     const email = normalizeLoginEmail(profile.email);
     if (!email.includes('@')) {
       return { error: 'Informe um e-mail válido.', status: 400 };
@@ -235,8 +244,11 @@ export async function updateHoldingCompanyMenuAccess(
     return { error: 'Conta não encontrada.', status: 404 };
   }
   const profile = resolveHoldingAccountProfile(row.email, row.account_kind);
-  if (!canAdminEditHoldingAccess(profile)) {
-    return { error: 'Só é possível alterar permissões de contas empresa.', status: 400 };
+  if (!canAdminEditHoldingMenuAccess(profile)) {
+    return {
+      error: 'As permissões de menu das contas administração e demonstração são fixas (todas as telas).',
+      status: 400,
+    };
   }
   const holdingDelegate = holdingDelegateFromMenuAccess(normalized);
   await sql`
@@ -265,8 +277,11 @@ export async function updateHoldingCompanyMustChangePassword(
     return { error: 'Conta não encontrada.', status: 404 };
   }
   const profile = resolveHoldingAccountProfile(row.email, row.account_kind);
-  if (!canAdminEditHoldingAccess(profile)) {
-    return { error: 'Só é possível alterar permissões de contas empresa.', status: 400 };
+  if (!canAdminEditHoldingMustChangePassword(profile)) {
+    return {
+      error: 'Só contas empresa podem exigir troca de senha no próximo login por aqui.',
+      status: 400,
+    };
   }
   await sql`
     update users

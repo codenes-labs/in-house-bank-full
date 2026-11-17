@@ -21,7 +21,9 @@ import {
 import { type CompanyMenuAccess } from '../../domain/holding/company-menu-access';
 import { formatRegistrationCodeDisplay } from '../../domain/holding/company-registration-code';
 import { generateProvisionalPassword } from '../../domain/holding/generate-provisional-password';
+import { holdingAccountAccessStatus } from '../../domain/holding/holding-account-active';
 import { canManageHoldingAccounts, canProvisionHoldingCompanies } from '../../domain/holding/holding-provision';
+import { Button } from '../../components/ui';
 import {
   formatBrazilianDocumentDisplay,
   maskBrazilianDocumentInput,
@@ -35,6 +37,8 @@ type HoldingCompanyDetail = {
   registrationCode: string | null;
   email: string;
   profile: HoldingAccountProfile;
+  accountActive: boolean;
+  canToggleAccountActive: boolean;
   mustChangePassword: boolean;
   totpEnabled: boolean;
   holdingDelegate: boolean;
@@ -46,6 +50,7 @@ type HoldingCompanyDetail = {
   canEditAccess: boolean;
   canDelete: boolean;
   canManagePermissions: boolean;
+  canEditMenuAccess: boolean;
   hasOperationalData: boolean;
   revealPassword: string | null;
 };
@@ -81,6 +86,7 @@ export function HoldingCompanyDetailPage() {
   const [savingPermissions, setSavingPermissions] = useState(false);
   const [deleteAcknowledge, setDeleteAcknowledge] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [togglingActive, setTogglingActive] = useState(false);
 
   const canManage = session ? canManageHoldingAccounts(session.user) : false;
 
@@ -136,6 +142,11 @@ export function HoldingCompanyDetailPage() {
       <Navigate to="/holding/empresas" replace />
     );
   }
+
+  const accessStatus =
+    company === null
+      ? null
+      : holdingAccountAccessStatus(company.accountActive !== false, company.mustChangePassword);
 
   const displayName =
     company?.businessName ||
@@ -215,8 +226,34 @@ export function HoldingCompanyDetailPage() {
     }
   }
 
+  async function setAccountActive(nextActive: boolean) {
+    if (!company || !canManage || !company.canToggleAccountActive) {
+      return;
+    }
+    setTogglingActive(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        `/api/holding/companies/${company.id}/active`,
+        authRequestInit({
+          method: 'PATCH',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ active: nextActive }),
+        }),
+      );
+      const body = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        setError(body.error ?? 'Não foi possível atualizar o cadastro.');
+        return;
+      }
+      await load();
+    } finally {
+      setTogglingActive(false);
+    }
+  }
+
   async function savePermissions() {
-    if (!company || !menuDraft || !canManage) {
+    if (!company || !menuDraft || !canManage || !company.canEditMenuAccess) {
       return;
     }
     setSavingPermissions(true);
@@ -324,7 +361,7 @@ export function HoldingCompanyDetailPage() {
 
             {editingProfile && company.canManagePermissions ? (
               <form
-                className="grid gap-3 sm:grid-cols-2"
+                className="grid gap-3 sm:grid-cols-2 sm:items-start"
                 onSubmit={(event) => {
                   event.preventDefault();
                   void saveProfile();
@@ -346,6 +383,11 @@ export function HoldingCompanyDetailPage() {
                   <TextInput
                     type="email"
                     autoComplete="off"
+                    readOnly={company.profile !== HoldingAccountProfile.Company}
+                    tabIndex={company.profile !== HoldingAccountProfile.Company ? -1 : undefined}
+                    className={
+                      company.profile !== HoldingAccountProfile.Company ? 'opacity-80' : undefined
+                    }
                     value={profileDraft.email}
                     onChange={(e) => setProfileDraft((d) => ({ ...d, email: e.target.value }))}
                   />
@@ -363,6 +405,12 @@ export function HoldingCompanyDetailPage() {
                     }
                   />
                 </Field>
+                {company.profile !== HoldingAccountProfile.Company ? (
+                  <p className="text-xs font-normal text-muted-foreground sm:col-span-2">
+                    Conta de sistema: o e-mail de login não pode ser alterado pelo holding. Nome, cidade e documento
+                    podem ser editados normalmente.
+                  </p>
+                ) : null}
               </form>
             ) : (
               <dl className="grid gap-2 text-sm sm:grid-cols-2">
@@ -397,16 +445,44 @@ export function HoldingCompanyDetailPage() {
                 <div>
                   <dt className="text-muted-foreground">Acesso</dt>
                   <dd className="mt-1">
-                    {company.mustChangePassword ? (
-                      <StatusPill label="Troca de senha pendente" tone="pending" />
-                    ) : (
-                      <StatusPill label="Ativo" tone="paid" />
-                    )}
+                    {accessStatus ? (
+                      <StatusPill label={accessStatus.label} tone={accessStatus.tone} />
+                    ) : null}
                   </dd>
                 </div>
               </dl>
             )}
           </Card>
+
+          {canManage && company.canToggleAccountActive ? (
+            <Card className="grid gap-3">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Situação do cadastro</h2>
+              <p className="text-sm text-muted-foreground">
+                Conta inativa não consegue entrar. O login exibe orientação para contato com o setor responsável.
+              </p>
+              {company.accountActive !== false ? (
+                <Button
+                  type="button"
+                  variant="danger"
+                  className="w-fit min-h-12"
+                  disabled={togglingActive}
+                  onClick={() => void setAccountActive(false)}
+                >
+                  {togglingActive ? 'Salvando…' : 'Inativar cadastro'}
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="soft"
+                  className="w-fit min-h-12"
+                  disabled={togglingActive}
+                  onClick={() => void setAccountActive(true)}
+                >
+                  {togglingActive ? 'Salvando…' : 'Ativar cadastro'}
+                </Button>
+              )}
+            </Card>
+          ) : null}
 
           <Card className="grid gap-4">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Senha de acesso</h2>
@@ -498,7 +574,8 @@ export function HoldingCompanyDetailPage() {
                         </Field>
                         {!company.revealPassword ? (
                           <p className="max-w-md text-sm text-muted-foreground">
-                            Não há senha registrada para consulta. Use Atualizar senha para definir uma nova.
+                            Nenhuma senha salva para consulta. Após o cliente trocar a senha de acesso, ela passa a
+                            aparecer aqui ao recarregar o cadastro.
                           </p>
                         ) : null}
                       </div>
@@ -519,15 +596,14 @@ export function HoldingCompanyDetailPage() {
             {canManage && company.canManagePermissions ? (
               <ManagePermissionsActionButton
                 className="w-fit"
+                label={company.canEditMenuAccess ? 'Gerenciar permissões' : 'Ver permissões'}
                 onClick={() => {
                   setMenuDraft(company.menuAccess);
-                  setMustChangeDraft(company.mustChangePassword);
+                  setMustChangeDraft(company.canEditMenuAccess ? company.mustChangePassword : false);
                   setPermissionsOpen(true);
                 }}
               />
-            ) : (
-              <p className="text-sm text-muted-foreground">Fixas para administração e demonstração.</p>
-            )}
+            ) : null}
           </Card>
 
           {canManage && company.canDelete ? (
@@ -543,6 +619,8 @@ export function HoldingCompanyDetailPage() {
             menuAccess={menuDraft ?? company.menuAccess}
             mustChangePassword={mustChangeDraft}
             saving={savingPermissions}
+            readOnly={!company.canEditMenuAccess}
+            mustChangePasswordEditable={company.profile === HoldingAccountProfile.Company}
             onClose={() => setPermissionsOpen(false)}
             onChangeMenuAccess={setMenuDraft}
             onChangeMustChangePassword={setMustChangeDraft}
