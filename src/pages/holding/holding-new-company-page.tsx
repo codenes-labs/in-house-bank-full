@@ -1,7 +1,14 @@
 import { useState, type FormEvent } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../components/auth-context';
-import { Button, Card, Field, TextInput } from '../../components/ui';
+import { InputWithInlineActions } from '../../components/input-with-inline-actions';
+import {
+  CancelActionButton,
+  formActionRowClassName,
+  SaveActionButton,
+} from '../../components/standard-action-buttons';
+import { Card, Field, TextInput } from '../../components/ui';
+import { generateProvisionalPassword } from '../../domain/holding/generate-provisional-password';
 import { canProvisionHoldingCompanies } from '../../domain/holding/holding-provision';
 import { authRequestInit } from '../../lib/auth-token';
 import { useMinLg } from '../../lib/use-min-lg';
@@ -117,19 +124,32 @@ export function HoldingNewCompanyPage() {
             />
           </Field>
           <Field label="Senha inicial">
-            <TextInput
-              type="password"
+            <InputWithInlineActions
+              type="text"
               autoComplete="new-password"
               value={password}
-              onChange={(event) => setPassword(event.target.value)}
+              showSubmit={false}
+              onChange={setPassword}
+              onGenerate={() => setPassword(generateProvisionalPassword())}
             />
           </Field>
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <Button type="submit" disabled={submitting} className="sm:min-w-48">
-              {submitting ? 'Cadastrando…' : 'Cadastrar empresa'}
-            </Button>
-            <p className="text-xs text-muted-foreground">O login da empresa usará o e-mail e a senha informados.</p>
+          <p className="text-xs text-muted-foreground">O login da empresa usará o e-mail e a senha informados.</p>
+          <div className={`${formActionRowClassName} sm:justify-start`}>
+            <CancelActionButton
+              type="button"
+              className="flex-1 sm:flex-none"
+              disabled={submitting}
+              onClick={() => navigate('/holding/empresas')}
+            />
+            <SaveActionButton
+              type="submit"
+              label="Cadastrar empresa"
+              busyLabel="Cadastrando…"
+              busy={submitting}
+              disabled={submitting}
+              className="flex-1 sm:flex-none"
+            />
           </div>
         </form>
       </Card>

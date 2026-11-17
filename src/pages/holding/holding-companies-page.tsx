@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { Plus } from 'lucide-react';
 import { useAuth } from '../../components/auth-context';
+import { CreatePrimaryAction } from '../../components/standard-action-buttons';
 import { Card, cx, EmptyState, StatusPill } from '../../components/ui';
 import {
   HoldingAccountProfile,
@@ -80,13 +80,7 @@ export function HoldingCompaniesPage() {
           </p>
         </div>
         {isLg ? (
-          <Link
-            to="/holding/empresas/novo"
-            className="press inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 font-semibold text-primary-foreground sm:w-auto"
-          >
-            <Plus className="size-5" aria-hidden />
-            Nova empresa
-          </Link>
+          <CreatePrimaryAction label="Nova empresa" to="/holding/empresas/novo" />
         ) : null}
       </div>
 
@@ -103,21 +97,16 @@ export function HoldingCompaniesPage() {
       ) : companies.length === 0 ? (
         <div className="grid gap-3">
           <EmptyState title="Nenhuma conta" text="Cadastre a primeira empresa para liberar o login com e-mail e senha." />
-          <Link
-            to="/holding/empresas/novo"
-            className="press inline-flex min-h-12 items-center justify-center rounded-lg bg-primary font-semibold text-primary-foreground"
-          >
-            Nova empresa
-          </Link>
+          <CreatePrimaryAction fullWidth label="Nova empresa" to="/holding/empresas/novo" />
         </div>
       ) : (
         <Card className="min-w-0 overflow-hidden p-0">
-          <ul className="grid list-none gap-0 p-0 lg:grid-cols-[4.5rem_minmax(0,1fr)_5.5rem_minmax(0,6.5rem)] lg:gap-x-3">
+          <ul className="grid list-none gap-0 p-0 lg:grid-cols-[4.5rem_minmax(0,1fr)_8.5rem_7.5rem] lg:gap-x-4">
             <li className="col-span-full hidden border-b border-border bg-muted/50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground lg:grid lg:grid-cols-subgrid lg:items-center">
               <span>ID</span>
               <span>Empresa</span>
-              <span>Perfil</span>
-              <span className="text-end lg:text-center">Acesso</span>
+              <span className="pr-2">Perfil</span>
+              <span className="text-end">Status</span>
             </li>
             {companies.map((company) => {
               const name = companyDisplayName(company);
@@ -138,10 +127,10 @@ export function HoldingCompaniesPage() {
                       <p className="truncate font-semibold">{name}</p>
                       <p className="truncate text-sm text-muted-foreground">{company.email}</p>
                     </div>
-                    <span className="text-sm text-muted-foreground max-lg:row-start-3 lg:text-left">
+                    <span className="pr-2 text-sm text-muted-foreground max-lg:row-start-3 lg:text-left">
                       {holdingAccountProfileLabel(company.profile)}
                     </span>
-                    <span className="flex justify-end max-lg:row-start-1 lg:justify-center">
+                    <span className="flex justify-end max-lg:row-start-1">
                       {company.mustChangePassword ? (
                         <StatusPill label="Senha pendente" tone="pending" className="text-xs" />
                       ) : (

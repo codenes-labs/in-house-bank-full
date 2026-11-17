@@ -2,13 +2,31 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../components/auth-context';
 import { DeleteHoldingCompanyPanel } from '../../components/delete-holding-company-panel';
-import { Button, Card, Field, TextInput, StatusPill, money } from '../../components/ui';
+import { HoldingCompanyPermissionsPanel } from '../../components/holding-company-permissions-panel';
+import { InputWithInlineActions } from '../../components/input-with-inline-actions';
+import {
+  CancelActionButton,
+  CloseActionButton,
+  DeleteActionButton,
+  EditActionButton,
+  ManagePermissionsActionButton,
+  SaveActionButton,
+  ViewPasswordActionButton,
+} from '../../components/standard-action-buttons';
+import { Card, Field, TextInput, StatusPill } from '../../components/ui';
 import {
   HoldingAccountProfile,
   holdingAccountProfileLabel,
 } from '../../domain/holding/holding-account-profile';
+import { type CompanyMenuAccess } from '../../domain/holding/company-menu-access';
 import { formatRegistrationCodeDisplay } from '../../domain/holding/company-registration-code';
+import { generateProvisionalPassword } from '../../domain/holding/generate-provisional-password';
 import { canManageHoldingAccounts, canProvisionHoldingCompanies } from '../../domain/holding/holding-provision';
+import {
+  formatBrazilianDocumentDisplay,
+  maskBrazilianDocumentInput,
+  onlyDocumentDigits,
+} from '../../domain/document/format-brazilian-document';
 import { authRequestInit } from '../../lib/auth-token';
 import { useMinLg } from '../../lib/use-min-lg';
 
@@ -20,6 +38,7 @@ type HoldingCompanyDetail = {
   mustChangePassword: boolean;
   totpEnabled: boolean;
   holdingDelegate: boolean;
+  menuAccess: CompanyMenuAccess;
   createdAt: string;
   businessName: string;
   city: string;
@@ -28,14 +47,7 @@ type HoldingCompanyDetail = {
   canDelete: boolean;
   canManagePermissions: boolean;
   hasOperationalData: boolean;
-  dataMetrics: {
-    installmentPlanCount: number;
-    cashBoxCount: number;
-    cashBoxMovementCount: number;
-    freeBalanceCents: number;
-    freeBalanceDepositCount: number;
-    freeBalanceWithdrawalCount: number;
-  };
+  revealPassword: string | null;
 };
 
 function formatCreatedAt(iso: string): string {
@@ -54,9 +66,19 @@ export function HoldingCompanyDetailPage() {
   const [company, setCompany] = useState<HoldingCompanyDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [profileDraft, setProfileDraft] = useState({ businessName: '', city: '', document: '', email: '' });
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [passwordPanelOpen, setPasswordPanelOpen] = useState(false);
+  const [passwordEditing, setPasswordEditing] = useState(false);
   const [newPassword, setNewPassword] = useState('');
+  const [passwordGenerate, setPasswordGenerate] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
-  const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [permissionsOpen, setPermissionsOpen] = useState(false);
+  const [menuDraft, setMenuDraft] = useState<CompanyMenuAccess | null>(null);
+  const [mustChangeDraft, setMustChangeDraft] = useState(false);
+  const [savingPermissions, setSavingPermissions] = useState(false);
   const [deleteAcknowledge, setDeleteAcknowledge] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
@@ -76,7 +98,18 @@ export function HoldingCompanyDetailPage() {
         setCompany(null);
         return;
       }
-      setCompany(body.company ?? null);
+      const loaded = body.company ?? null;
+      setCompany(loaded);
+      if (loaded) {
+        setProfileDraft({
+          businessName: loaded.businessName,
+          city: loaded.city,
+          document: formatBrazilianDocumentDisplay(loaded.document),
+          email: loaded.email,
+        });
+        setMenuDraft(loaded.menuAccess);
+        setMustChangeDraft(loaded.mustChangePassword);
+      }
     } finally {
       setLoading(false);
     }
@@ -94,56 +127,53 @@ export function HoldingCompanyDetailPage() {
     return <Navigate to="/inicio" replace />;
   }
 
-  if (!isLg) {
-    return (
-      <div className="grid gap-4">
-        <p className="rounded-lg bg-warning-soft px-3 py-2 text-sm text-status-pending">
-          Este cadastro está disponível apenas na versão web (tela larga).
-        </p>
-      </div>
+  if (!isLg || !companyId) {
+    return !isLg ? (
+      <p className="rounded-lg bg-warning-soft px-3 py-2 text-sm text-status-pending">
+        Este cadastro está disponível apenas na versão web (tela larga).
+      </p>
+    ) : (
+      <Navigate to="/holding/empresas" replace />
     );
   }
 
-  if (!companyId) {
-    return <Navigate to="/holding/empresas" replace />;
-  }
+  const displayName =
+    company?.businessName ||
+    (company?.profile === HoldingAccountProfile.Administration
+      ? 'Codenes — administração'
+      : company?.profile === HoldingAccountProfile.Demo
+        ? 'Conta demonstração'
+        : company?.email);
 
-  async function patchAccess(patch: { mustChangePassword?: boolean; holdingDelegate?: boolean }) {
-    if (!company || !canManage) {
+  async function saveProfile() {
+    if (!company || !canManage || !company.canManagePermissions) {
       return;
     }
+    setSavingProfile(true);
     setError(null);
-    if (typeof patch.mustChangePassword === 'boolean') {
+    try {
       const response = await fetch(
-        `/api/holding/companies/${company.id}/access`,
+        `/api/holding/companies/${company.id}/profile`,
         authRequestInit({
           method: 'PATCH',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ mustChangePassword: patch.mustChangePassword }),
+          body: JSON.stringify({
+            businessName: profileDraft.businessName,
+            city: profileDraft.city,
+            document: onlyDocumentDigits(profileDraft.document) || null,
+            email: profileDraft.email,
+          }),
         }),
       );
-      const body = (await response.json()) as { error?: string; mustChangePassword?: boolean };
+      const body = (await response.json()) as { error?: string };
       if (!response.ok) {
-        setError(body.error ?? 'Não foi possível atualizar o acesso.');
+        setError(body.error ?? 'Não foi possível salvar.');
         return;
       }
-      setCompany((c) => (c ? { ...c, mustChangePassword: body.mustChangePassword ?? patch.mustChangePassword! } : c));
-    }
-    if (typeof patch.holdingDelegate === 'boolean') {
-      const response = await fetch(
-        `/api/holding/companies/${company.id}/holding-access`,
-        authRequestInit({
-          method: 'PATCH',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ enabled: patch.holdingDelegate }),
-        }),
-      );
-      const body = (await response.json()) as { error?: string; holdingDelegate?: boolean };
-      if (!response.ok) {
-        setError(body.error ?? 'Não foi possível atualizar permissão Holding.');
-        return;
-      }
-      setCompany((c) => (c ? { ...c, holdingDelegate: body.holdingDelegate ?? patch.holdingDelegate! } : c));
+      setEditingProfile(false);
+      await load();
+    } finally {
+      setSavingProfile(false);
     }
   }
 
@@ -152,27 +182,71 @@ export function HoldingCompanyDetailPage() {
     if (!company || !canManage) {
       return;
     }
-    setPasswordMessage(null);
     setSavingPassword(true);
+    setPasswordError(null);
     try {
       const response = await fetch(
         `/api/holding/companies/${company.id}/password`,
         authRequestInit({
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ newPassword: newPassword }),
+          body: JSON.stringify({
+            newPassword: newPassword,
+            generate: passwordGenerate,
+          }),
         }),
       );
-      const body = (await response.json()) as { error?: string };
+      const body = (await response.json()) as { error?: string; generatedPassword?: string };
       if (!response.ok) {
-        setPasswordMessage(body.error ?? 'Não foi possível alterar a senha.');
+        setPasswordError(body.error ?? 'Não foi possível alterar a senha.');
         return;
       }
+      const shown = body.generatedPassword ?? newPassword;
       setNewPassword('');
-      setPasswordMessage('Nova senha definida. O login da empresa já pode usar essa senha.');
-      setCompany((c) => (c ? { ...c, mustChangePassword: false } : c));
+      setPasswordGenerate(false);
+      setPasswordEditing(false);
+      setPasswordPanelOpen(true);
+      setCompany((c) =>
+        c ? { ...c, mustChangePassword: false, revealPassword: shown } : c,
+      );
+      await load();
     } finally {
       setSavingPassword(false);
+    }
+  }
+
+  async function savePermissions() {
+    if (!company || !menuDraft || !canManage) {
+      return;
+    }
+    setSavingPermissions(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        `/api/holding/companies/${company.id}/menu-access`,
+        authRequestInit({
+          method: 'PATCH',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            routes: menuDraft.routes,
+            mustChangePassword: mustChangeDraft,
+          }),
+        }),
+      );
+      const body = (await response.json()) as {
+        error?: string;
+        menuAccess?: CompanyMenuAccess;
+        holdingDelegate?: boolean;
+        mustChangePassword?: boolean;
+      };
+      if (!response.ok) {
+        setError(body.error ?? 'Não foi possível salvar permissões.');
+        return;
+      }
+      setPermissionsOpen(false);
+      await load();
+    } finally {
+      setSavingPermissions(false);
     }
   }
 
@@ -202,17 +276,9 @@ export function HoldingCompanyDetailPage() {
       }
       navigate('/holding/empresas', { replace: true });
     } finally {
-      /* keep panel open on error */
+      setDeleteOpen(false);
     }
   }
-
-  const displayName =
-    company?.businessName ||
-    (company?.profile === HoldingAccountProfile.Administration
-      ? 'Codenes — administração'
-      : company?.profile === HoldingAccountProfile.Demo
-        ? 'Conta demonstração'
-        : company?.email);
 
   return (
     <div className="grid min-w-0 gap-4">
@@ -237,133 +303,230 @@ export function HoldingCompanyDetailPage() {
 
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
-          <Card className="grid min-w-0 gap-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Dados do cadastro</h2>
-            <dl className="grid gap-2 text-sm sm:grid-cols-2">
-              <div>
-                <dt className="text-muted-foreground">Nome da empresa</dt>
-                <dd className="font-medium">{company.businessName || '—'}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Cidade</dt>
-                <dd className="font-medium">{company.city || '—'}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Documento</dt>
-                <dd className="font-medium">{company.document || '—'}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Perfil</dt>
-                <dd className="font-medium">{holdingAccountProfileLabel(company.profile)}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Cadastro em</dt>
-                <dd className="font-medium">{formatCreatedAt(company.createdAt)}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">2FA</dt>
-                <dd className="font-medium">{company.totpEnabled ? 'Ativo' : 'Desativado'}</dd>
-              </div>
-              <div className="sm:col-span-2">
-                <dt className="text-muted-foreground">Acesso</dt>
-                <dd className="mt-1">
-                  {company.mustChangePassword ? (
-                    <StatusPill label="Troca de senha pendente" tone="pending" />
-                  ) : (
-                    <StatusPill label="Ativo" tone="paid" />
-                  )}
-                </dd>
-              </div>
-            </dl>
-          </Card>
+          <Card className="grid min-w-0 gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Dados do cadastro</h2>
+              {canManage && company.canManagePermissions ? (
+                editingProfile ? (
+                  <div className="flex gap-2">
+                    <CancelActionButton className="min-h-10" onClick={() => setEditingProfile(false)} />
+                    <SaveActionButton
+                      className="min-h-10"
+                      busy={savingProfile}
+                      onClick={() => void saveProfile()}
+                    />
+                  </div>
+                ) : (
+                  <EditActionButton label="Editar dados" className="min-h-10" onClick={() => setEditingProfile(true)} />
+                )
+              ) : null}
+            </div>
 
-          <Card className="grid min-w-0 gap-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Dados no banco</h2>
-            <dl className="grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
-              <div>
-                <dt className="text-muted-foreground">Parcelamentos</dt>
-                <dd className="font-medium tabular-nums">{company.dataMetrics.installmentPlanCount}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Caixinhas</dt>
-                <dd className="font-medium tabular-nums">{company.dataMetrics.cashBoxCount}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Movimentações</dt>
-                <dd className="font-medium tabular-nums">{company.dataMetrics.cashBoxMovementCount}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Saldo livre</dt>
-                <dd className="font-medium tabular-nums">{money(company.dataMetrics.freeBalanceCents)}</dd>
-              </div>
-            </dl>
-          </Card>
-
-          <Card className="grid min-w-0 gap-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Senha de acesso</h2>
-            <p className="text-sm text-muted-foreground">
-              A senha fica criptografada no servidor e não pode ser exibida. Defina uma nova senha para o login da
-              empresa.
-            </p>
-            {canManage && company.canManagePermissions ? (
-              <form className="grid max-w-md gap-3" onSubmit={(event) => void submitPassword(event)}>
-                <Field label="Nova senha">
+            {editingProfile && company.canManagePermissions ? (
+              <form
+                className="grid gap-3 sm:grid-cols-2"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void saveProfile();
+                }}
+              >
+                <Field label="Nome da empresa">
                   <TextInput
-                    type="password"
-                    autoComplete="new-password"
-                    value={newPassword}
-                    onChange={(event) => setNewPassword(event.target.value)}
+                    value={profileDraft.businessName}
+                    onChange={(e) => setProfileDraft((d) => ({ ...d, businessName: e.target.value }))}
                   />
                 </Field>
-                {passwordMessage ? (
-                  <p
-                    className={
-                      passwordMessage.includes('definida') ? 'text-sm text-accent' : 'text-sm text-destructive'
+                <Field label="Cidade">
+                  <TextInput
+                    value={profileDraft.city}
+                    onChange={(e) => setProfileDraft((d) => ({ ...d, city: e.target.value }))}
+                  />
+                </Field>
+                <Field label="E-mail de acesso">
+                  <TextInput
+                    type="email"
+                    autoComplete="off"
+                    value={profileDraft.email}
+                    onChange={(e) => setProfileDraft((d) => ({ ...d, email: e.target.value }))}
+                  />
+                </Field>
+                <Field label="Documento (CPF/CNPJ)">
+                  <TextInput
+                    inputMode="numeric"
+                    autoComplete="off"
+                    value={profileDraft.document}
+                    onChange={(e) =>
+                      setProfileDraft((d) => ({
+                        ...d,
+                        document: maskBrazilianDocumentInput(e.target.value),
+                      }))
                     }
-                  >
-                    {passwordMessage}
-                  </p>
-                ) : null}
-                <Button type="submit" disabled={savingPassword || newPassword.length < 6}>
-                  {savingPassword ? 'Salvando…' : 'Definir nova senha'}
-                </Button>
+                  />
+                </Field>
               </form>
             ) : (
-              <p className="text-sm text-muted-foreground">Não disponível para esta conta.</p>
+              <dl className="grid gap-2 text-sm sm:grid-cols-2">
+                <div>
+                  <dt className="text-muted-foreground">Nome da empresa</dt>
+                  <dd className="font-medium">{company.businessName || '—'}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Cidade</dt>
+                  <dd className="font-medium">{company.city || '—'}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Documento</dt>
+                  <dd className="font-medium">{formatBrazilianDocumentDisplay(company.document) || '—'}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">E-mail de acesso</dt>
+                  <dd className="font-medium">{company.email}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Perfil</dt>
+                  <dd className="font-medium">{holdingAccountProfileLabel(company.profile)}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Cadastro em</dt>
+                  <dd className="font-medium">{formatCreatedAt(company.createdAt)}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">2FA</dt>
+                  <dd className="font-medium">{company.totpEnabled ? 'Ativo' : 'Desativado'}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Acesso</dt>
+                  <dd className="mt-1">
+                    {company.mustChangePassword ? (
+                      <StatusPill label="Troca de senha pendente" tone="pending" />
+                    ) : (
+                      <StatusPill label="Ativo" tone="paid" />
+                    )}
+                  </dd>
+                </div>
+              </dl>
             )}
           </Card>
 
-          <Card className="grid min-w-0 gap-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Permissões</h2>
+          <Card className="grid gap-4">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Senha de acesso</h2>
             {canManage && company.canManagePermissions ? (
-              <div className="grid gap-3">
-                <label className="flex cursor-pointer items-start gap-2">
-                  <input
-                    type="checkbox"
-                    className="mt-1 size-4 shrink-0 rounded border-border"
-                    checked={company.mustChangePassword}
-                    onChange={(event) => void patchAccess({ mustChangePassword: event.target.checked })}
+              <>
+                {!passwordPanelOpen ? (
+                  <ViewPasswordActionButton
+                    className="w-fit"
+                    onClick={() => {
+                      setPasswordPanelOpen(true);
+                      setPasswordEditing(false);
+                      setPasswordError(null);
+                    }}
                   />
-                  <span className="text-sm text-muted-foreground">Exigir troca de senha no próximo login</span>
-                </label>
-                <label className="flex cursor-pointer items-start gap-2">
-                  <input
-                    type="checkbox"
-                    className="mt-1 size-4 shrink-0 rounded border-border"
-                    checked={company.holdingDelegate}
-                    onChange={(event) => void patchAccess({ holdingDelegate: event.target.checked })}
-                  />
-                  <span className="text-sm text-muted-foreground">
-                    Permitir ver o menu Holding (cadastro de empresas) com este e-mail
-                  </span>
-                </label>
-              </div>
+                ) : (
+                  <div className="grid gap-4">
+                    {passwordEditing ? (
+                      <form className="grid gap-3" onSubmit={(event) => void submitPassword(event)}>
+                        <Field label="Nova senha">
+                          <div className="flex min-w-0 flex-wrap items-stretch gap-2">
+                            <InputWithInlineActions
+                              className="min-w-[min(100%,16rem)] max-w-md flex-1"
+                              type="text"
+                              autoComplete="new-password"
+                              value={newPassword}
+                              submitLabel="Salvar"
+                              submitting={savingPassword}
+                              submitDisabled={savingPassword || newPassword.length < 6}
+                              onChange={(next) => {
+                                setPasswordGenerate(false);
+                                setNewPassword(next);
+                              }}
+                              onGenerate={() => {
+                                const generated = generateProvisionalPassword();
+                                setPasswordGenerate(true);
+                                setNewPassword(generated);
+                              }}
+                            />
+                            <CloseActionButton
+                              layout="inline"
+                              className="min-h-12 shrink-0"
+                              onClick={() => {
+                                setPasswordEditing(false);
+                                setNewPassword('');
+                                setPasswordGenerate(false);
+                                setPasswordError(null);
+                              }}
+                            />
+                          </div>
+                        </Field>
+                        {passwordError ? <p className="text-sm text-destructive">{passwordError}</p> : null}
+                      </form>
+                    ) : (
+                      <div className="grid gap-3">
+                        <Field label="Senha atual">
+                          <div className="flex min-w-0 flex-wrap items-stretch gap-2">
+                            <InputWithInlineActions
+                              className="min-w-[min(100%,16rem)] max-w-md flex-1"
+                              readOnly
+                              tabIndex={-1}
+                              value={company.revealPassword ?? ''}
+                              placeholder="—"
+                              showGenerate={false}
+                              showSubmit={false}
+                              onChange={() => undefined}
+                              onGenerate={() => undefined}
+                              trailingAction={{
+                                label: 'Atualizar senha',
+                                icon: 'key',
+                                onClick: () => {
+                                  setPasswordEditing(true);
+                                  setPasswordError(null);
+                                  setNewPassword('');
+                                  setPasswordGenerate(false);
+                                },
+                              }}
+                            />
+                            <CloseActionButton
+                              layout="inline"
+                              className="min-h-12 shrink-0"
+                              onClick={() => {
+                                setPasswordPanelOpen(false);
+                                setPasswordEditing(false);
+                                setNewPassword('');
+                                setPasswordError(null);
+                              }}
+                            />
+                          </div>
+                        </Field>
+                        {!company.revealPassword ? (
+                          <p className="max-w-md text-sm text-muted-foreground">
+                            Não há senha registrada para consulta. Use Atualizar senha para definir uma nova.
+                          </p>
+                        ) : null}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
             ) : (
-              <p className="text-sm text-muted-foreground">
-                {company.holdingDelegate
-                  ? 'Esta conta tem acesso ao menu Holding.'
-                  : 'Permissões fixas para administração e demonstração.'}
-              </p>
+              <p className="text-sm text-muted-foreground">Indisponível para esta conta.</p>
+            )}
+          </Card>
+
+          <Card className="grid gap-3">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Permissões</h2>
+            <p className="text-sm text-muted-foreground">
+              Controla o menu que a empresa vê ao entrar (Patrimônio, Holding, Relatórios, Ajustes).
+            </p>
+            {canManage && company.canManagePermissions ? (
+              <ManagePermissionsActionButton
+                className="w-fit"
+                onClick={() => {
+                  setMenuDraft(company.menuAccess);
+                  setMustChangeDraft(company.mustChangePassword);
+                  setPermissionsOpen(true);
+                }}
+              />
+            ) : (
+              <p className="text-sm text-muted-foreground">Fixas para administração e demonstração.</p>
             )}
           </Card>
 
@@ -371,11 +534,20 @@ export function HoldingCompanyDetailPage() {
             <Card className="grid gap-3 border-destructive/30">
               <h2 className="text-sm font-semibold text-destructive">Zona de perigo</h2>
               <p className="text-sm text-muted-foreground">Remove a conta e todos os dados em cascata.</p>
-              <Button type="button" variant="danger" className="w-fit" onClick={() => setDeleteOpen(true)}>
-                Excluir empresa
-              </Button>
+              <DeleteActionButton label="Excluir empresa" className="w-fit" onClick={() => setDeleteOpen(true)} />
             </Card>
           ) : null}
+
+          <HoldingCompanyPermissionsPanel
+            open={permissionsOpen}
+            menuAccess={menuDraft ?? company.menuAccess}
+            mustChangePassword={mustChangeDraft}
+            saving={savingPermissions}
+            onClose={() => setPermissionsOpen(false)}
+            onChangeMenuAccess={setMenuDraft}
+            onChangeMustChangePassword={setMustChangeDraft}
+            onSave={() => void savePermissions()}
+          />
 
           <DeleteHoldingCompanyPanel
             open={deleteOpen}

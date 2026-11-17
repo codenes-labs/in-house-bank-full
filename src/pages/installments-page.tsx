@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Plus, SlidersHorizontal } from 'lucide-react';
+import { SlidersHorizontal } from 'lucide-react';
+import { CreatePrimaryAction } from '../components/standard-action-buttons';
 import { useBank } from '../components/bank-context';
 import { DueDateRangePicker } from '../components/due-date-range-picker';
 import { FilterField } from '../components/filter-field';
@@ -102,13 +103,7 @@ export function InstallmentsPage() {
           <h1 className="text-2xl font-semibold sm:text-3xl">Parcelamentos</h1>
           <p className="mt-1 text-sm text-muted-foreground">{rows.length} resultado{rows.length === 1 ? '' : 's'}</p>
         </div>
-        <Link
-          to="/parcelamentos/novo"
-          className="press inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 font-semibold text-primary-foreground sm:w-auto"
-        >
-          <Plus className="size-5" aria-hidden />
-          Novo parcelamento
-        </Link>
+        <CreatePrimaryAction label="Novo parcelamento" to="/parcelamentos/novo" />
       </div>
 
       <Card className="grid min-w-0 gap-3">
@@ -170,12 +165,7 @@ export function InstallmentsPage() {
             }
           />
           {!filtersActive ? (
-            <Link
-              to="/parcelamentos/novo"
-              className="press inline-flex min-h-12 items-center justify-center rounded-lg bg-primary font-semibold text-primary-foreground"
-            >
-              Criar parcelamento
-            </Link>
+            <CreatePrimaryAction fullWidth label="Criar parcelamento" to="/parcelamentos/novo" />
           ) : null}
         </div>
       ) : (

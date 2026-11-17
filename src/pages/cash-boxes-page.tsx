@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
 import { useBank } from '../components/bank-context';
 import { CashBoxListCard } from '../components/cash-box-list-card';
 import { CreateCashBoxPanel } from '../components/create-cash-box-panel';
-import { Button, Card, EmptyState, money } from '../components/ui';
+import { CreatePrimaryAction } from '../components/standard-action-buttons';
+import { Card, EmptyState, money } from '../components/ui';
 import { todayCalendarDate } from '../domain/calendar/today-calendar-date';
 import { computeFinancialOverview } from '../domain/finance/compute-financial-overview';
 import { milestonesOrDefault } from '../domain/finance/default-milestones';
@@ -26,12 +26,11 @@ export function CashBoxesPage() {
 
   return (
     <div className="grid gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-3xl font-semibold">Caixinhas</h1>
-        <Button type="button" variant="soft" className="gap-2" onClick={() => setCreateOpen(true)}>
-          <Plus className="size-5" aria-hidden />
-          Criar caixinha
-        </Button>
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold sm:text-3xl">Caixinhas</h1>
+        </div>
+        <CreatePrimaryAction label="Nova caixinha" onClick={() => setCreateOpen(true)} />
       </div>
       {notice ? <p className="text-sm text-accent">{notice}</p> : null}
       <Card className="grid gap-1 sm:grid-cols-2 sm:gap-3">
@@ -43,7 +42,7 @@ export function CashBoxesPage() {
       {bank.snapshot.cashBoxes.length === 0 ? (
         <div className="grid gap-3">
           <EmptyState title="Nenhuma caixinha" text="Crie a primeira para projetar o rendimento." />
-          <Button type="button" onClick={() => setCreateOpen(true)}>Criar caixinha</Button>
+          <CreatePrimaryAction fullWidth label="Criar caixinha" onClick={() => setCreateOpen(true)} />
         </div>
       ) : (
         <div className="grid gap-2 lg:grid-cols-2">
