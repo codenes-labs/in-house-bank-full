@@ -7,7 +7,14 @@ import type { Installment } from '../domain/models/installment';
 import type { InstallmentPlan } from '../domain/models/installment-plan';
 import { createEmptySettings, type Settings } from '../domain/models/settings';
 import { canManageHoldingAccounts, canProvisionHoldingCompanies } from '../domain/holding/holding-provision';
-import { getHoldingCompanyDetail, setHoldingCompanyPassword, updateHoldingDelegate } from './holding-company-detail';
+import { normalizeCompanyMenuAccess, type CompanyMenuAccess } from '../domain/holding/company-menu-access';
+import {
+  getHoldingCompanyDetail,
+  setHoldingCompanyPassword,
+  updateHoldingCompanyMenuAccess,
+  updateHoldingCompanyMustChangePassword,
+  updateHoldingCompanyProfile,
+} from './holding-company-detail';
 import {
   AccountKind,
   DEMO_EMAIL,
@@ -82,6 +89,7 @@ type SessionUser = {
   mustChangePassword: boolean;
   isDemo: boolean;
   holdingDelegate: boolean;
+  menuAccess: CompanyMenuAccess;
 };
 
 const bootstrapReady = getPersistentMap('__ihb_bootstrap_ready__');
@@ -318,14 +326,16 @@ async function route(
   const holdingCompanyAccess = pathname.match(/^\/api\/holding\/companies\/([^/]+)\/access$/);
   const holdingCompanyId = pathname.match(/^\/api\/holding\/companies\/([^/]+)$/);
   const holdingCompanyPassword = pathname.match(/^\/api\/holding\/companies\/([^/]+)\/password$/);
-  const holdingCompanyHoldingAccess = pathname.match(/^\/api\/holding\/companies\/([^/]+)\/holding-access$/);
+  const holdingCompanyProfile = pathname.match(/^\/api\/holding\/companies\/([^/]+)\/profile$/);
+  const holdingCompanyMenuAccess = pathname.match(/^\/api\/holding\/companies\/([^/]+)\/menu-access$/);
 
   if (
     holdingCompanyId &&
     request.method === 'GET' &&
     holdingCompanyAccess === null &&
     holdingCompanyPassword === null &&
-    holdingCompanyHoldingAccess === null
+    holdingCompanyProfile === null &&
+    holdingCompanyMenuAccess === null
   ) {
     if (!canProvisionHoldingCompanies(account)) {
       return json({ error: 'Sem permissão.' }, 403);
@@ -341,27 +351,78 @@ async function route(
     if (!canManageHoldingAccounts(account)) {
       return json({ error: 'Sem permissão para alterar senhas.' }, 403);
     }
-    const body = (await request.json()) as { newPassword?: string };
-    const result = await setHoldingCompanyPassword(sql, holdingCompanyPassword[1] ?? '', String(body.newPassword ?? ''));
+    const body = (await request.json()) as { newPassword?: string; generate?: boolean };
+    const result = await setHoldingCompanyPassword(sql, holdingCompanyPassword[1] ?? '', {
+      newPassword: body.newPassword,
+      generate: body.generate === true,
+    });
     if ('error' in result) {
       return json({ error: result.error }, result.status);
     }
-    return json(result);
+    if (result.ok && result.generatedPassword) {
+      return json(result);
+    }
+    return json({ ok: true });
   }
 
-  if (holdingCompanyHoldingAccess && request.method === 'PATCH') {
+  if (holdingCompanyProfile && request.method === 'PATCH') {
     if (!canManageHoldingAccounts(account)) {
       return json({ error: 'Sem permissão.' }, 403);
     }
-    const body = (await request.json()) as { enabled?: boolean };
-    if (typeof body.enabled !== 'boolean') {
-      return json({ error: 'Informe enabled (verdadeiro ou falso).' }, 400);
-    }
-    const updated = await updateHoldingDelegate(sql, holdingCompanyHoldingAccess[1] ?? '', body.enabled);
+    const body = (await request.json()) as {
+      businessName?: string;
+      city?: string;
+      document?: string;
+      email?: string;
+    };
+    const updated = await updateHoldingCompanyProfile(sql, holdingCompanyProfile[1] ?? '', {
+      businessName: String(body.businessName ?? ''),
+      city: String(body.city ?? ''),
+      document: body.document?.trim() || null,
+      email: body.email !== undefined ? String(body.email) : undefined,
+    });
     if ('error' in updated) {
       return json({ error: updated.error }, updated.status);
     }
     return json(updated);
+  }
+
+  if (holdingCompanyMenuAccess && request.method === 'PATCH') {
+    if (!canManageHoldingAccounts(account)) {
+      return json({ error: 'Sem permissão.' }, 403);
+    }
+    const body = (await request.json()) as Partial<CompanyMenuAccess> & { mustChangePassword?: boolean };
+    if (typeof body.mustChangePassword === 'boolean') {
+      const accessPatch = await updateHoldingCompanyMustChangePassword(
+        sql,
+        holdingCompanyMenuAccess[1] ?? '',
+        body.mustChangePassword,
+      );
+      if ('error' in accessPatch) {
+        return json({ error: accessPatch.error }, accessPatch.status);
+      }
+    }
+    const hasMenuPatch = body.routes && typeof body.routes === 'object';
+    if (hasMenuPatch) {
+      const menuAccess = normalizeCompanyMenuAccess({ routes: body.routes });
+      const updated = await updateHoldingCompanyMenuAccess(sql, holdingCompanyMenuAccess[1] ?? '', menuAccess);
+      if ('error' in updated) {
+        return json({ error: updated.error }, updated.status);
+      }
+      return json(updated);
+    }
+    if (typeof body.mustChangePassword === 'boolean') {
+      const detail = await getHoldingCompanyDetail(sql, holdingCompanyMenuAccess[1] ?? '');
+      if (!detail) {
+        return json({ error: 'Conta não encontrada.' }, 404);
+      }
+      return json({
+        menuAccess: detail.menuAccess,
+        holdingDelegate: detail.holdingDelegate,
+        mustChangePassword: detail.mustChangePassword,
+      });
+    }
+    return json({ error: 'Informe menu (categorias) e/ou mustChangePassword.' }, 400);
   }
 
   if (holdingCompanyAccess && request.method === 'PATCH') {
@@ -529,6 +590,7 @@ async function signUp(
     mustChangePassword: false,
     isDemo: false,
     holdingDelegate: false,
+    menuAccess: normalizeCompanyMenuAccess(undefined),
   };
   return json({
     user: sessionUser,
@@ -602,7 +664,7 @@ async function signIn(
   }
 
   const rows = await sql`
-    select id, email, password_hash, account_kind, must_change_password, holding_delegate, totp_secret, totp_enabled
+    select id, email, password_hash, account_kind, must_change_password, holding_delegate, menu_access, totp_secret, totp_enabled
     from users where email = ${email}
   `;
   const row = rows[0] as UserRow | undefined;
@@ -691,7 +753,10 @@ async function recoverPassword(sql: Sql, request: Request, authSecurity: AuthSec
   }
   await sql`
     update users
-    set password_hash = ${await hashPassword(newPassword)}, must_change_password = false
+    set
+      password_hash = ${await hashPassword(newPassword)},
+      must_change_password = false,
+      holding_reveal_password = null
     where id = ${String(row.id)}::uuid
   `;
   await clearRateLimitKeys(sql, rateKeys);
@@ -736,7 +801,10 @@ async function changePassword(sql: Sql, request: Request, jwtSecret: string): Pr
   }
   await sql`
     update users
-    set password_hash = ${await hashPassword(newPassword)}, must_change_password = false
+    set
+      password_hash = ${await hashPassword(newPassword)},
+      must_change_password = false,
+      holding_reveal_password = null
     where id = ${claims.userId}::uuid
   `;
   return json({
@@ -752,6 +820,7 @@ type UserRow = {
   account_kind: string;
   must_change_password: boolean;
   holding_delegate?: boolean;
+  menu_access?: unknown;
   totp_secret?: string | null;
   totp_enabled?: boolean;
 };
@@ -763,7 +832,7 @@ async function sessionUser(sql: Sql, jwtSecret: string, token: string | null): P
   try {
     const claims = await verifyAccessToken(jwtSecret, token);
     const rows = await sql`
-      select id, email, account_kind, must_change_password, holding_delegate
+      select id, email, account_kind, must_change_password, holding_delegate, menu_access
       from users where id = ${claims.userId}::uuid
     `;
     const row = rows[0] as UserRow | undefined;
@@ -779,7 +848,8 @@ function toSessionUser(row: UserRow): SessionUser {
     email: row.email,
     mustChangePassword: row.must_change_password,
     isDemo: row.account_kind === AccountKind.Demo,
-    holdingDelegate: Boolean((row as UserRow & { holding_delegate?: boolean }).holding_delegate),
+    holdingDelegate: Boolean(row.holding_delegate),
+    menuAccess: normalizeCompanyMenuAccess(row.menu_access),
   };
 }
 

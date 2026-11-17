@@ -1,4 +1,5 @@
 import type { NeonQueryFunction } from '@neondatabase/serverless';
+import { holdingSystemRegistrationCode } from '../domain/holding/company-registration-code';
 import { HOLDING_ADMIN_EMAIL } from '../domain/holding/holding-admin';
 import { hashPassword } from './password';
 
@@ -51,28 +52,35 @@ async function seedAccounts(sql: NeonQueryFunction<false, false>): Promise<void>
   const adminHash = await hashPassword(ADMIN_PROVISIONAL_PASSWORD);
   const demoHash = await hashPassword(DEMO_PASSWORD);
 
+  const adminRegistration = holdingSystemRegistrationCode('administration');
+  const demoRegistration = holdingSystemRegistrationCode('demo');
+
   await sql`
-    insert into users (id, email, password_hash, account_kind, must_change_password)
+    insert into users (id, email, password_hash, account_kind, must_change_password, registration_code)
     values (
       ${ADMIN_USER_ID}::uuid,
       ${ADMIN_EMAIL},
       ${adminHash},
       ${AccountKind.Standard},
-      true
+      true,
+      ${adminRegistration}
     )
-    on conflict (email) do nothing
+    on conflict (email) do update set
+      registration_code = coalesce(users.registration_code, excluded.registration_code)
   `;
 
   await sql`
-    insert into users (id, email, password_hash, account_kind, must_change_password)
+    insert into users (id, email, password_hash, account_kind, must_change_password, registration_code)
     values (
       ${DEMO_USER_ID}::uuid,
       ${DEMO_EMAIL},
       ${demoHash},
       ${AccountKind.Demo},
-      false
+      false,
+      ${demoRegistration}
     )
-    on conflict (email) do nothing
+    on conflict (email) do update set
+      registration_code = coalesce(users.registration_code, excluded.registration_code)
   `;
 }
 

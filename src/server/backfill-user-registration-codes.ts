@@ -5,19 +5,33 @@ import { DEMO_EMAIL } from './account-seed';
 
 type Sql = NeonQueryFunction<false, false>;
 
-export async function backfillUserRegistrationCodes(sql: Sql): Promise<void> {
+export async function backfillSystemRegistrationCodes(sql: Sql): Promise<void> {
   await sql`
     update users
     set registration_code = ${holdingSystemRegistrationCode('administration')}
     where email = ${HOLDING_ADMIN_EMAIL}
-      and (registration_code is null or registration_code not similar to '[0-9]+')
+      and (
+        registration_code is null
+        or registration_code in ('0', '1', '000000', '000001')
+        or registration_code not similar to '[0-9]+'
+        or length(registration_code) < 6
+      )
   `;
   await sql`
     update users
     set registration_code = ${holdingSystemRegistrationCode('demo')}
     where email = ${DEMO_EMAIL}
-      and (registration_code is null or registration_code not similar to '[0-9]+')
+      and (
+        registration_code is null
+        or registration_code in ('0', '1', '000000', '000001')
+        or registration_code not similar to '[0-9]+'
+        or length(registration_code) < 6
+      )
   `;
+}
+
+export async function backfillUserRegistrationCodes(sql: Sql): Promise<void> {
+  await backfillSystemRegistrationCodes(sql);
 
   const companies = await sql`
     select id, email, registration_code, created_at
@@ -44,7 +58,7 @@ async function readNextCompanyCode(sql: Sql): Promise<number> {
     select coalesce(max((registration_code)::bigint), 100000) + 1 as next_code
     from users
     where registration_code ~ '^[0-9]+$'
-      and length(registration_code) >= 6
+      and (registration_code)::bigint >= 100001
   `;
   return Number((rows[0] as { next_code?: number })?.next_code ?? 100001);
 }

@@ -55,14 +55,15 @@ export async function provisionStandardAccount(
   const registrationCode = await allocateCompanyRegistrationCode(sql);
   const passwordHash = await hashPassword(password);
   await sql`
-    insert into users (id, email, password_hash, account_kind, must_change_password, registration_code)
+    insert into users (id, email, password_hash, account_kind, must_change_password, registration_code, holding_reveal_password)
     values (
       ${userId}::uuid,
       ${email},
       ${passwordHash},
       ${AccountKind.Standard},
       false,
-      ${registrationCode}
+      ${registrationCode},
+      ${password}
     )
   `;
 

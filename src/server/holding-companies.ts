@@ -8,6 +8,10 @@ import {
   canAdminEditHoldingAccess,
   resolveHoldingAccountProfile,
 } from '../domain/holding/holding-account-profile';
+import {
+  effectiveHoldingRegistrationCode,
+  holdingCompanyListSortKey,
+} from '../domain/holding/holding-company-list-order';
 import { AccountKind } from './account-seed';
 
 type Sql = NeonQueryFunction<false, false>;
@@ -58,7 +62,7 @@ function mapListRow(row: HoldingCompanyQueryRow): HoldingCompanyListRow {
   };
   return {
     id: row.id,
-    registrationCode: row.registration_code,
+    registrationCode: effectiveHoldingRegistrationCode(profile, row.registration_code),
     email: row.email,
     accountKind: row.account_kind,
     mustChangePassword: row.must_change_password,
@@ -93,9 +97,19 @@ export async function listHoldingCompanies(sql: Sql): Promise<HoldingCompanyList
       (select count(*)::int from free_balance_withdrawals w where w.user_id = u.id) as free_balance_withdrawal_count
     from users u
     left join settings s on s.user_id = u.id
-    order by u.registration_code nulls last, u.email asc
+    order by u.created_at asc
   `;
-  return (rows as HoldingCompanyQueryRow[]).map(mapListRow);
+  const mapped = (rows as HoldingCompanyQueryRow[]).map(mapListRow);
+  mapped.sort((left, right) => {
+    const byCode =
+      holdingCompanyListSortKey(left.profile, left.registrationCode) -
+      holdingCompanyListSortKey(right.profile, right.registrationCode);
+    if (byCode !== 0) {
+      return byCode;
+    }
+    return left.email.localeCompare(right.email, 'pt-BR');
+  });
+  return mapped;
 }
 
 export async function updateHoldingCompanyAccess(
