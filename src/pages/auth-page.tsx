@@ -59,6 +59,23 @@ export function AuthPage({ mode }: { mode: 'sign-in' | 'recover' | 'sign-up' }) 
     return <Navigate to="/entrar" replace />;
   }
 
+  if (auth.loading) {
+    return (
+      <div className="mx-auto min-h-dvh w-full max-w-md px-4 py-6 sm:py-10">
+        <Card className="my-4 sm:my-auto">
+          <p className="text-sm text-muted-foreground">Carregando…</p>
+        </Card>
+      </div>
+    );
+  }
+
+  if (auth.session?.user) {
+    if (auth.session.user.mustChangePassword) {
+      return <Navigate to="/alterar-senha" replace />;
+    }
+    return <Navigate to="/inicio" replace />;
+  }
+
   async function submit(event: FormEvent) {
     event.preventDefault();
     setError(null);
