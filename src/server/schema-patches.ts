@@ -17,6 +17,9 @@ export async function ensureSchemaPatches(sql: Sql): Promise<void> {
     `alter table public.users add column if not exists menu_access jsonb not null default '{"patrimonio":true,"holding":false,"relatorios":true,"conta":true}'::jsonb`,
   );
   await sql.query(`alter table public.users add column if not exists holding_reveal_password text`);
+  await sql.query(
+    `alter table public.users add column if not exists account_active boolean not null default true`,
+  );
   await backfillSystemRegistrationCodes(sql);
   const pending = await sql`
     select 1

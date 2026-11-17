@@ -8,6 +8,7 @@ import {
   holdingAccountProfileLabel,
 } from '../../domain/holding/holding-account-profile';
 import { formatRegistrationCodeDisplay } from '../../domain/holding/company-registration-code';
+import { holdingAccountAccessStatus } from '../../domain/holding/holding-account-active';
 import { canProvisionHoldingCompanies } from '../../domain/holding/holding-provision';
 import { authRequestInit } from '../../lib/auth-token';
 import { useMinLg } from '../../lib/use-min-lg';
@@ -17,6 +18,7 @@ type HoldingCompanyListRow = {
   registrationCode: string | null;
   email: string;
   profile: HoldingAccountProfile;
+  accountActive: boolean;
   mustChangePassword: boolean;
   businessName: string;
 };
@@ -110,6 +112,10 @@ export function HoldingCompaniesPage() {
             </li>
             {companies.map((company) => {
               const name = companyDisplayName(company);
+              const accessStatus = holdingAccountAccessStatus(
+                company.accountActive !== false,
+                company.mustChangePassword,
+              );
               return (
                 <li
                   key={company.id}
@@ -131,11 +137,7 @@ export function HoldingCompaniesPage() {
                       {holdingAccountProfileLabel(company.profile)}
                     </span>
                     <span className="flex justify-end max-lg:row-start-1">
-                      {company.mustChangePassword ? (
-                        <StatusPill label="Senha pendente" tone="pending" className="text-xs" />
-                      ) : (
-                        <StatusPill label="Ativo" tone="paid" className="text-xs" />
-                      )}
+                      <StatusPill label={accessStatus.label} tone={accessStatus.tone} className="text-xs" />
                     </span>
                   </Link>
                 </li>

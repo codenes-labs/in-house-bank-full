@@ -12,6 +12,18 @@ export interface ChangelogRelease {
 /** Atualize junto com `docs/CHANGELOG.md` (mesmo conteúdo). */
 export const PRODUCT_CHANGELOG: readonly ChangelogRelease[] = [
   {
+    version: '0.2.5',
+    date: '2026-11-17',
+    sections: [
+      {
+        title: 'Adicionado',
+        items: [
+          'Holding: ativar e inativar cadastro de empresa e demonstração (SPEC-20); login inativo orienta contato.',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.2.4',
     date: '2026-11-15',
     sections: [
