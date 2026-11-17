@@ -21,7 +21,7 @@ import { UserAccountMenu } from './user-account-menu';
 import { cx, Logo } from './ui';
 import {
   desktopNavGroupsForUser,
-  MOBILE_BOTTOM_NAV,
+  mobileNavItemsForUser,
   PATRIMONIO_ROUTE_PREFIXES,
   RELATORIOS_ROUTE_PREFIXES,
   isRelatoriosExtratoNavActive,
@@ -68,6 +68,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const themeLabel = mode === 'dark' ? 'Usar tema claro' : 'Usar tema escuro';
   const desktopNavGroups = desktopNavGroupsForUser(session?.user);
+  const mobileNavItems = mobileNavItemsForUser(session?.user);
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-background">
@@ -131,7 +132,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-3 border-t border-border bg-card px-1 pb-[env(safe-area-inset-bottom)] lg:hidden"
             aria-label="Menu principal"
           >
-            {MOBILE_BOTTOM_NAV.map((item) => (
+            {mobileNavItems.map((item) => (
               <BottomLink key={item.to} item={item} pathname={location.pathname} />
             ))}
           </nav>

@@ -1,4 +1,11 @@
+import {
+  DEFAULT_COMPANY_MENU_ACCESS,
+  legacyCategoryFlag,
+  MenuAccessCategory,
+  type CompanyMenuAccess,
+} from '../holding/company-menu-access';
 import { canProvisionHoldingCompanies, type HoldingProvisionerSession } from '../holding/holding-provision';
+import { filterDesktopNavByMenuAccess, filterMobileNavByMenuAccess } from './filter-nav-by-menu-access';
 import { EXTRATO_KIND_OPTIONS, ExtratoKind } from '../ledger/extrato-kind';
 
 export interface ShellNavItem {
@@ -65,16 +72,39 @@ export const MOBILE_BOTTOM_NAV: readonly ShellNavItem[] = [
   { to: '/relatorios', label: 'Relatórios' },
 ];
 
-export function desktopNavGroupsForUser(user: HoldingProvisionerSession | undefined): readonly ShellNavGroup[] {
-  if (!user || !canProvisionHoldingCompanies(user)) {
+export function desktopNavGroupsForUser(
+  user: (HoldingProvisionerSession & { menuAccess?: CompanyMenuAccess }) | undefined,
+): readonly ShellNavGroup[] {
+  if (!user) {
     return DESKTOP_NAV_GROUPS;
   }
-  return [
-    DESKTOP_NAV_GROUPS[0]!,
-    DESKTOP_NAV_GROUPS[1]!,
-    HOLDING_DESKTOP_NAV_GROUP,
-    ...DESKTOP_NAV_GROUPS.slice(2),
-  ];
+  if (canProvisionHoldingCompanies(user)) {
+    return [
+      DESKTOP_NAV_GROUPS[0]!,
+      DESKTOP_NAV_GROUPS[1]!,
+      HOLDING_DESKTOP_NAV_GROUP,
+      ...DESKTOP_NAV_GROUPS.slice(2),
+    ];
+  }
+  const access = user.menuAccess ?? DEFAULT_COMPANY_MENU_ACCESS;
+  return filterDesktopNavByMenuAccess(
+    DESKTOP_NAV_GROUPS,
+    access,
+    legacyCategoryFlag(access, MenuAccessCategory.Holding) && user.holdingDelegate === true,
+  );
+}
+
+export function mobileNavItemsForUser(
+  user: (HoldingProvisionerSession & { menuAccess?: CompanyMenuAccess }) | undefined,
+): readonly ShellNavItem[] {
+  if (!user) {
+    return MOBILE_BOTTOM_NAV;
+  }
+  if (canProvisionHoldingCompanies(user)) {
+    return MOBILE_BOTTOM_NAV;
+  }
+  const access = user.menuAccess ?? DEFAULT_COMPANY_MENU_ACCESS;
+  return filterMobileNavByMenuAccess(MOBILE_BOTTOM_NAV, access);
 }
 
 export const PATRIMONIO_ROUTE_PREFIXES = ['/patrimonio', '/financeiro', '/caixinhas', '/parcelamentos'] as const;

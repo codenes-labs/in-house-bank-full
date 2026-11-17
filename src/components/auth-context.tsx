@@ -10,6 +10,7 @@ export interface AuthSession {
     mustChangePassword: boolean;
     isDemo: boolean;
     holdingDelegate?: boolean;
+    menuAccess?: import('../domain/holding/company-menu-access').CompanyMenuAccess;
   };
 }
 
