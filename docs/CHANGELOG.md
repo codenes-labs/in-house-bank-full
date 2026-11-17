@@ -8,6 +8,7 @@ Marcos do produto In House Bank. Atualize **neste arquivo** e em `src/domain/doc
 
 - Extrato de **Parcelamento** (SPEC-16): resumo do período, histórico por mês e **Baixar extrato** (PDF), alinhado a Caixinha/Saldo livre.
 - Cadastro em `/cadastro` (SPEC-15): ligado por padrão no dev local; produção desligada até `AUTH_SIGN_UP_ENABLED=true` no Worker.
+- Holding (SPEC-17, SPEC-18): admin lista contas, permissões de acesso e cadastra empresas (`/holding/empresas`, `/holding/empresas/novo`); `GET`/`POST`/`PATCH` em `/api/holding/companies`.
 
 ### Corrigido
 

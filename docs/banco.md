@@ -2,7 +2,7 @@
 
 Postgres no [Neon](https://neon.tech). O schema sobe automaticamente pelo servidor em `src/server/schema.ts` na primeira requisição.
 
-Tabelas de conta: `users`. Tabelas de dados: `settings`, `installment_plans`, `installments`, `cash_boxes`, `cash_box_movements`.
+Tabelas de conta: `users` (inclui `registration_code` único só dígitos — empresas a partir de `100001`, admin `0`, demo `1`; ver SPEC-18). Tabelas de dados: `settings` (nome da empresa = `business_name` / beneficiário), `installment_plans`, `installments`, `cash_boxes`, `cash_box_movements`.
 
 Todas as tabelas de dados têm `user_id` referenciando `users`. RLS compara `user_id` com `current_setting('app.user_id')`, definido pelo servidor em cada transação.
 
@@ -26,3 +26,5 @@ Cadastro público fechado. Contas criadas pelo seed em `src/server/account-seed.
 Recuperação de senha: em **produção** desligada por padrão (`AUTH_PASSWORD_RECOVER_ENABLED=true` no Worker só se precisar do fluxo legado e-mail + nova senha com Turnstile). Em dev, ligada salvo `AUTH_PASSWORD_RECOVER_ENABLED=false`. Não vale para a conta demo. Ver [SPEC-14](specs/SPEC-14-recuperacao-senha.md).
 
 Cadastro público (`/cadastro`): em **produção** desligado por padrão (`AUTH_SIGN_UP_ENABLED=true` no Worker só se aceitar cadastro aberto). Em dev, ligado salvo `AUTH_SIGN_UP_ENABLED=false`. Ver [SPEC-15](specs/SPEC-15-cadastro-dev-local.md).
+
+Cadastro de empresas (holding): o login `admin@codenes.com.br` lista contas e cadastra empresas em `/holding/empresas` (só menu desktop). APIs `GET`/`POST /api/holding/companies` e `PATCH /api/holding/companies/{id}/access`. Ver [SPEC-17](specs/SPEC-17-holding-cadastro-empresas.md) e [SPEC-18](specs/SPEC-18-holding-lista-empresas-permissoes.md).

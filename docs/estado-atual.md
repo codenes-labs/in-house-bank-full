@@ -18,9 +18,9 @@ Stack: React, Vite, TypeScript, Tailwind, Vitest, Neon Postgres, JWT, PDF no cli
 
 ## Menu logado (hoje)
 
-Barra inferior (3 itens): Início, Patrimônio (`/patrimonio` hub), Relatórios (`/relatorios` com abas Extrato e Resumo). Lateral `lg+`: grupos em `logged-shell-nav.ts` (Patrimônio: Financeiro, Caixinhas, Parcelamentos; um item Relatórios).
+Barra inferior (3 itens): Início, Patrimônio (`/patrimonio` hub), Relatórios (`/relatorios` com abas Extrato e Resumo). Lateral `lg+`: grupos em `logged-shell-nav.ts` (Patrimônio: Financeiro, Caixinhas, Parcelamentos; um item Relatórios). Só para `admin@codenes.com.br`: grupo **Holding** com **Cadastro de empresas** (`/holding/empresas`, lista + `/holding/empresas/novo`).
 
-Rotas privadas principais: `/inicio`, `/patrimonio`, `/financeiro`, `/financeiro/saldo-livre`, `/caixinhas`, `/parcelamentos`, `/relatorios/extrato`, `/relatorios/resumo`, `/configuracoes`.
+Rotas privadas principais: `/inicio`, `/patrimonio`, `/financeiro`, `/financeiro/saldo-livre`, `/caixinhas`, `/parcelamentos`, `/relatorios/extrato`, `/relatorios/resumo`, `/configuracoes`, `/holding/empresas` (admin web).
 
 Rotas públicas extras: `/docs` (hub técnico: stack, arquitetura, Neon, CI/CD, deploy, apresentação/vídeo), `/docs/api` (Swagger), `/termos`, `/privacidade` com textos completos. Rodapé na landing. `GET /api/openapi.json` (SPEC-11). Não aparecem no menu logado.
 

@@ -20,6 +20,13 @@ export const PRODUCT_CHANGELOG: readonly ChangelogRelease[] = [
         items: [
           'Extrato de parcelamento em Relatórios (SPEC-16): resumo do período, histórico e PDF Baixar extrato.',
           'Cadastro em /cadastro no dev local (SPEC-15); em produção o cadastro público permanece desativado por padrão.',
+          'Holding (SPEC-17): admin cadastra empresas em /holding/empresas (só menu desktop).',
+        ],
+      },
+      {
+        title: 'Alterado',
+        items: [
+          'Holding (SPEC-18): lista com ID cadastro (registration_code), logo, caixinhas e selos Ativo / troca de senha; cadastro em /holding/empresas/novo.',
         ],
       },
       {

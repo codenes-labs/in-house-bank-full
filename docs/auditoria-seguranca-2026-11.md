@@ -19,6 +19,7 @@ Escopo: código em `src/server`, Worker, auth, RLS e deploy. Pentest externo e `
 | DATABASE_URL | Só no Worker (Wrangler secrets); não em imagem Docker (`.dockerignore`) |
 | Recover | Só ligar com `AUTH_PASSWORD_RECOVER_ENABLED=true` no Worker se aceitar o risco do fluxo legado |
 | Admin | Senha inicial `CodenesTemp1` trocada após primeiro login |
+| Holding / empresas | Novas contas só via `admin@codenes.com.br` + JWT (`POST /api/holding/companies`); sign-up público off no Worker; demo e demais logins → 403 |
 | 2FA | Contas reais com TOTP em Configurações → Usuário |
 
 ## Isolamento de dados
