@@ -4,7 +4,7 @@ Postgres no [Neon](https://neon.tech). O schema sobe automaticamente pelo servid
 
 **Migrations de dados** (ajustes em bases já existentes): SQL versionado em `docs/migrations/`. Em dev, o mesmo efeito roda via `ensureSchemaPatches` (`src/server/schema-patches.ts`) na subida da API; em produção, pode executar o `.sql` no Neon e manter o patch idempotente como rede de segurança.
 
-Tabelas de conta: `users` (inclui `registration_code` único só dígitos — admin `001001`, demo `001002`, empresas a partir de `100001`; `account_active` para inativar login — SPEC-20; ver SPEC-18). Tabelas de dados: `settings` (nome da empresa = `business_name` / beneficiário), `installment_plans`, `installments`, `cash_boxes`, `cash_box_movements`.
+Tabelas de conta: `users` (inclui `registration_code` único só dígitos — admin `001001`, demo `001002`, empresas a partir de `100001`; `account_active` — SPEC-20; acesso provisório holding — `holding_provisional_*` — SPEC-21; ver SPEC-18). Legado `holding_reveal_password` não armazena senha principal. Tabelas de dados: `settings` (nome da empresa = `business_name` / beneficiário), `installment_plans`, `installments`, `cash_boxes`, `cash_box_movements`.
 
 Todas as tabelas de dados têm `user_id` referenciando `users`. RLS compara `user_id` com `current_setting('app.user_id')`, definido pelo servidor em cada transação.
 

@@ -52,7 +52,11 @@ type HoldingCompanyDetail = {
   canManagePermissions: boolean;
   canEditMenuAccess: boolean;
   hasOperationalData: boolean;
-  revealPassword: string | null;
+  provisionalAccess: {
+    active: boolean;
+    reveal: string | null;
+    expiresAt: string | null;
+  };
 };
 
 function formatCreatedAt(iso: string): string {
@@ -80,6 +84,7 @@ export function HoldingCompanyDetailPage() {
   const [passwordGenerate, setPasswordGenerate] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordMode, setPasswordMode] = useState<'provisional' | 'main'>('provisional');
   const [permissionsOpen, setPermissionsOpen] = useState(false);
   const [menuDraft, setMenuDraft] = useState<CompanyMenuAccess | null>(null);
   const [mustChangeDraft, setMustChangeDraft] = useState(false);
@@ -196,8 +201,12 @@ export function HoldingCompanyDetailPage() {
     setSavingPassword(true);
     setPasswordError(null);
     try {
+      const isProvisional = passwordMode === 'provisional';
+      const url = isProvisional
+        ? `/api/holding/companies/${company.id}/provisional-access`
+        : `/api/holding/companies/${company.id}/password`;
       const response = await fetch(
-        `/api/holding/companies/${company.id}/password`,
+        url,
         authRequestInit({
           method: 'POST',
           headers: { 'content-type': 'application/json' },
@@ -207,23 +216,57 @@ export function HoldingCompanyDetailPage() {
           }),
         }),
       );
-      const body = (await response.json()) as { error?: string; generatedPassword?: string };
+      const body = (await response.json()) as {
+        error?: string;
+        generatedPassword?: string;
+        provisionalAccess?: HoldingCompanyDetail['provisionalAccess'];
+      };
       if (!response.ok) {
-        setPasswordError(body.error ?? 'Não foi possível alterar a senha.');
+        setPasswordError(
+          body.error ??
+            (isProvisional ? 'Não foi possível gerar o acesso provisório.' : 'Não foi possível redefinir a senha.'),
+        );
         return;
       }
-      const shown = body.generatedPassword ?? newPassword;
       setNewPassword('');
       setPasswordGenerate(false);
       setPasswordEditing(false);
       setPasswordPanelOpen(true);
-      setCompany((c) =>
-        c ? { ...c, mustChangePassword: false, revealPassword: shown } : c,
-      );
+      setPasswordMode('provisional');
       await load();
     } finally {
       setSavingPassword(false);
     }
+  }
+
+  async function revokeProvisionalAccess() {
+    if (!company || !canManage) {
+      return;
+    }
+    setSavingPassword(true);
+    setPasswordError(null);
+    try {
+      const response = await fetch(
+        `/api/holding/companies/${company.id}/provisional-access`,
+        authRequestInit({ method: 'DELETE' }),
+      );
+      const body = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        setPasswordError(body.error ?? 'Não foi possível revogar o acesso provisório.');
+        return;
+      }
+      await load();
+    } finally {
+      setSavingPassword(false);
+    }
+  }
+
+  function formatProvisionalExpiry(iso: string | null): string {
+    if (!iso) {
+      return '—';
+    }
+    const date = new Date(iso);
+    return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString('pt-BR');
   }
 
   async function setAccountActive(nextActive: boolean) {
@@ -485,7 +528,13 @@ export function HoldingCompanyDetailPage() {
           ) : null}
 
           <Card className="grid gap-4">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Senha de acesso</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              Acesso provisório (suporte)
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              A senha principal do cliente não é exibida. Gere um acesso provisório para testar o login sem alterar a
+              senha que ele usa no dia a dia.
+            </p>
             {canManage && company.canManagePermissions ? (
               <>
                 {!passwordPanelOpen ? (
@@ -495,13 +544,18 @@ export function HoldingCompanyDetailPage() {
                       setPasswordPanelOpen(true);
                       setPasswordEditing(false);
                       setPasswordError(null);
+                      void load();
                     }}
                   />
                 ) : (
                   <div className="grid gap-4">
                     {passwordEditing ? (
                       <form className="grid gap-3" onSubmit={(event) => void submitPassword(event)}>
-                        <Field label="Nova senha">
+                        <Field
+                          label={
+                            passwordMode === 'provisional' ? 'Nova senha provisória' : 'Nova senha principal'
+                          }
+                        >
                           <div className="flex min-w-0 flex-wrap items-stretch gap-2">
                             <InputWithInlineActions
                               className="min-w-[min(100%,16rem)] max-w-md flex-1"
@@ -526,6 +580,7 @@ export function HoldingCompanyDetailPage() {
                               className="min-h-12 shrink-0"
                               onClick={() => {
                                 setPasswordEditing(false);
+                                setPasswordMode('provisional');
                                 setNewPassword('');
                                 setPasswordGenerate(false);
                                 setPasswordError(null);
@@ -533,26 +588,32 @@ export function HoldingCompanyDetailPage() {
                             />
                           </div>
                         </Field>
+                        {passwordMode === 'main' ? (
+                          <p className="text-sm text-destructive">
+                            Isso substitui a senha principal do cliente. Use só se ele esqueceu ou pediu redefinição.
+                          </p>
+                        ) : null}
                         {passwordError ? <p className="text-sm text-destructive">{passwordError}</p> : null}
                       </form>
                     ) : (
                       <div className="grid gap-3">
-                        <Field label="Senha atual">
+                        <Field label="Senha provisória ativa">
                           <div className="flex min-w-0 flex-wrap items-stretch gap-2">
                             <InputWithInlineActions
                               className="min-w-[min(100%,16rem)] max-w-md flex-1"
                               readOnly
                               tabIndex={-1}
-                              value={company.revealPassword ?? ''}
+                              value={company.provisionalAccess.reveal ?? ''}
                               placeholder="—"
                               showGenerate={false}
                               showSubmit={false}
                               onChange={() => undefined}
                               onGenerate={() => undefined}
                               trailingAction={{
-                                label: 'Atualizar senha',
+                                label: 'Gerar provisório',
                                 icon: 'key',
                                 onClick: () => {
+                                  setPasswordMode('provisional');
                                   setPasswordEditing(true);
                                   setPasswordError(null);
                                   setNewPassword('');
@@ -572,12 +633,44 @@ export function HoldingCompanyDetailPage() {
                             />
                           </div>
                         </Field>
-                        {!company.revealPassword ? (
-                          <p className="max-w-md text-sm text-muted-foreground">
-                            Nenhuma senha salva para consulta. Após o cliente trocar a senha de acesso, ela passa a
-                            aparecer aqui ao recarregar o cadastro.
+                        {company.provisionalAccess.active ? (
+                          <p className="text-sm text-muted-foreground">
+                            Válido até {formatProvisionalExpiry(company.provisionalAccess.expiresAt)}. Entre com o
+                            e-mail da conta e esta senha provisória.
                           </p>
-                        ) : null}
+                        ) : (
+                          <p className="max-w-md text-sm text-muted-foreground">
+                            Nenhum acesso provisório ativo. Gere uma senha para testar login ou conferir erro relatado
+                            pelo cliente.
+                          </p>
+                        )}
+                        <div className="flex flex-wrap gap-2">
+                          {company.provisionalAccess.active ? (
+                            <Button
+                              type="button"
+                              variant="soft"
+                              className="min-h-10"
+                              disabled={savingPassword}
+                              onClick={() => void revokeProvisionalAccess()}
+                            >
+                              Revogar acesso provisório
+                            </Button>
+                          ) : null}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            className="min-h-10 text-destructive"
+                            onClick={() => {
+                              setPasswordMode('main');
+                              setPasswordEditing(true);
+                              setPasswordError(null);
+                              setNewPassword('');
+                              setPasswordGenerate(false);
+                            }}
+                          >
+                            Redefinir senha principal…
+                          </Button>
+                        </div>
                       </div>
                     )}
                   </div>

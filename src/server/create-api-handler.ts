@@ -32,6 +32,10 @@ import { ensureSchemaPatches } from './schema-patches';
 import { deleteHoldingCompany } from './delete-holding-company';
 import { updateHoldingCompanyActive } from './holding-company-active';
 import { INACTIVE_ACCOUNT_LOGIN_MESSAGE } from '../domain/auth/inactive-account-login';
+import {
+  revokeHoldingProvisionalAccess,
+  setHoldingProvisionalAccess,
+} from './holding-company-provisional-access';
 import { listHoldingCompanies, updateHoldingCompanyAccess } from './holding-companies';
 import { provisionStandardAccount, validateStandardAccountCredentials } from './provision-standard-account';
 import { signAccessToken, verifyAccessToken } from './jwt';
@@ -82,7 +86,6 @@ import {
 } from './user-backup';
 
 import { ACCESS_TOKEN_TTL_SECONDS } from '../domain/auth/access-token-policy';
-import { syncHoldingRevealPassword } from '../domain/holding/sync-holding-reveal-password';
 import { assertAppDataBackup } from '../domain/backup/assert-app-data-backup';
 import { incrementApiRequests, logApiRequest, renderPrometheusMetricsText } from './request-log';
 import { createSql, normalizeDatabaseUrl } from './neon-sql';
@@ -337,6 +340,7 @@ async function route(
   const holdingCompanyAccess = pathname.match(/^\/api\/holding\/companies\/([^/]+)\/access$/);
   const holdingCompanyId = pathname.match(/^\/api\/holding\/companies\/([^/]+)$/);
   const holdingCompanyPassword = pathname.match(/^\/api\/holding\/companies\/([^/]+)\/password$/);
+  const holdingProvisionalAccess = pathname.match(/^\/api\/holding\/companies\/([^/]+)\/provisional-access$/);
   const holdingCompanyProfile = pathname.match(/^\/api\/holding\/companies\/([^/]+)\/profile$/);
   const holdingCompanyMenuAccess = pathname.match(/^\/api\/holding\/companies\/([^/]+)\/menu-access$/);
   const holdingCompanyActive = pathname.match(/^\/api\/holding\/companies\/([^/]+)\/active$/);
@@ -348,7 +352,8 @@ async function route(
     holdingCompanyPassword === null &&
     holdingCompanyProfile === null &&
     holdingCompanyMenuAccess === null &&
-    holdingCompanyActive === null
+    holdingCompanyActive === null &&
+    holdingProvisionalAccess === null
   ) {
     if (!canProvisionHoldingCompanies(account)) {
       return json({ error: 'Sem permissão.' }, 403);
@@ -358,6 +363,41 @@ async function route(
       return json({ error: 'Conta não encontrada.' }, 404);
     }
     return json({ company: detail });
+  }
+
+  if (holdingProvisionalAccess && request.method === 'POST') {
+    if (!canManageHoldingAccounts(account)) {
+      return json({ error: 'Sem permissão.' }, 403);
+    }
+    const body = (await request.json()) as {
+      newPassword?: string;
+      generate?: boolean;
+      validHours?: number;
+    };
+    const result = await setHoldingProvisionalAccess(sql, holdingProvisionalAccess[1] ?? '', {
+      newPassword: body.newPassword,
+      generate: body.generate === true,
+      validHours: body.validHours,
+    });
+    if ('error' in result) {
+      return json({ error: result.error }, result.status);
+    }
+    return json({
+      ok: true,
+      generatedPassword: result.generatedPassword,
+      provisionalAccess: result.provisionalAccess,
+    });
+  }
+
+  if (holdingProvisionalAccess && request.method === 'DELETE') {
+    if (!canManageHoldingAccounts(account)) {
+      return json({ error: 'Sem permissão.' }, 403);
+    }
+    const revoked = await revokeHoldingProvisionalAccess(sql, holdingProvisionalAccess[1] ?? '');
+    if ('error' in revoked) {
+      return json({ error: revoked.error }, revoked.status);
+    }
+    return json({ ok: true });
   }
 
   if (holdingCompanyPassword && request.method === 'POST') {
@@ -692,12 +732,32 @@ async function signIn(
   }
 
   const rows = await sql`
-    select id, email, password_hash, account_kind, must_change_password, holding_delegate, menu_access, totp_secret, totp_enabled, account_active
+    select
+      id,
+      email,
+      password_hash,
+      account_kind,
+      must_change_password,
+      holding_delegate,
+      menu_access,
+      totp_secret,
+      totp_enabled,
+      account_active,
+      holding_provisional_password_hash,
+      holding_provisional_valid_until
     from users where email = ${email}
   `;
   const row = rows[0] as UserRow | undefined;
   const passwordOk = row ? await verifyPassword(password, row.password_hash) : false;
-  if (row && passwordOk && row.account_active === false) {
+  let provisionalOk = false;
+  if (row && !passwordOk && row.holding_provisional_password_hash && row.holding_provisional_valid_until) {
+    const until = Date.parse(String(row.holding_provisional_valid_until));
+    if (Number.isFinite(until) && until > nowMs) {
+      provisionalOk = await verifyPassword(password, row.holding_provisional_password_hash);
+    }
+  }
+  const loginOk = passwordOk || provisionalOk;
+  if (row && loginOk && row.account_active === false) {
     const worst = await recordRateLimitFailures(sql, rateKeys, nowMs);
     if (worst.locked) {
       return json(
@@ -708,7 +768,7 @@ async function signIn(
     }
     return json({ error: INACTIVE_ACCOUNT_LOGIN_MESSAGE }, 400);
   }
-  if (!row || !passwordOk) {
+  if (!row || !loginOk) {
     const worst = await recordRateLimitFailures(sql, rateKeys, nowMs);
     if (worst.locked) {
       return json(
@@ -795,7 +855,10 @@ async function recoverPassword(sql: Sql, request: Request, authSecurity: AuthSec
     set
       password_hash = ${await hashPassword(newPassword)},
       must_change_password = false,
-      holding_reveal_password = ${syncHoldingRevealPassword(row.account_kind, newPassword)}
+      holding_reveal_password = null,
+      holding_provisional_password_hash = null,
+      holding_provisional_reveal = null,
+      holding_provisional_valid_until = null
     where id = ${String(row.id)}::uuid
   `;
   await clearRateLimitKeys(sql, rateKeys);
@@ -843,7 +906,10 @@ async function changePassword(sql: Sql, request: Request, jwtSecret: string): Pr
     set
       password_hash = ${await hashPassword(newPassword)},
       must_change_password = false,
-      holding_reveal_password = ${syncHoldingRevealPassword(row.account_kind, newPassword)}
+      holding_reveal_password = null,
+      holding_provisional_password_hash = null,
+      holding_provisional_reveal = null,
+      holding_provisional_valid_until = null
     where id = ${claims.userId}::uuid
   `;
   return json({
@@ -863,6 +929,8 @@ type UserRow = {
   totp_secret?: string | null;
   totp_enabled?: boolean;
   account_active?: boolean;
+  holding_provisional_password_hash?: string | null;
+  holding_provisional_valid_until?: Date | string | null;
 };
 
 function toSessionUser(row: UserRow): SessionUser {

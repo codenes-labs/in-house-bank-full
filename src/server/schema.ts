@@ -32,6 +32,9 @@ export const schemaStatements = [
   `alter table public.users add column if not exists holding_delegate boolean not null default false`,
   `alter table public.users add column if not exists menu_access jsonb not null default '{"patrimonio":true,"holding":false,"relatorios":true,"conta":true}'::jsonb`,
   `alter table public.users add column if not exists holding_reveal_password text`,
+  `alter table public.users add column if not exists holding_provisional_password_hash text`,
+  `alter table public.users add column if not exists holding_provisional_reveal text`,
+  `alter table public.users add column if not exists holding_provisional_valid_until timestamptz`,
   `alter table public.users add column if not exists account_active boolean not null default true`,
   `create table if not exists public.settings (
     user_id uuid primary key references public.users (id) on delete cascade,

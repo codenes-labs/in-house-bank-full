@@ -56,39 +56,31 @@ async function seedAccounts(sql: NeonQueryFunction<false, false>): Promise<void>
   const demoRegistration = holdingSystemRegistrationCode('demo');
 
   await sql`
-    insert into users (
-      id, email, password_hash, account_kind, must_change_password, registration_code, holding_reveal_password
-    )
+    insert into users (id, email, password_hash, account_kind, must_change_password, registration_code)
     values (
       ${ADMIN_USER_ID}::uuid,
       ${ADMIN_EMAIL},
       ${adminHash},
       ${AccountKind.Standard},
       true,
-      ${adminRegistration},
-      ${ADMIN_PROVISIONAL_PASSWORD}
+      ${adminRegistration}
     )
     on conflict (email) do update set
-      registration_code = coalesce(users.registration_code, excluded.registration_code),
-      holding_reveal_password = coalesce(users.holding_reveal_password, excluded.holding_reveal_password)
+      registration_code = coalesce(users.registration_code, excluded.registration_code)
   `;
 
   await sql`
-    insert into users (
-      id, email, password_hash, account_kind, must_change_password, registration_code, holding_reveal_password
-    )
+    insert into users (id, email, password_hash, account_kind, must_change_password, registration_code)
     values (
       ${DEMO_USER_ID}::uuid,
       ${DEMO_EMAIL},
       ${demoHash},
       ${AccountKind.Demo},
       false,
-      ${demoRegistration},
-      ${DEMO_PASSWORD}
+      ${demoRegistration}
     )
     on conflict (email) do update set
-      registration_code = coalesce(users.registration_code, excluded.registration_code),
-      holding_reveal_password = coalesce(users.holding_reveal_password, excluded.holding_reveal_password)
+      registration_code = coalesce(users.registration_code, excluded.registration_code)
   `;
 }
 

@@ -20,6 +20,10 @@ export async function ensureSchemaPatches(sql: Sql): Promise<void> {
   await sql.query(
     `alter table public.users add column if not exists account_active boolean not null default true`,
   );
+  await sql.query(`alter table public.users add column if not exists holding_provisional_password_hash text`);
+  await sql.query(`alter table public.users add column if not exists holding_provisional_reveal text`);
+  await sql.query(`alter table public.users add column if not exists holding_provisional_valid_until timestamptz`);
+  await sql.query(`update public.users set holding_reveal_password = null where holding_reveal_password is not null`);
   await backfillSystemRegistrationCodes(sql);
   const pending = await sql`
     select 1

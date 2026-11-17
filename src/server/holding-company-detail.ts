@@ -21,6 +21,10 @@ import { normalizeLoginEmail, ADMIN_EMAIL, DEMO_EMAIL } from './account-seed';
 import { effectiveHoldingRegistrationCode } from '../domain/holding/holding-company-list-order';
 import { generateProvisionalPassword } from '../domain/holding/generate-provisional-password';
 import { loadHoldingCompanyDataMetrics } from './delete-holding-company';
+import {
+  type HoldingProvisionalAccessView,
+  resolveHoldingProvisionalAccess,
+} from '../domain/holding/holding-provisional-access';
 import { hashPassword } from './password';
 
 type Sql = NeonQueryFunction<false, false>;
@@ -47,8 +51,8 @@ export type HoldingCompanyDetail = {
   canEditMenuAccess: boolean;
   hasOperationalData: boolean;
   dataMetrics: NonNullable<Awaited<ReturnType<typeof loadHoldingCompanyDataMetrics>>>;
-  /** Última senha definida pelo admin holding (para repasse ao cliente). */
-  revealPassword: string | null;
+  /** Acesso provisório para suporte (senha principal não é exibida). */
+  provisionalAccess: HoldingProvisionalAccessView;
 };
 
 export async function getHoldingCompanyDetail(
@@ -67,7 +71,8 @@ export async function getHoldingCompanyDetail(
       u.holding_delegate,
       u.menu_access,
       u.created_at,
-      u.holding_reveal_password,
+      u.holding_provisional_reveal,
+      u.holding_provisional_valid_until,
       s.business_name,
       s.city,
       s.document
@@ -88,7 +93,8 @@ export async function getHoldingCompanyDetail(
         holding_delegate: boolean;
         menu_access: unknown;
         created_at: Date | string;
-        holding_reveal_password: string | null;
+        holding_provisional_reveal: string | null;
+        holding_provisional_valid_until: Date | string | null;
         business_name: string | null;
         city: string | null;
         document: string | null;
@@ -103,6 +109,10 @@ export async function getHoldingCompanyDetail(
   }
   const profile = resolveHoldingAccountProfile(row.email, row.account_kind);
   const canManage = canAdminEditHoldingAccess(profile);
+  const provisionalAccess = resolveHoldingProvisionalAccess(
+    row.holding_provisional_reveal,
+    row.holding_provisional_valid_until,
+  );
   return {
     id: row.id,
     registrationCode: effectiveHoldingRegistrationCode(profile, row.registration_code),
@@ -125,7 +135,7 @@ export async function getHoldingCompanyDetail(
     canEditMenuAccess: canAdminEditHoldingMenuAccess(profile),
     hasOperationalData: holdingCompanyHasOperationalData(metrics),
     dataMetrics: metrics,
-    revealPassword: row.holding_reveal_password?.trim() || null,
+    provisionalAccess,
   };
 }
 
@@ -162,7 +172,10 @@ export async function setHoldingCompanyPassword(
     set
       password_hash = ${await hashPassword(password)},
       must_change_password = false,
-      holding_reveal_password = ${password}
+      holding_reveal_password = null,
+      holding_provisional_password_hash = null,
+      holding_provisional_reveal = null,
+      holding_provisional_valid_until = null
     where id = ${userId}::uuid
   `;
   return { ok: true, generatedPassword };
