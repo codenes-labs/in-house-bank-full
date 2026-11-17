@@ -27,6 +27,9 @@ export const schemaStatements = [
   )`,
   `alter table public.users add column if not exists totp_secret text`,
   `alter table public.users add column if not exists totp_enabled boolean not null default false`,
+  `alter table public.users add column if not exists registration_code text`,
+  `create unique index if not exists users_registration_code_key on public.users (registration_code) where registration_code is not null`,
+  `alter table public.users add column if not exists holding_delegate boolean not null default false`,
   `create table if not exists public.settings (
     user_id uuid primary key references public.users (id) on delete cascade,
     business_name text not null default '',

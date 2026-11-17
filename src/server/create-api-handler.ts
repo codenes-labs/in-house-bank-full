@@ -6,14 +6,21 @@ import type { FreeBalanceWithdrawal } from '../domain/models/free-balance-withdr
 import type { Installment } from '../domain/models/installment';
 import type { InstallmentPlan } from '../domain/models/installment-plan';
 import { createEmptySettings, type Settings } from '../domain/models/settings';
+import { canManageHoldingAccounts, canProvisionHoldingCompanies } from '../domain/holding/holding-provision';
+import { getHoldingCompanyDetail, setHoldingCompanyPassword, updateHoldingDelegate } from './holding-company-detail';
 import {
   AccountKind,
-  ADMIN_EMAIL,
   DEMO_EMAIL,
   DEMO_PASSWORD,
   ensureSeededAccounts,
   normalizeLoginEmail,
 } from './account-seed';
+import { validateHoldingCompanyProvision } from '../domain/holding/validate-holding-company-provision';
+import { createInitialCompanySettings } from './create-initial-company-settings';
+import { ensureSchemaPatches } from './schema-patches';
+import { deleteHoldingCompany } from './delete-holding-company';
+import { listHoldingCompanies, updateHoldingCompanyAccess } from './holding-companies';
+import { provisionStandardAccount, validateStandardAccountCredentials } from './provision-standard-account';
 import { signAccessToken, verifyAccessToken } from './jwt';
 import { hashPassword, verifyPassword } from './password';
 import { schemaStatements } from './schema';
@@ -74,6 +81,7 @@ type SessionUser = {
   email: string;
   mustChangePassword: boolean;
   isDemo: boolean;
+  holdingDelegate: boolean;
 };
 
 const bootstrapReady = getPersistentMap('__ihb_bootstrap_ready__');
@@ -154,6 +162,7 @@ export function createApiHandler(options: ApiHandlerOptions): (request: Request)
     try {
       const sql = options.devSql ?? createSql(databaseUrl);
       await ensureBootstrapped(databaseUrl, sql);
+      await ensureSchemaPatches(sql);
       return await route(sql, request, jwtSecret, authSecurity, passwordRecoverEnabled, signUpEnabled);
     } catch {
       return json({ error: 'Falha interna. Tente de novo.' }, 500);
@@ -285,6 +294,120 @@ async function route(
     return json({ error: DEMO_PERSISTENCE_ERROR }, 403);
   }
 
+  if (pathname === '/api/holding/companies' && request.method === 'GET') {
+    if (!canProvisionHoldingCompanies(account)) {
+      const error = account.isDemo
+        ? 'Conta de demonstração não pode cadastrar empresas.'
+        : 'Sem permissão para cadastrar empresas.';
+      return json({ error }, 403);
+    }
+    const companies = await listHoldingCompanies(sql);
+    return json({ companies });
+  }
+
+  if (pathname === '/api/holding/companies' && request.method === 'POST') {
+    if (!canProvisionHoldingCompanies(account)) {
+      const error = account.isDemo
+        ? 'Conta de demonstração não pode cadastrar empresas.'
+        : 'Sem permissão para cadastrar empresas.';
+      return json({ error }, 403);
+    }
+    return provisionHoldingCompany(sql, request);
+  }
+
+  const holdingCompanyAccess = pathname.match(/^\/api\/holding\/companies\/([^/]+)\/access$/);
+  const holdingCompanyId = pathname.match(/^\/api\/holding\/companies\/([^/]+)$/);
+  const holdingCompanyPassword = pathname.match(/^\/api\/holding\/companies\/([^/]+)\/password$/);
+  const holdingCompanyHoldingAccess = pathname.match(/^\/api\/holding\/companies\/([^/]+)\/holding-access$/);
+
+  if (
+    holdingCompanyId &&
+    request.method === 'GET' &&
+    holdingCompanyAccess === null &&
+    holdingCompanyPassword === null &&
+    holdingCompanyHoldingAccess === null
+  ) {
+    if (!canProvisionHoldingCompanies(account)) {
+      return json({ error: 'Sem permissão.' }, 403);
+    }
+    const detail = await getHoldingCompanyDetail(sql, holdingCompanyId[1] ?? '');
+    if (!detail) {
+      return json({ error: 'Conta não encontrada.' }, 404);
+    }
+    return json({ company: detail });
+  }
+
+  if (holdingCompanyPassword && request.method === 'POST') {
+    if (!canManageHoldingAccounts(account)) {
+      return json({ error: 'Sem permissão para alterar senhas.' }, 403);
+    }
+    const body = (await request.json()) as { newPassword?: string };
+    const result = await setHoldingCompanyPassword(sql, holdingCompanyPassword[1] ?? '', String(body.newPassword ?? ''));
+    if ('error' in result) {
+      return json({ error: result.error }, result.status);
+    }
+    return json(result);
+  }
+
+  if (holdingCompanyHoldingAccess && request.method === 'PATCH') {
+    if (!canManageHoldingAccounts(account)) {
+      return json({ error: 'Sem permissão.' }, 403);
+    }
+    const body = (await request.json()) as { enabled?: boolean };
+    if (typeof body.enabled !== 'boolean') {
+      return json({ error: 'Informe enabled (verdadeiro ou falso).' }, 400);
+    }
+    const updated = await updateHoldingDelegate(sql, holdingCompanyHoldingAccess[1] ?? '', body.enabled);
+    if ('error' in updated) {
+      return json({ error: updated.error }, updated.status);
+    }
+    return json(updated);
+  }
+
+  if (holdingCompanyAccess && request.method === 'PATCH') {
+    if (!canManageHoldingAccounts(account)) {
+      const error = account.isDemo
+        ? 'Conta de demonstração não pode cadastrar empresas.'
+        : 'Sem permissão para cadastrar empresas.';
+      return json({ error }, 403);
+    }
+    const body = (await request.json()) as { mustChangePassword?: boolean };
+    if (typeof body.mustChangePassword !== 'boolean') {
+      return json({ error: 'Informe mustChangePassword (verdadeiro ou falso).' }, 400);
+    }
+    const updated = await updateHoldingCompanyAccess(
+      sql,
+      holdingCompanyAccess[1] ?? '',
+      body.mustChangePassword,
+    );
+    if ('error' in updated) {
+      return json({ error: updated.error }, updated.status);
+    }
+    return json(updated);
+  }
+
+  if (holdingCompanyId && request.method === 'DELETE') {
+    if (!canManageHoldingAccounts(account)) {
+      const error = account.isDemo
+        ? 'Conta de demonstração não pode cadastrar empresas.'
+        : 'Sem permissão para cadastrar empresas.';
+      return json({ error }, 403);
+    }
+    const body = (await request.json().catch(() => ({}))) as { acknowledgeDataLoss?: boolean };
+    const deleted = await deleteHoldingCompany(
+      sql,
+      holdingCompanyId[1] ?? '',
+      body.acknowledgeDataLoss === true,
+    );
+    if ('error' in deleted) {
+      return json(
+        { error: deleted.error, requiresDataAcknowledgement: deleted.requiresDataAcknowledgement === true },
+        deleted.status,
+      );
+    }
+    return json({ ok: true });
+  }
+
   if (pathname === '/api/bank' && request.method === 'GET') {
     if (account.isDemo) {
       return json(demoBankSnapshot());
@@ -357,12 +480,13 @@ async function signUp(
   authSecurity: AuthSecurityOptions,
 ): Promise<Response> {
   const body = (await request.json()) as { email?: string; password?: string; turnstileToken?: string };
-  const email = normalizeLoginEmail(String(body.email ?? ''));
+  const rawEmail = String(body.email ?? '');
+  const emailForRate = normalizeLoginEmail(rawEmail);
   const password = String(body.password ?? '');
   const clientIp = readClientIp(request);
 
   const rateKeys: RateLimitKey[] = [
-    { scope: AUTH_RATE_SIGN_IN_EMAIL, subject: email },
+    { scope: AUTH_RATE_SIGN_IN_EMAIL, subject: emailForRate },
     { scope: AUTH_RATE_SIGN_IN_IP, subject: clientIp },
   ];
   const nowMs = Date.now();
@@ -374,19 +498,17 @@ async function signUp(
     return json({ error: 'Confirme o desafio de segurança (captcha) e tente de novo.' }, 400);
   }
 
-  if (!email.includes('@') || password.length < 6) {
-    return json({ error: 'Informe um e-mail válido e uma senha com pelo menos 6 caracteres.' }, 400);
-  }
-  if (email === ADMIN_EMAIL || email === DEMO_EMAIL) {
-    return json({ error: 'Este e-mail não pode ser usado no cadastro.' }, 400);
+  const credentials = validateStandardAccountCredentials(rawEmail, password);
+  if ('error' in credentials) {
+    return json({ error: credentials.error }, credentials.status);
   }
   const blocked = rateLimitBlockedResponse(rateStates, nowMs, json);
   if (blocked) {
     return blocked;
   }
 
-  const existing = await sql`select id from users where email = ${email}`;
-  if (existing.length > 0) {
+  const provisioned = await provisionStandardAccount(sql, credentials.email, password);
+  if ('error' in provisioned) {
     const worst = await recordRateLimitFailures(sql, rateKeys, nowMs);
     if (worst.locked) {
       return json(
@@ -395,32 +517,50 @@ async function signUp(
         { 'retry-after': String(worst.retryAfterSeconds) },
       );
     }
-    return json({ error: 'Este e-mail já está em uso.' }, 400);
+    return json({ error: provisioned.error }, provisioned.status);
   }
 
-  const userId = crypto.randomUUID();
-  const passwordHash = await hashPassword(password);
-  await sql`
-    insert into users (id, email, password_hash, account_kind, must_change_password)
-    values (
-      ${userId}::uuid,
-      ${email},
-      ${passwordHash},
-      ${AccountKind.Standard},
-      false
-    )
-  `;
+  const { userId, email: provisionedEmail } = provisioned;
 
   await clearRateLimitKeys(sql, rateKeys);
   const sessionUser: SessionUser = {
     id: userId,
-    email,
+    email: provisionedEmail,
     mustChangePassword: false,
     isDemo: false,
+    holdingDelegate: false,
   };
   return json({
     user: sessionUser,
-    accessToken: await issueAccessToken(jwtSecret, userId, email),
+    accessToken: await issueAccessToken(jwtSecret, userId, provisionedEmail),
+  });
+}
+
+async function provisionHoldingCompany(sql: Sql, request: Request): Promise<Response> {
+  const body = (await request.json()) as {
+    companyName?: string;
+    email?: string;
+    password?: string;
+    city?: string;
+  };
+  const validated = validateHoldingCompanyProvision(body);
+  if ('error' in validated) {
+    return json({ error: validated.error }, 400);
+  }
+  const { companyName, email, password, city } = validated.data;
+  const provisioned = await provisionStandardAccount(sql, email, password);
+  if ('error' in provisioned) {
+    return json({ error: provisioned.error }, provisioned.status);
+  }
+  await createInitialCompanySettings(sql, provisioned.userId, companyName, city);
+  return json({
+    ok: true,
+    user: {
+      id: provisioned.userId,
+      email: provisioned.email,
+      registrationCode: provisioned.registrationCode,
+      companyName,
+    },
   });
 }
 
@@ -462,7 +602,7 @@ async function signIn(
   }
 
   const rows = await sql`
-    select id, email, password_hash, account_kind, must_change_password, totp_secret, totp_enabled
+    select id, email, password_hash, account_kind, must_change_password, holding_delegate, totp_secret, totp_enabled
     from users where email = ${email}
   `;
   const row = rows[0] as UserRow | undefined;
@@ -611,6 +751,7 @@ type UserRow = {
   password_hash: string;
   account_kind: string;
   must_change_password: boolean;
+  holding_delegate?: boolean;
   totp_secret?: string | null;
   totp_enabled?: boolean;
 };
@@ -622,7 +763,7 @@ async function sessionUser(sql: Sql, jwtSecret: string, token: string | null): P
   try {
     const claims = await verifyAccessToken(jwtSecret, token);
     const rows = await sql`
-      select id, email, account_kind, must_change_password
+      select id, email, account_kind, must_change_password, holding_delegate
       from users where id = ${claims.userId}::uuid
     `;
     const row = rows[0] as UserRow | undefined;
@@ -638,6 +779,7 @@ function toSessionUser(row: UserRow): SessionUser {
     email: row.email,
     mustChangePassword: row.must_change_password,
     isDemo: row.account_kind === AccountKind.Demo,
+    holdingDelegate: Boolean((row as UserRow & { holding_delegate?: boolean }).holding_delegate),
   };
 }
 
@@ -676,6 +818,7 @@ function ensureBootstrapped(databaseUrl: string, sql: Sql): Promise<void> {
       (async () => {
         await sql.transaction(schemaStatements.map((statement) => sql.query(statement)));
         await ensureSeededAccounts(key, sql);
+        await ensureSchemaPatches(sql);
       })(),
     );
   }

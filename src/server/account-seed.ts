@@ -1,10 +1,11 @@
 import type { NeonQueryFunction } from '@neondatabase/serverless';
+import { HOLDING_ADMIN_EMAIL } from '../domain/holding/holding-admin';
 import { hashPassword } from './password';
 
 export const ADMIN_USER_ID = '11111111-1111-4111-8111-111111111111';
 export const DEMO_USER_ID = '22222222-2222-4222-8222-222222222222';
 
-export const ADMIN_EMAIL = 'admin@codenes.com.br';
+export const ADMIN_EMAIL = HOLDING_ADMIN_EMAIL;
 export const DEMO_EMAIL = 'teste@teste.com';
 
 /** Senha provisória do admin; trocar em /alterar-senha após o primeiro acesso. */

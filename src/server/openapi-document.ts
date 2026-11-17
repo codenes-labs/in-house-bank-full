@@ -313,6 +313,149 @@ export function buildOpenApiDocument(serverUrl = '/'): Record<string, unknown> {
           responses: { '200': { content: { 'application/json': { schema: { $ref: '#/components/schemas/OkBody' } } } } },
         },
       },
+      '/api/holding/companies': {
+        get: {
+          tags: ['Holding'],
+          summary: 'Listar contas do banco (permissões) — só admin@codenes.com.br',
+          security: bearer,
+          responses: {
+            '200': {
+              description: 'Lista de users',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      companies: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            id: { type: 'string' },
+                            email: { type: 'string' },
+                            accountKind: { type: 'string' },
+                            mustChangePassword: { type: 'boolean' },
+                            totpEnabled: { type: 'boolean' },
+                            createdAt: { type: 'string' },
+                            profile: { type: 'string' },
+                            canEditAccess: { type: 'boolean' },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            '401': { description: 'Não autenticado' },
+            '403': { description: 'Sem permissão' },
+          },
+        },
+        post: {
+          tags: ['Holding'],
+          summary: 'Cadastrar empresa (conta standard) — só admin@codenes.com.br',
+          security: bearer,
+          requestBody: {
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['companyName', 'email', 'password'],
+                  properties: {
+                    companyName: { type: 'string', description: 'Nome da empresa / beneficiário padrão' },
+                    city: { type: 'string' },
+                    email: { type: 'string' },
+                    password: { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            '200': {
+              description: 'Conta criada; sessão do admin inalterada',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      ok: { type: 'boolean' },
+                      user: {
+                        type: 'object',
+                        properties: { id: { type: 'string' }, email: { type: 'string' } },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            '400': { description: 'Dados inválidos ou e-mail em uso' },
+            '401': { description: 'Não autenticado' },
+            '403': { description: 'Sem permissão' },
+          },
+        },
+      },
+      '/api/holding/companies/{userId}': {
+        delete: {
+          tags: ['Holding'],
+          summary: 'Excluir conta empresa — só admin',
+          security: bearer,
+          parameters: [{ name: 'userId', in: 'path', required: true, schema: { type: 'string' } }],
+          requestBody: {
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: { acknowledgeDataLoss: { type: 'boolean' } },
+                },
+              },
+            },
+          },
+          responses: {
+            '200': { content: { 'application/json': { schema: { $ref: '#/components/schemas/OkBody' } } } },
+            '400': { description: 'Admin/demo ou dados sem confirmação' },
+            '403': { description: 'Sem permissão' },
+            '404': { description: 'Conta não encontrada' },
+          },
+        },
+      },
+      '/api/holding/companies/{userId}/access': {
+        patch: {
+          tags: ['Holding'],
+          summary: 'Exigir ou liberar troca de senha — conta empresa',
+          security: bearer,
+          parameters: [{ name: 'userId', in: 'path', required: true, schema: { type: 'string' } }],
+          requestBody: {
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['mustChangePassword'],
+                  properties: { mustChangePassword: { type: 'boolean' } },
+                },
+              },
+            },
+          },
+          responses: {
+            '200': {
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      ok: { type: 'boolean' },
+                      mustChangePassword: { type: 'boolean' },
+                    },
+                  },
+                },
+              },
+            },
+            '400': { description: 'Conta não editável' },
+            '403': { description: 'Sem permissão' },
+            '404': { description: 'Conta não encontrada' },
+          },
+        },
+      },
       '/api/bank': {
         get: {
           tags: ['Bank'],
