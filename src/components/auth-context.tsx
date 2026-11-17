@@ -9,6 +9,7 @@ export interface AuthSession {
     email: string;
     mustChangePassword: boolean;
     isDemo: boolean;
+    holdingDelegate?: boolean;
   };
 }
 

@@ -36,6 +36,9 @@ import { DocsOverviewPage } from './pages/docs/docs-overview-page';
 import { DocsChangelogPage } from './pages/docs/docs-changelog-page';
 import { DocsStackPage } from './pages/docs/docs-stack-page';
 import { PrivacyPage, TermsPage } from './pages/legal-notice-page';
+import { HoldingCompaniesPage } from './pages/holding/holding-companies-page';
+import { HoldingNewCompanyPage } from './pages/holding/holding-new-company-page';
+import { HoldingCompanyDetailPage } from './pages/holding/holding-company-detail-page';
 
 function ChangePasswordGate() {
   const { session, loading, configured } = useAuth();
@@ -118,6 +121,9 @@ export default function App() {
             <Route path="backup" element={<SettingsBackupPage />} />
           </Route>
         </Route>
+        <Route path="/holding/empresas" element={<HoldingCompaniesPage />} />
+        <Route path="/holding/empresas/novo" element={<HoldingNewCompanyPage />} />
+        <Route path="/holding/empresas/:companyId" element={<HoldingCompanyDetailPage />} />
         <Route path="/conta/alterar-senha" element={<AccountChangePasswordPage />} />
         <Route path="/mais" element={<Navigate to="/patrimonio" replace />} />
         <Route path="/a-receber" element={<Navigate to="/relatorios/extrato?tipo=RECEIVABLES" replace />} />

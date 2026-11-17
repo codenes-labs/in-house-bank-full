@@ -3,6 +3,7 @@ import {
   ArrowDownToLine,
   ArrowUpFromLine,
   ChartColumn,
+  Building2,
   CircleDollarSign,
   House,
   Landmark,
@@ -19,7 +20,7 @@ import { useAccountThemeToggle } from '../lib/use-account-theme-toggle';
 import { UserAccountMenu } from './user-account-menu';
 import { cx, Logo } from './ui';
 import {
-  DESKTOP_NAV_GROUPS,
+  desktopNavGroupsForUser,
   MOBILE_BOTTOM_NAV,
   PATRIMONIO_ROUTE_PREFIXES,
   RELATORIOS_ROUTE_PREFIXES,
@@ -38,6 +39,7 @@ const NAV_ICONS: Record<string, typeof House> = {
   '/relatorios': ChartColumn,
   '/relatorios/resumo': ChartColumn,
   '/configuracoes': Settings,
+  '/holding/empresas': Building2,
 };
 
 const EXTRATO_KIND_NAV_ICONS: Record<ExtratoKind, typeof House> = {
@@ -65,16 +67,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { mode, toggle } = useAccountThemeToggle();
   const location = useLocation();
   const themeLabel = mode === 'dark' ? 'Usar tema claro' : 'Usar tema escuro';
+  const desktopNavGroups = desktopNavGroupsForUser(session?.user);
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-background">
       {session?.user.isDemo ? <DemoBanner /> : null}
       <div className="grid min-h-0 flex-1 lg:grid-cols-[17rem_1fr]">
-        <aside className="hidden min-h-0 border-r border-border bg-card lg:flex lg:flex-col lg:overflow-y-auto lg:px-4 lg:py-6">
+        <aside className="scrollbar-hide hidden min-h-0 border-r border-border bg-card lg:flex lg:flex-col lg:overflow-y-auto lg:px-4 lg:py-6">
           <Logo />
           <nav className="mt-8 flex min-h-0 flex-1 flex-col gap-6" aria-label="Menu principal">
             <div className="grid gap-6">
-              {DESKTOP_NAV_GROUPS.map((group) => {
+              {desktopNavGroups.map((group) => {
                 const showSectionTitle =
                   group.items.length > 1 || group.items[0]?.label !== group.title;
                 return (
