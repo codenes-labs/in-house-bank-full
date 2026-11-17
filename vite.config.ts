@@ -31,9 +31,6 @@ export default defineConfig({
 
 type DevApiHandler = (request: Request) => Promise<Response>
 
-let devApiHandler: DevApiHandler | null = null
-let devApiHandlerPromise: Promise<DevApiHandler> | null = null
-
 function neonApi() {
   return {
     name: 'neon-api',
@@ -69,35 +66,26 @@ function neonApi() {
 }
 
 async function resolveDevApiHandler(server: ViteDevServer): Promise<DevApiHandler> {
-  if (devApiHandler) {
-    return devApiHandler
+  const mod = await server.ssrLoadModule('/src/server/vite-api-handler.ts') as {
+    createViteDevApiHandler: (options: {
+      databaseUrl?: string
+      jwtSecret?: string
+      turnstileSecret?: string
+      turnstileSiteKey?: string
+      passwordRecoverEnabled?: boolean
+      signUpEnabled?: boolean
+    }) => DevApiHandler
   }
-  if (!devApiHandlerPromise) {
-    devApiHandlerPromise = (async () => {
-      const mod = await server.ssrLoadModule('/src/server/vite-api-handler.ts') as {
-        createViteDevApiHandler: (options: {
-          databaseUrl?: string
-          jwtSecret?: string
-          turnstileSecret?: string
-              turnstileSiteKey?: string
-              passwordRecoverEnabled?: boolean
-              signUpEnabled?: boolean
-            }) => DevApiHandler
-      }
-      const recoverFlag = loadEnvValue('AUTH_PASSWORD_RECOVER_ENABLED')
-      const signUpFlag = loadEnvValue('AUTH_SIGN_UP_ENABLED')
-      devApiHandler = mod.createViteDevApiHandler({
-        databaseUrl: loadEnvValue('DATABASE_URL'),
-        jwtSecret: loadEnvValue('JWT_SECRET'),
-        turnstileSecret: loadEnvValue('TURNSTILE_SECRET_KEY'),
-        turnstileSiteKey: loadEnvValue('TURNSTILE_SITE_KEY'),
-        passwordRecoverEnabled: recoverFlag !== 'false',
-        signUpEnabled: signUpFlag !== 'false',
-      })
-      return devApiHandler
-    })()
-  }
-  return devApiHandlerPromise
+  const recoverFlag = loadEnvValue('AUTH_PASSWORD_RECOVER_ENABLED')
+  const signUpFlag = loadEnvValue('AUTH_SIGN_UP_ENABLED')
+  return mod.createViteDevApiHandler({
+    databaseUrl: loadEnvValue('DATABASE_URL'),
+    jwtSecret: loadEnvValue('JWT_SECRET'),
+    turnstileSecret: loadEnvValue('TURNSTILE_SECRET_KEY'),
+    turnstileSiteKey: loadEnvValue('TURNSTILE_SITE_KEY'),
+    passwordRecoverEnabled: recoverFlag !== 'false',
+    signUpEnabled: signUpFlag !== 'false',
+  })
 }
 
 function resolveDevPort(): number {
