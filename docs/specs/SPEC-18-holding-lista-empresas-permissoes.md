@@ -9,9 +9,9 @@ Evoluir a área **Cadastro de empresas** (SPEC-17) para o mesmo padrão de lista
 ## Regras
 
 1. **Quem pode:** mesmas regras de SPEC-17 (`canProvisionHoldingCompanies` — JWT do `admin@codenes.com.br`, conta standard, não demo).
-2. **UI `/holding/empresas`:** lista resumida (ID, Empresa, Perfil, Acesso); clique abre detalhe — ver [SPEC-19](SPEC-19-holding-detalhe-empresa.md). Botão **Nova empresa** → `/holding/empresas/novo`. Em `lg+` apenas (SPEC-17).
+2. **UI `/holding/empresas`:** lista resumida (ID, Empresa, Perfil, Status); clique abre detalhe — ver [SPEC-19](SPEC-19-holding-detalhe-empresa.md). Botão **Nova empresa** → `/holding/empresas/novo`. Em `lg+` apenas (SPEC-17).
 3. **UI `/holding/empresas/novo`:** formulário com **nome da empresa**, **cidade** (opcional, preenche `settings.city`), **e-mail de acesso** e **senha inicial**; layout alinhado ao fluxo de “Novo parcelamento” (voltar, título, cartão largo). Link **Voltar** para a lista; após sucesso redireciona para `/holding/empresas`.
-4. **`users.registration_code`:** número único só com dígitos — empresas a partir de `100001` (sequencial); admin `0`, demo `1`. Gerado no provisionamento; backfill normaliza contas antigas (`REG-*`).
+4. **`users.registration_code`:** número único só com dígitos, **6 dígitos** na exibição — admin `001001`, demo `001002`, empresas a partir de `100001` (sequencial). Provisionamento ignora códigos de sistema na sequência. Seed + migration `docs/migrations/2026-11-18-holding-registration-system-codes.sql` + `ensureSchemaPatches`. Ordem: sistema (abaixo de 100001), depois empresas.
 5. **Exibição do ID cadastro:** somente dígitos na UI (`formatRegistrationCodeDisplay`).
 6. **Nome da empresa:** gravado em `settings.business_name` (beneficiário padrão em carnês/relatórios); listado na coluna Empresa junto ao e-mail.
 7. **`GET /api/holding/companies`:** JWT admin; `{ companies: [...] }` com `registrationCode`, `businessName`, `email`, `city`, `profile`, `mustChangePassword`, `canEditAccess`, `canDelete`, `hasOperationalData`.
