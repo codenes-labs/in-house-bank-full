@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import {
   ArrowDownToLine,
   ArrowUpFromLine,
@@ -6,8 +7,12 @@ import {
   FileDown,
   ListChecks,
   Loader2,
+  Eye,
+  KeyRound,
   MessageCircle,
   Pencil,
+  Plus,
+  ShieldCheck,
   Printer,
   RotateCcw,
   Save,
@@ -15,6 +20,49 @@ import {
   X,
 } from 'lucide-react';
 import { Button, cx } from './ui';
+
+export function createPrimaryActionClassName(fullWidth?: boolean) {
+  return cx(
+    'press inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-primary px-4 font-semibold text-primary-foreground',
+    fullWidth ? 'w-full' : 'w-full sm:w-auto',
+  );
+}
+
+export function CreatePrimaryAction({
+  label,
+  to,
+  onClick,
+  fullWidth,
+  className,
+  type = 'button',
+  ...props
+}: {
+  label: ReactNode;
+  to?: string;
+  onClick?: () => void;
+  fullWidth?: boolean;
+  className?: string;
+} & Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onClick' | 'children'>) {
+  const classes = cx(createPrimaryActionClassName(fullWidth), className);
+  const content = (
+    <>
+      <Plus className="size-5 shrink-0" aria-hidden />
+      <span className="truncate">{label}</span>
+    </>
+  );
+  if (to) {
+    return (
+      <Link to={to} className={classes} onClick={onClick}>
+        {content}
+      </Link>
+    );
+  }
+  return (
+    <button type={type} className={classes} onClick={onClick} {...props}>
+      {content}
+    </button>
+  );
+}
 
 export const actionBarRowClassName = 'flex w-full gap-2 lg:w-auto lg:flex-wrap';
 
@@ -45,6 +93,48 @@ function layoutClass(layout: ActionLayout) {
 
 function actionLabel(label: ReactNode) {
   return <span className="truncate">{label}</span>;
+}
+
+export function ViewPasswordActionButton({
+  label = 'Ver senha',
+  layout = 'inline',
+  className,
+  ...props
+}: StandardActionProps) {
+  return (
+    <Button type="button" variant="soft" className={cx(layoutClass(layout), className)} {...props}>
+      <Eye className="size-4 shrink-0" aria-hidden />
+      {actionLabel(label)}
+    </Button>
+  );
+}
+
+export function UpdatePasswordActionButton({
+  label = 'Atualizar senha',
+  layout = 'inline',
+  className,
+  ...props
+}: StandardActionProps) {
+  return (
+    <Button type="button" className={cx(layoutClass(layout), className)} {...props}>
+      <KeyRound className="size-4 shrink-0" aria-hidden />
+      {actionLabel(label)}
+    </Button>
+  );
+}
+
+export function ManagePermissionsActionButton({
+  label = 'Gerenciar permissões',
+  layout = 'inline',
+  className,
+  ...props
+}: StandardActionProps) {
+  return (
+    <Button type="button" variant="soft" className={cx(layoutClass(layout), className)} {...props}>
+      <ShieldCheck className="size-4 shrink-0" aria-hidden />
+      {actionLabel(label)}
+    </Button>
+  );
 }
 
 export function EditActionButton({ label = 'Editar', layout = 'inline', className, ...props }: StandardActionProps) {
