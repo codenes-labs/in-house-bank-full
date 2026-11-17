@@ -1,3 +1,4 @@
+import { canProvisionHoldingCompanies, type HoldingProvisionerSession } from '../holding/holding-provision';
 import { EXTRATO_KIND_OPTIONS, ExtratoKind } from '../ledger/extrato-kind';
 
 export interface ShellNavItem {
@@ -28,6 +29,13 @@ export const RELATORIOS_DESKTOP_NAV_ITEMS: readonly ShellNavItem[] = [
   { to: '/relatorios/resumo', label: 'Resumo' },
 ];
 
+export const HOLDING_DESKTOP_NAV_GROUP: ShellNavGroup = {
+  title: 'Holding',
+  items: [{ to: '/holding/empresas', label: 'Cadastro de empresas' }],
+};
+
+export const HOLDING_ROUTE_PREFIXES = ['/holding'] as const;
+
 export const DESKTOP_NAV_GROUPS: readonly ShellNavGroup[] = [
   {
     title: 'Início',
@@ -56,6 +64,18 @@ export const MOBILE_BOTTOM_NAV: readonly ShellNavItem[] = [
   { to: '/patrimonio', label: 'Patrimônio' },
   { to: '/relatorios', label: 'Relatórios' },
 ];
+
+export function desktopNavGroupsForUser(user: HoldingProvisionerSession | undefined): readonly ShellNavGroup[] {
+  if (!user || !canProvisionHoldingCompanies(user)) {
+    return DESKTOP_NAV_GROUPS;
+  }
+  return [
+    DESKTOP_NAV_GROUPS[0]!,
+    DESKTOP_NAV_GROUPS[1]!,
+    HOLDING_DESKTOP_NAV_GROUP,
+    ...DESKTOP_NAV_GROUPS.slice(2),
+  ];
+}
 
 export const PATRIMONIO_ROUTE_PREFIXES = ['/patrimonio', '/financeiro', '/caixinhas', '/parcelamentos'] as const;
 
