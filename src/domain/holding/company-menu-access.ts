@@ -1,8 +1,10 @@
 import {
   buildDefaultMenuAccessRoutes,
+  buildFullMenuAccessRoutes,
   menuAccessRoutesCatalog,
   routesForCategory,
 } from '../navigation/menu-access-catalog';
+import { HoldingAccountProfile, resolveHoldingAccountProfile } from './holding-account-profile';
 
 export const MenuAccessCategory = {
   Patrimonio: 'patrimonio',
@@ -20,6 +22,44 @@ export type CompanyMenuAccess = {
 export const DEFAULT_COMPANY_MENU_ACCESS: CompanyMenuAccess = {
   routes: buildDefaultMenuAccessRoutes(),
 };
+
+export const FULL_SYSTEM_MENU_ACCESS: CompanyMenuAccess = {
+  routes: buildFullMenuAccessRoutes(),
+};
+
+export function normalizeDemoMenuAccess(raw: unknown): CompanyMenuAccess {
+  const full = buildFullMenuAccessRoutes();
+  const routes: Record<string, boolean> = { ...full };
+  if (raw && typeof raw === 'object') {
+    const source = raw as Record<string, unknown>;
+    if (source.routes && typeof source.routes === 'object') {
+      for (const entry of menuAccessRoutesCatalog()) {
+        const value = (source.routes as Record<string, unknown>)[entry.to];
+        if (typeof value === 'boolean') {
+          routes[entry.to] = value;
+        }
+      }
+    } else {
+      const legacy = normalizeCompanyMenuAccess(raw);
+      for (const entry of menuAccessRoutesCatalog()) {
+        routes[entry.to] = isRouteEnabled(legacy, entry.to);
+      }
+    }
+  }
+  routes['/inicio'] = true;
+  return { routes };
+}
+
+export function menuAccessForAccount(email: string, accountKind: string, raw: unknown): CompanyMenuAccess {
+  const profile = resolveHoldingAccountProfile(email, accountKind);
+  if (profile === HoldingAccountProfile.Administration) {
+    return { routes: { ...FULL_SYSTEM_MENU_ACCESS.routes } };
+  }
+  if (profile === HoldingAccountProfile.Demo) {
+    return normalizeDemoMenuAccess(raw);
+  }
+  return normalizeCompanyMenuAccess(raw);
+}
 
 export function menuAccessCategoryLabel(category: MenuAccessCategory): string {
   switch (category) {

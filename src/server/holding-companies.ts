@@ -1,19 +1,17 @@
 import type { NeonQueryFunction } from '@neondatabase/serverless';
-import { isHoldingAdminEmail } from '../domain/holding/holding-admin';
 import {
   canAdminDeleteHoldingCompany,
   holdingCompanyHasOperationalData,
 } from '../domain/holding/holding-company-operational-data';
 import {
   canAdminEditHoldingAccess,
+  canAdminEditHoldingMustChangePassword,
   resolveHoldingAccountProfile,
 } from '../domain/holding/holding-account-profile';
 import {
   effectiveHoldingRegistrationCode,
   holdingCompanyListSortKey,
 } from '../domain/holding/holding-company-list-order';
-import { AccountKind } from './account-seed';
-
 type Sql = NeonQueryFunction<false, false>;
 
 export type HoldingCompanyListRow = {
@@ -21,6 +19,7 @@ export type HoldingCompanyListRow = {
   registrationCode: string | null;
   email: string;
   accountKind: string;
+  accountActive: boolean;
   mustChangePassword: boolean;
   totpEnabled: boolean;
   createdAt: string;
@@ -38,6 +37,7 @@ type HoldingCompanyQueryRow = {
   email: string;
   account_kind: string;
   must_change_password: boolean;
+  account_active: boolean;
   totp_enabled: boolean;
   created_at: Date | string;
   business_name: string | null;
@@ -65,6 +65,7 @@ function mapListRow(row: HoldingCompanyQueryRow): HoldingCompanyListRow {
     registrationCode: effectiveHoldingRegistrationCode(profile, row.registration_code),
     email: row.email,
     accountKind: row.account_kind,
+    accountActive: row.account_active !== false,
     mustChangePassword: row.must_change_password,
     totpEnabled: row.totp_enabled,
     createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at),
@@ -85,6 +86,7 @@ export async function listHoldingCompanies(sql: Sql): Promise<HoldingCompanyList
       u.email,
       u.account_kind,
       u.must_change_password,
+      u.account_active,
       u.totp_enabled,
       u.created_at,
       s.business_name,
@@ -128,11 +130,11 @@ export async function updateHoldingCompanyAccess(
     return { error: 'Conta não encontrada.', status: 404 };
   }
   const profile = resolveHoldingAccountProfile(row.email, row.account_kind);
-  if (!canAdminEditHoldingAccess(profile)) {
-    return { error: 'Só é possível alterar o acesso de contas empresa.', status: 400 };
-  }
-  if (isHoldingAdminEmail(row.email) || row.account_kind === AccountKind.Demo) {
-    return { error: 'Só é possível alterar o acesso de contas empresa.', status: 400 };
+  if (!canAdminEditHoldingMustChangePassword(profile)) {
+    return {
+      error: 'Só contas empresa podem exigir troca de senha no próximo login.',
+      status: 400,
+    };
   }
   await sql`
     update users

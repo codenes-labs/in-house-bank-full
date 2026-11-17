@@ -172,10 +172,10 @@ describe('PATCH /api/holding/companies/:id/access', () => {
     expect(body.mustChangePassword).toBe(true);
   });
 
-  it('rejects demo account target', async () => {
+  it('rejects mustChangePassword for demo account', async () => {
     neonMock.tagged.mockImplementation(async (strings: TemplateStringsArray) => {
       const text = strings.join('');
-      if (text.includes('must_change_password')) {
+      if (text.includes('from users where id')) {
         return [
           {
             id: ADMIN_USER_ID,

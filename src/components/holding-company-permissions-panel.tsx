@@ -21,9 +21,11 @@ const CATEGORIES: MenuAccessCategory[] = [
 
 function CategoryCheckbox({
   state,
+  disabled,
   onChange,
 }: {
   state: ReturnType<typeof categoryCheckState>;
+  disabled?: boolean;
   onChange: (checked: boolean) => void;
 }) {
   const ref = (element: HTMLInputElement | null) => {
@@ -36,6 +38,7 @@ function CategoryCheckbox({
       ref={ref}
       type="checkbox"
       className="size-4 shrink-0 rounded border-border"
+      disabled={disabled}
       checked={state === 'all'}
       onChange={(event) => onChange(event.target.checked)}
     />
@@ -47,6 +50,8 @@ export function HoldingCompanyPermissionsPanel({
   menuAccess,
   mustChangePassword,
   saving,
+  readOnly = false,
+  mustChangePasswordEditable = true,
   onClose,
   onChangeMenuAccess,
   onChangeMustChangePassword,
@@ -56,6 +61,8 @@ export function HoldingCompanyPermissionsPanel({
   menuAccess: CompanyMenuAccess;
   mustChangePassword: boolean;
   saving: boolean;
+  readOnly?: boolean;
+  mustChangePasswordEditable?: boolean;
   onClose: () => void;
   onChangeMenuAccess: (next: CompanyMenuAccess) => void;
   onChangeMustChangePassword: (value: boolean) => void;
@@ -69,7 +76,9 @@ export function HoldingCompanyPermissionsPanel({
       <div className="grid gap-6">
         <section className="grid gap-3">
           <p className="text-sm text-muted-foreground">
-            Marque uma categoria para liberar todas as telas; expanda para ajustar tela a tela.
+            {readOnly
+              ? 'Conta de sistema: todas as telas ficam liberadas. A troca de senha no próximo login não se aplica.'
+              : 'Marque uma categoria para liberar todas as telas; expanda para ajustar tela a tela.'}
           </p>
           <ul className="grid gap-2">
             {CATEGORIES.map((category) => {
@@ -81,6 +90,7 @@ export function HoldingCompanyPermissionsPanel({
                   <div className="flex min-h-12 items-center gap-2 px-3">
                     <CategoryCheckbox
                       state={state}
+                      disabled={readOnly}
                       onChange={(checked) => onChangeMenuAccess(setCategoryRoutes(menuAccess, category, checked))}
                     />
                     <button
@@ -100,6 +110,7 @@ export function HoldingCompanyPermissionsPanel({
                             <input
                               type="checkbox"
                               className="size-4 shrink-0 rounded border-border"
+                              disabled={readOnly}
                               checked={isRouteEnabled(menuAccess, route.to)}
                               onChange={(event) =>
                                 onChangeMenuAccess(setRouteEnabled(menuAccess, route.to, event.target.checked))
@@ -122,19 +133,27 @@ export function HoldingCompanyPermissionsPanel({
             <input
               type="checkbox"
               className="size-4 shrink-0 rounded border-border"
+              disabled={readOnly || !mustChangePasswordEditable}
               checked={mustChangePassword}
               onChange={(event) => onChangeMustChangePassword(event.target.checked)}
             />
-            <span className="text-sm text-muted-foreground">Exigir troca de senha no próximo login</span>
+            <span className="text-sm text-muted-foreground">
+              Exigir troca de senha no próximo login
+              {!mustChangePasswordEditable && !readOnly
+                ? ' (não se aplica a contas de sistema)'
+                : ''}
+            </span>
           </label>
         </section>
-        <SaveActionButton
-          type="button"
-          label="Salvar permissões"
-          busy={saving}
-          className="w-full"
-          onClick={onSave}
-        />
+        {readOnly ? null : (
+          <SaveActionButton
+            type="button"
+            label="Salvar permissões"
+            busy={saving}
+            className="w-full"
+            onClick={onSave}
+          />
+        )}
       </div>
     </OverlayPanel>
   );

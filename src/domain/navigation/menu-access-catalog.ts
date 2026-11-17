@@ -57,3 +57,12 @@ export function buildDefaultMenuAccessRoutes(): Record<string, boolean> {
   }
   return routes;
 }
+
+/** Todas as telas do menu (contas admin e demonstração). */
+export function buildFullMenuAccessRoutes(): Record<string, boolean> {
+  const routes: Record<string, boolean> = { '/inicio': true };
+  for (const entry of MENU_ACCESS_ROUTE_DEFINITIONS) {
+    routes[entry.to] = true;
+  }
+  return routes;
+}
