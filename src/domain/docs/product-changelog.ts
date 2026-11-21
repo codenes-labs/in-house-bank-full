@@ -12,6 +12,26 @@ export interface ChangelogRelease {
 /** Atualize junto com `docs/CHANGELOG.md` (mesmo conteúdo). */
 export const PRODUCT_CHANGELOG: readonly ChangelogRelease[] = [
   {
+    version: '0.2.6',
+    date: '2026-11-21',
+    sections: [
+      {
+        title: 'Adicionado',
+        items: [
+          'Landing pública com marketing, simulador de renda e ferramentas sem conta (organizador e gerador de parcelas).',
+          'Lista de espera pública e painel admin; banner de cookies; política de privacidade em 12 seções (SPEC-22).',
+        ],
+      },
+      {
+        title: 'Alterado',
+        items: [
+          'Documentação: cabeçalho sticky, rodapé com Início, sumário fixo e menu mobile (SPEC-11).',
+          'Rodapé em Ferramentas, Institucional e Legal; confirmação e e-mail duplicado na lista de espera.',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.2.5',
     date: '2026-11-17',
     sections: [

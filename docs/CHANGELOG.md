@@ -29,6 +29,24 @@ Marcos do produto In House Bank. Atualize **neste arquivo** e em `src/domain/doc
 - SPEC-09 atualizada (Postgres no compose dev). Doc [`docs/observabilidade.md`](observabilidade.md) para logs e métricas.
 - Compose dev: **Prometheus + Grafana** (só local). [`docs/metricas.md`](metricas.md). `/api/metrics` com exposição Prometheus.
 
+## [0.2.6] — 2026-11-21
+
+Site público: landing, ferramentas, lista de espera, cookies e documentação.
+
+### Adicionado
+
+- Landing `/` com marketing, simulador de divisão de renda e links para ferramentas (SPEC-03).
+- Ferramentas sem conta: **Assistente financeiro** (`/ferramentas/organizador`) e **Gerador de parcelas** (`/ferramentas/gerar-carne`); `/gerador-carne` redireciona.
+- **Lista de espera** (`/lista-espera`, `POST /api/waitlist`, painel em `/holding/lista-espera` para admin) com cartão de confirmação e e-mail duplicado tratado (SPEC-22).
+- Banner de **cookies** (Aceitar / Recusar) e link **Preferências de cookies** no rodapé.
+- Política de privacidade reestruturada (12 seções: LGPD, lista de espera, Neon, Cloudflare, Turnstile).
+
+### Alterado
+
+- Documentação `/docs`: cabeçalho sticky, rodapé com **Início**, sumário fixo no desktop, menu mobile em tela cheia (SPEC-11).
+- Rodapé público em três colunas: **Ferramentas**, **Institucional**, **Legal**.
+- `/entrar` e landing apontam para lista de espera com cadastro público fechado.
+
 ## [0.2.3] — 2026-11-11
 
 ### Corrigido
