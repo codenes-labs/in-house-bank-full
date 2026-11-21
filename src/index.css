@@ -158,6 +158,19 @@ html[data-ui-scale='large'] {
 
 html.docs-public-scroll {
   scrollbar-gutter: stable;
+  /* clip nos ancestrais quebra position: sticky do sumário lateral */
+  overflow-x: visible;
+}
+
+html.docs-public-scroll body,
+html.docs-public-scroll #root {
+  overflow-x: visible;
+}
+
+@media (min-width: 1024px) {
+  .docs-public-chrome {
+    --docs-sticky-top: 5rem;
+  }
 }
 
 /* Evita iframe do Turnstile em position:fixed cobrindo a tela no mobile. */
@@ -188,6 +201,16 @@ html.docs-public-scroll {
   html.docs-public-scroll::-webkit-scrollbar {
     display: none;
   }
+}
+
+.docs-swagger {
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
+}
+
+html.docs-mobile-nav-open .docs-swagger {
+  visibility: hidden;
 }
 
 /* Scroll só na coluna central; barra fina e colada à direita da área útil */
