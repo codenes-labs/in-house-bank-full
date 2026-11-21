@@ -10,6 +10,9 @@ import { FinancialPage } from './pages/financial-page';
 import { FreeBalancePage } from './pages/free-balance-page';
 import { HomePage } from './pages/home-page';
 import { InstallmentsPage } from './pages/installments-page';
+import { GeradorCarnePage } from './pages/gerador-carne-page';
+import { GerarCarneFerramentaPage } from './pages/ferramentas/gerar-carne-page';
+import { OrganizadorFinanceiroPage } from './pages/ferramentas/organizador-financeiro-page';
 import { LandingPage } from './pages/landing-page';
 import { PatrimonioPage } from './pages/patrimonio-page';
 import { PlanDetailPage } from './pages/plan-detail-page';
@@ -77,6 +80,9 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
+      <Route path="/ferramentas/organizador" element={<OrganizadorFinanceiroPage />} />
+      <Route path="/ferramentas/gerar-carne" element={<GerarCarneFerramentaPage />} />
+      <Route path="/gerador-carne" element={<GeradorCarnePage />} />
       <Route path="/entrar" element={<AuthPage key="sign-in" mode="sign-in" />} />
       <Route path="/cadastro" element={<AuthPage key="sign-up" mode="sign-up" />} />
       <Route path="/recuperar-senha" element={<AuthPage key="recover" mode="recover" />} />

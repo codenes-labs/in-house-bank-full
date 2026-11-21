@@ -14,7 +14,9 @@ Cloudflare Worker (`worker/index.ts`) serve a API e os arquivos estáticos de `d
 
 | Rota | Acesso |
 | --- | --- |
-| `/` | Público, com gerador de carnê |
+| `/` | Público, landing com simulador do assistente |
+| `/ferramentas/organizador`, `/ferramentas/gerar-carne` | Público, ferramentas no rodapé (sem gravar na conta) |
+| `/gerador-carne` | Redireciona para `/ferramentas/gerar-carne` |
 | `/entrar`, `/cadastro`, `/recuperar-senha` | Público |
 | `/inicio`, `/parcelamentos`, `/parcelamentos/:planId`, `/financeiro`, `/relatorios`, `/configuracoes` | Conta |
 
@@ -23,7 +25,7 @@ Visitante guarda só o rascunho da sessão. Logado persiste por registro no Post
 ## Visitante e logado
 
 ```text
-Landing -> sessionStorage -> PDF
+Gerar carnê (`/ferramentas/gerar-carne`) -> sessionStorage -> PDF
 Login -> JWT + BankRepository HTTP -> áreas internas
 ```
 

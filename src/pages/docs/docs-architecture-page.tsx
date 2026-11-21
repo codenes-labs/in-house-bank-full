@@ -23,7 +23,7 @@ export function DocsArchitecturePage() {
       <DocsSection title="Visitante e logado">
         <DocsList
           items={[
-            'Visitante na landing: gerador de carnê e rascunho em sessionStorage',
+            'Visitante em /ferramentas/gerar-carne: carnê e rascunho em sessionStorage; /ferramentas/organizador e landing / com simulador de renda (sem persistência)',
             'Login: JWT armazenado no cliente; BankRepository HTTP persiste no Neon',
             'Cadastro público fechado; contas seed admin e demo',
           ]}
