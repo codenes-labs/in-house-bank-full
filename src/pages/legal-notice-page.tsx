@@ -270,8 +270,3 @@ export function PrivacyPage() {
     </PublicSiteChrome>
   );
 }
-
-/** @deprecated Use TermsPage / PrivacyPage */
-export function LegalNoticePage({ kind }: { kind: 'terms' | 'privacy' }) {
-  return kind === 'terms' ? <TermsPage /> : <PrivacyPage />;
-}

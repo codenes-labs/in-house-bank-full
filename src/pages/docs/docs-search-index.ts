@@ -11,13 +11,6 @@ export interface DocsSearchResult {
   matches: DocsSearchMatch[];
 }
 
-/** @deprecated Mantido para testes que inspecionam keywords; preferir DOCS_SEARCH_TOPICS. */
-export const DOCS_SEARCH_INDEX = DOCS_SEARCH_TOPICS.map((topic) => ({
-  to: topic.to,
-  label: topic.label,
-  keywords: topic.keywords,
-}));
-
 const NAV_LABEL_BY_TO = new Map<string, string>(DOCS_NAV.map((item) => [item.to, item.label]));
 
 const TOPIC_ORDER = new Map<string, number>([

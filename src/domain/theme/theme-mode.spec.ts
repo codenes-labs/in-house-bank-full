@@ -3,7 +3,6 @@ import {
   parseStoredThemeMode,
   resolveEffectiveTheme,
   THEME_PUBLIC_STORAGE_KEY,
-  THEME_STORAGE_KEY,
   themeModeToDocumentClass,
 } from './theme-mode';
 
@@ -30,10 +29,9 @@ describe('themeModeToDocumentClass', () => {
   });
 });
 
-describe('THEME_STORAGE_KEY', () => {
+describe('THEME_PUBLIC_STORAGE_KEY', () => {
   it('is stable for persistence', () => {
     expect(THEME_PUBLIC_STORAGE_KEY).toBe('in-house-bank.themeMode');
-    expect(THEME_STORAGE_KEY).toBe(THEME_PUBLIC_STORAGE_KEY);
   });
 });
 

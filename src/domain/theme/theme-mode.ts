@@ -1,9 +1,6 @@
 /** Preferência do site público (landing, docs, entrar). Padrão claro. */
 export const THEME_PUBLIC_STORAGE_KEY = 'in-house-bank.themeMode';
 
-/** @deprecated Use THEME_PUBLIC_STORAGE_KEY — mesma chave, só persiste fora da conta. */
-export const THEME_STORAGE_KEY = THEME_PUBLIC_STORAGE_KEY;
-
 export type ThemeMode = 'light' | 'dark';
 
 const VALID_THEME_MODES: readonly ThemeMode[] = ['light', 'dark'];
