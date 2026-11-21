@@ -1,6 +1,6 @@
 # SPEC-12 Navegação pública entre landing e documentação
 
-Status: pendente.
+Status: parcial (doc com rodapé e volta à landing).
 
 ## Contexto
 
@@ -8,7 +8,8 @@ A chrome pública (`PublicSiteChrome`) serve landing (`/`), documentação (`/do
 
 - Na **doc**, a marca **In House Bank / Docs** leva a `/docs` (visão geral); em telas abaixo de `sm`, o cabeçalho da doc mostra só o ícone **IH** e o sufixo **Docs** (sem quebrar o nome completo). Na **landing**, o nome **In House Bank** permanece visível também no mobile.
 - **Favicon:** ícone da marca em **`favicon.ico`**, SVG, PNG 32×32 e `apple-touch-icon` 180×180 (navegadores pedem `/favicon.ico` por padrão; sem arquivo, o Worker devolve a SPA e a aba pode mostrar ícone errado).
-- O link **Página inicial** foi **removido** do cabeçalho da doc e do rodapé público (redundante e confuso com a marca).
+- O link **Página inicial** não fica no cabeçalho da doc; em **`/docs/*`** o **rodapé institucional** inclui **Início** (`/`), alinhado ao restante do site público.
+- Cabeçalho da doc (logo, busca, Entrar): faixa **sticky** no topo ao rolar; menu lateral permanece sticky abaixo da faixa (`lg+`).
 - O rodapé em páginas não-doc mantém **Termos**, **Privacidade** e **Documentação** apenas.
 
 Falta definir um fluxo claro de volta à landing (`/`) e entre áreas públicas sem poluir o header.
