@@ -8,7 +8,7 @@ Status: concluída (atualizada em 2026-11-21).
 2. Seções âncora no cabeçalho (desktop): **Como funciona**, **Funcionalidades**, **Para quem é**.
 3. **Funcionalidades:** abas demonstrativas (Assistente, Caixinhas, Parcelamentos) só ilustrativas.
 4. Cabeçalho sticky na landing; tema claro/escuro com preferência em `localStorage` (como demais páginas públicas).
-5. Rodapé (`#ferramentas`): nome **In House Bank** (sem ícone) + texto curto; **Ferramentas**; **Institucional** com **Início** (`/`), Termos, Privacidade, Documentação. Páginas de ferramenta não exibem link “voltar” no corpo — só **Início** no rodapé.
+5. Rodapé (`#ferramentas`): nome **In House Bank** (sem ícone) + texto curto; colunas **Ferramentas**, **Institucional** (Início, Lista de espera, Documentação) e **Legal** (Termos, Privacidade, Preferências de cookies). Páginas de ferramenta não exibem link “voltar” no corpo — só **Início** no rodapé.
 
 ## Ferramentas públicas (visitante, sem gravar na conta)
 

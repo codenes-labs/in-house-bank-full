@@ -10,7 +10,7 @@ A chrome pública (`PublicSiteChrome`) serve landing (`/`), documentação (`/do
 - **Favicon:** ícone da marca em **`favicon.ico`**, SVG, PNG 32×32 e `apple-touch-icon` 180×180 (navegadores pedem `/favicon.ico` por padrão; sem arquivo, o Worker devolve a SPA e a aba pode mostrar ícone errado).
 - O link **Página inicial** não fica no cabeçalho da doc; em **`/docs/*`** o **rodapé institucional** inclui **Início** (`/`), alinhado ao restante do site público.
 - Cabeçalho da doc (logo, busca, Entrar): faixa **sticky** no topo ao rolar; menu lateral permanece sticky abaixo da faixa (`lg+`).
-- O rodapé em páginas não-doc mantém **Termos**, **Privacidade** e **Documentação** apenas.
+- Rodapé público em três colunas de links: **Ferramentas**, **Institucional**, **Legal** (termos, privacidade, cookies).
 
 Falta definir um fluxo claro de volta à landing (`/`) e entre áreas públicas sem poluir o header.
 

@@ -246,7 +246,7 @@ export function PublicSiteFooter() {
           <p className="text-base font-semibold text-foreground">In House Bank</p>
           <p className="text-pretty lg:whitespace-nowrap">{PUBLIC_FOOTER_TAGLINE}</p>
         </div>
-        <div className="flex flex-col gap-8 sm:flex-row sm:gap-12 lg:shrink-0">
+        <div className="flex flex-col gap-8 sm:flex-row sm:flex-wrap sm:gap-x-10 sm:gap-y-8 lg:shrink-0 lg:gap-x-12">
           <PublicToolsFooterNav />
           <nav className="flex flex-col gap-1.5" aria-label="Links institucionais">
             <p className="mb-0.5 text-xs font-bold tracking-wide text-muted-foreground uppercase">Institucional</p>
@@ -256,6 +256,12 @@ export function PublicSiteFooter() {
             <Link to="/lista-espera" className="font-semibold text-primary hover:underline">
               Lista de espera
             </Link>
+            <Link to="/docs" className="font-semibold text-primary hover:underline">
+              Documentação
+            </Link>
+          </nav>
+          <nav className="flex flex-col gap-1.5" aria-label="Links legais">
+            <p className="mb-0.5 text-xs font-bold tracking-wide text-muted-foreground uppercase">Legal</p>
             <Link to="/termos" className="font-semibold text-primary hover:underline">
               Termos de uso
             </Link>
@@ -263,9 +269,6 @@ export function PublicSiteFooter() {
               Privacidade
             </Link>
             <CookiePreferencesLink />
-            <Link to="/docs" className="font-semibold text-primary hover:underline">
-              Documentação
-            </Link>
           </nav>
         </div>
       </div>

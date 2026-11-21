@@ -13,7 +13,7 @@ Captar interesse de visitantes enquanto o cadastro público está fechado, com c
 3. Um e-mail por cadastro (mesmo e-mail → `alreadyOnWaitlist: true` e mensagem explícita na UI; sem duplicar linha no banco).
 4. `GET /api/waitlist` somente `admin@codenes.com.br` autenticado.
 5. Admin: página `/holding/lista-espera` (menu Holding, só admin).
-6. Links: rodapé (Institucional), `/entrar` (quando cadastro fechado), CTA da landing (secundário).
+6. Links: rodapé (**Institucional** — lista de espera; **Legal** — privacidade), `/entrar` (quando cadastro fechado), CTA da landing (secundário).
 
 Tabela `waitlist_signups` sem `user_id` (dados operacionais; acesso só via API).
 
