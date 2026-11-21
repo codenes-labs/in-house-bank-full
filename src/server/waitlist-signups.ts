@@ -15,7 +15,9 @@ export type WaitlistSignupRow = {
   created_at: string | Date;
 };
 
-export async function insertWaitlistSignup(sql: Sql, input: ValidatedWaitlistSignup): Promise<'created' | 'exists'> {
+export type WaitlistInsertResult = 'created' | 'exists' | 'has_account';
+
+export async function insertWaitlistSignup(sql: Sql, input: ValidatedWaitlistSignup): Promise<WaitlistInsertResult> {
   const existing = await sql`
     select 1 as found
     from waitlist_signups
@@ -24,6 +26,16 @@ export async function insertWaitlistSignup(sql: Sql, input: ValidatedWaitlistSig
   `;
   if (existing.length > 0) {
     return 'exists';
+  }
+
+  const userWithEmail = await sql`
+    select 1 as found
+    from users
+    where lower(email) = lower(${input.email})
+    limit 1
+  `;
+  if (userWithEmail.length > 0) {
+    return 'has_account';
   }
 
   const id = createId();

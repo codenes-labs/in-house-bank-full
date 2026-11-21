@@ -123,6 +123,39 @@ describe('waitlist API', () => {
     expect(body.message).toMatch(/já está na lista de espera/i);
   });
 
+  it('rejects signup when email already has a user account', async () => {
+    const handler = createApiHandler({
+      databaseUrl: 'postgresql://u:p@ep.example/neondb',
+      jwtSecret: 'a'.repeat(32),
+    });
+    neonMock.tagged.mockImplementation(async (strings: TemplateStringsArray) => {
+      const fragment = strings.join('|');
+      if (fragment.includes('waitlist_signups') && fragment.includes('lower(email)')) {
+        return [];
+      }
+      if (fragment.includes('from users') && fragment.includes('lower(email)')) {
+        return [{ found: 1 }];
+      }
+      return [];
+    });
+    const response = await handler(
+      new Request('http://localhost/api/waitlist', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Conta Existente',
+          email: 'admin@codenes.com.br',
+          interest: 'parcelamentos',
+          consentGiven: true,
+        }),
+      }),
+    );
+    expect(response.status).toBe(400);
+    const body = (await response.json()) as { error?: string; existingAccount?: boolean };
+    expect(body.existingAccount).toBe(true);
+    expect(body.error).toMatch(/já tem conta/i);
+  });
+
   it('forbids listing for unauthenticated clients', async () => {
     const handler = createApiHandler({
       databaseUrl: 'postgresql://u:p@ep.example/neondb',

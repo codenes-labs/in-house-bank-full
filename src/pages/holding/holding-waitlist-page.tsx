@@ -53,7 +53,7 @@ export function HoldingWaitlistPage() {
     <div className="mx-auto min-w-0 max-w-4xl px-4 py-6 lg:px-0">
       <h1 className="text-2xl font-semibold text-foreground">Lista de espera</h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        Cadastros públicos aguardando convite. Use o e-mail para contato.
+        Pessoas sem conta aguardando convite. Contato pelo e-mail cadastrado (sem WhatsApp nesta versão).
       </p>
 
       {error ? <p className="mt-4 text-sm text-destructive">{error}</p> : null}

@@ -77,6 +77,17 @@ export async function postWaitlist(
   const result = await insertWaitlistSignup(sql, parsed.value);
   await clearRateLimitKeys(sql, rateKeys);
 
+  if (result === 'has_account') {
+    return json(
+      {
+        error:
+          'Este e-mail já tem conta no In House Bank. A lista de espera é só para quem ainda não entrou no app.',
+        existingAccount: true,
+      },
+      400,
+    );
+  }
+
   if (result === 'exists') {
     return json({
       ok: true,
