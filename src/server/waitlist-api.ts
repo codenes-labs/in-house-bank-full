@@ -80,12 +80,14 @@ export async function postWaitlist(
   if (result === 'exists') {
     return json({
       ok: true,
-      message: 'Este e-mail já está na lista. Entraremos em contato quando houver novidades.',
+      alreadyOnWaitlist: true,
+      message: 'Este e-mail já está na lista de espera. Você não precisa cadastrar de novo — avisaremos por e-mail quando houver novidades.',
     });
   }
 
   return json({
     ok: true,
+    alreadyOnWaitlist: false,
     message: 'Cadastro recebido. Entraremos em contato por e-mail.',
   });
 }

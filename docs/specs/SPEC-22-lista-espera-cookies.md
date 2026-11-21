@@ -8,9 +8,9 @@ Captar interesse de visitantes enquanto o cadastro público está fechado, com c
 
 ## Lista de espera
 
-1. Rota pública `/lista-espera` com formulário: nome, e-mail, interesse (select), mensagem opcional (máx. 500), checkbox obrigatório de consentimento para contato.
+1. Rota pública `/lista-espera` com formulário: nome, e-mail, interesse (select), mensagem opcional (máx. 500), checkbox obrigatório de consentimento para contato. Após envio bem-sucedido, **substituir** o formulário por cartão de confirmação (ícone de sucesso, mensagem da API, texto secundário, CTAs **Voltar ao início** e **Explorar ferramentas** (`/#ferramentas`) — mesma ideia do contato Codenes, visual do IHB).
 2. `POST /api/waitlist` persiste no Postgres; Turnstile quando configurado; rate limit por IP.
-3. Um e-mail por cadastro (mesmo e-mail → mensagem amigável, sem duplicar linha).
+3. Um e-mail por cadastro (mesmo e-mail → `alreadyOnWaitlist: true` e mensagem explícita na UI; sem duplicar linha no banco).
 4. `GET /api/waitlist` somente `admin@codenes.com.br` autenticado.
 5. Admin: página `/holding/lista-espera` (menu Holding, só admin).
 6. Links: rodapé (Institucional), `/entrar` (quando cadastro fechado), CTA da landing (secundário).
