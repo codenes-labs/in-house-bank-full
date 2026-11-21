@@ -25,12 +25,12 @@ export function HoldingWaitlistPage() {
   const { session } = useAuth();
   const [items, setItems] = useState<WaitlistItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  if (!session || !isHoldingAdminEmail(session.user.email)) {
-    return <Navigate to="/inicio" replace />;
-  }
+  const isAdmin = Boolean(session && isHoldingAdminEmail(session.user.email));
 
   useEffect(() => {
+    if (!isAdmin) {
+      return;
+    }
     void fetch('/api/waitlist', authRequestInit())
       .then(async (response) => {
         if (!response.ok) {
@@ -43,7 +43,11 @@ export function HoldingWaitlistPage() {
       .catch((err: unknown) => {
         setError(err instanceof Error ? err.message : 'Falha ao carregar.');
       });
-  }, []);
+  }, [isAdmin]);
+
+  if (!isAdmin) {
+    return <Navigate to="/inicio" replace />;
+  }
 
   return (
     <div className="mx-auto min-w-0 max-w-4xl px-4 py-6 lg:px-0">
