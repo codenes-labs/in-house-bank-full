@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import { OverlayPanel } from '../../components/overlay-panel';
@@ -7,6 +7,19 @@ import { DOCS_NAV } from './docs-nav';
 
 export function DocsMobileMenu() {
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.classList.add('docs-mobile-nav-open');
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.documentElement.classList.remove('docs-mobile-nav-open');
+    };
+  }, [open]);
 
   return (
     <>
@@ -19,7 +32,13 @@ export function DocsMobileMenu() {
       >
         <Menu className="size-5" aria-hidden />
       </button>
-      <OverlayPanel open={open} title="Sumário" onClose={() => setOpen(false)} className="max-w-sm">
+      <OverlayPanel
+        open={open}
+        title="Sumário"
+        layer="modal"
+        onClose={() => setOpen(false)}
+        className="w-full max-w-full border-l-0 sm:max-w-sm sm:border-l"
+      >
         <nav aria-label="Seções da documentação">
           <ul className="grid gap-0.5">
             {DOCS_NAV.map((item) => (
@@ -32,7 +51,7 @@ export function DocsMobileMenu() {
                       'block rounded-lg border-l-2 py-2.5 pl-3.5 pr-2 text-sm font-semibold',
                       isActive
                         ? 'border-primary bg-brand-soft text-primary'
-                        : 'border-transparent text-muted-foreground hover:border-border hover:bg-muted',
+                        : 'border-transparent text-foreground hover:border-border hover:bg-muted',
                     )
                   }
                   onClick={() => setOpen(false)}

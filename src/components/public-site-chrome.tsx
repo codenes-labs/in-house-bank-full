@@ -15,17 +15,22 @@ function DocsHeaderActions({
   mode,
   toggle,
   className,
+  compact,
 }: {
   themeLabel: string;
   mode: ThemeMode;
   toggle: () => void;
   className?: string;
+  compact?: boolean;
 }) {
   return (
-    <div className={cx('flex shrink-0 items-center gap-1 sm:gap-2', className)}>
+    <div className={cx('flex shrink-0 items-center gap-0.5 sm:gap-2', className)}>
       <button
         type="button"
-        className="press inline-flex size-12 items-center justify-center rounded-lg text-muted-foreground"
+        className={cx(
+          'press inline-flex items-center justify-center rounded-lg text-muted-foreground',
+          compact ? 'size-10' : 'size-12',
+        )}
         onClick={toggle}
         aria-label={themeLabel}
         title={themeLabel}
@@ -34,7 +39,10 @@ function DocsHeaderActions({
       </button>
       <Link
         to="/entrar"
-        className="inline-flex min-h-12 items-center rounded-lg bg-primary px-5 font-semibold text-primary-foreground"
+        className={cx(
+          'inline-flex items-center rounded-lg bg-primary font-semibold text-primary-foreground',
+          compact ? 'min-h-10 px-3.5 text-sm' : 'min-h-12 px-5',
+        )}
       >
         Entrar
       </Link>
@@ -78,62 +86,63 @@ function PublicSiteHeader({
   mode: ThemeMode;
   toggle: () => void;
 }) {
+  if (inDocs) {
+    return (
+      <header className="flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:flex-nowrap sm:items-center sm:gap-3">
+        <div className="flex w-full min-w-0 items-center gap-0.5 sm:w-auto sm:gap-1">
+          <DocsMobileMenu />
+          <Link
+            to="/docs"
+            className="inline-flex min-w-0 flex-1 items-center gap-1.5 font-semibold text-primary sm:flex-initial"
+            aria-label="In House Bank — documentação"
+          >
+            <BrandMark />
+            <span className="flex min-w-0 items-baseline whitespace-nowrap text-base">
+              <span className="hidden truncate sm:inline">In House Bank</span>
+              <span>
+                <span className="hidden sm:inline" aria-hidden="true">
+                  {' '}
+                  /{' '}
+                </span>
+                Docs
+              </span>
+            </span>
+          </Link>
+          <DocsHeaderActions
+            themeLabel={themeLabel}
+            mode={mode}
+            toggle={toggle}
+            compact
+            className="sm:hidden"
+          />
+        </div>
+        {docsSearch ? (
+          <DocsHeaderSearchField className="w-full min-w-0 sm:max-w-xs sm:flex-1 md:max-w-sm lg:max-w-md" />
+        ) : null}
+        <DocsHeaderActions
+          themeLabel={themeLabel}
+          mode={mode}
+          toggle={toggle}
+          className="ml-auto hidden sm:flex"
+        />
+      </header>
+    );
+  }
+
   return (
     <header
       className={cx(
         'shrink-0 gap-2 sm:gap-3',
-        inDocs
-          ? 'grid grid-cols-1 gap-2 sm:flex sm:flex-nowrap sm:items-center sm:gap-3'
-          : inLanding
-            ? 'flex h-full w-full min-w-0 items-center justify-between gap-3'
-            : 'flex w-full min-w-0 items-center justify-between gap-2',
+        inLanding
+          ? 'flex h-full w-full min-w-0 items-center justify-between gap-3'
+          : 'flex w-full min-w-0 items-center justify-between gap-2',
       )}
     >
-      <div
-        className={cx(
-          'flex min-w-0 items-center',
-          inDocs ? 'w-full justify-between gap-2 sm:w-auto sm:justify-start' : 'min-w-0 flex-1 gap-0',
-        )}
-      >
-        <div className="flex min-w-0 flex-1 items-center gap-1 sm:flex-initial">
-          {inDocs ? <DocsMobileMenu /> : null}
-          {inDocs ? (
-            <Link
-              to="/docs"
-              className="inline-flex min-w-0 max-w-full items-center gap-1.5 font-semibold text-primary"
-              aria-label="In House Bank — documentação"
-            >
-              <BrandMark />
-              <span className="flex min-w-0 items-baseline whitespace-nowrap text-base">
-                <span className="hidden truncate sm:inline">In House Bank</span>
-                <span>
-                  <span className="hidden sm:inline" aria-hidden="true">
-                    {' '}
-                    /{' '}
-                  </span>
-                  Docs
-                </span>
-              </span>
-            </Link>
-          ) : (
-            <Link to="/" className="inline-flex min-w-0 max-w-full items-center" aria-label="In House Bank">
-              <Logo />
-            </Link>
-          )}
-        </div>
-        {inDocs ? (
-          <DocsHeaderActions themeLabel={themeLabel} mode={mode} toggle={toggle} className="sm:hidden" />
-        ) : null}
-      </div>
+      <Link to="/" className="inline-flex min-w-0 max-w-full items-center" aria-label="In House Bank">
+        <Logo />
+      </Link>
       {inLanding ? <LandingSectionNav /> : null}
-      {inDocs && docsSearch ? (
-        <DocsHeaderSearchField className="w-full min-w-0 sm:max-w-xs sm:flex-1 md:max-w-sm lg:max-w-md" />
-      ) : null}
-      {inDocs ? (
-        <DocsHeaderActions themeLabel={themeLabel} mode={mode} toggle={toggle} className="ml-auto hidden sm:flex" />
-      ) : (
-        <DocsHeaderActions themeLabel={themeLabel} mode={mode} toggle={toggle} className="shrink-0" />
-      )}
+      <DocsHeaderActions themeLabel={themeLabel} mode={mode} toggle={toggle} className="shrink-0" />
     </header>
   );
 }
@@ -186,8 +195,8 @@ export function PublicSiteChrome({
   if (inDocs) {
     return (
       <div className="flex min-h-dvh min-w-0 flex-col">
-        <div className="sticky top-0 z-50 w-full border-b border-border bg-background/85 backdrop-blur-md">
-          <div className="mx-auto flex max-w-6xl items-center px-4 py-3 sm:px-6">
+        <div className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur-md">
+          <div className="mx-auto flex w-full max-w-6xl items-center px-4 py-2 sm:px-6 sm:py-3">
             <PublicSiteHeader
               inDocs
               inLanding={false}
