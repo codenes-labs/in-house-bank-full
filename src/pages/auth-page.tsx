@@ -235,6 +235,11 @@ export function AuthPage({ mode }: { mode: 'sign-in' | 'recover' | 'sign-up' }) 
         <div className="grid gap-1 text-sm">
           {mode !== 'sign-in' ? <Link to="/entrar">Voltar ao login</Link> : null}
           {mode === 'sign-in' && signUpEnabled ? <Link to="/cadastro">Criar conta</Link> : null}
+          {mode === 'sign-in' && !signUpEnabled ? (
+            <Link to="/lista-espera" className="font-semibold text-primary">
+              Entrar na lista de espera
+            </Link>
+          ) : null}
           {mode !== 'recover' && recoverEnabled ? <Link to="/recuperar-senha">Esqueci a senha</Link> : null}
           <Link to="/">Voltar</Link>
         </div>

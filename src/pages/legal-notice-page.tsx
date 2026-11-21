@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { PublicSiteChrome } from '../components/public-site-chrome';
 import { Card } from '../components/ui';
+import { PRIVACY_CONTACT_EMAIL, PRIVACY_LAST_UPDATED } from '../domain/legal/public-legal-copy';
 
 function LegalSection({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -17,7 +18,7 @@ export function TermsPage() {
     <PublicSiteChrome>
       <article className="mt-8 grid max-w-3xl gap-4">
         <h1 className="text-3xl font-semibold">Termos de uso</h1>
-        <p className="text-sm text-muted-foreground">Última atualização: documento alinhado ao produto In House Bank.</p>
+        <p className="text-sm text-muted-foreground">Última atualização: {PRIVACY_LAST_UPDATED}</p>
         <LegalSection title="1. Natureza do serviço">
           <p>
             O In House Bank é software de <strong className="text-foreground">controle financeiro pessoal</strong>. Ele
@@ -61,8 +62,11 @@ export function TermsPage() {
         </LegalSection>
         <LegalSection title="7. Contato">
           <p>
-            Dúvidas sobre estes termos: utilize o canal de contato do operador que disponibilizou sua conta (por exemplo
-            o responsável pela instância Codenes / demonstração).
+            Dúvidas sobre estes termos:{' '}
+            <a className="font-semibold text-primary hover:underline" href={`mailto:${PRIVACY_CONTACT_EMAIL}`}>
+              {PRIVACY_CONTACT_EMAIL}
+            </a>
+            .
           </p>
         </LegalSection>
         <p className="text-sm">
@@ -80,57 +84,184 @@ export function PrivacyPage() {
     <PublicSiteChrome>
       <article className="mt-8 grid max-w-3xl gap-4">
         <h1 className="text-3xl font-semibold">Política de privacidade</h1>
-        <p className="text-sm text-muted-foreground">
-          Descreve como o In House Bank trata dados na instância operada com Neon Postgres e JWT.
+        <p className="text-sm text-muted-foreground">Última atualização: {PRIVACY_LAST_UPDATED}</p>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          Esta política explica quais dados o In House Bank trata e por quê. O app é de{' '}
+          <strong className="text-foreground">controle financeiro pessoal</strong>: não movimenta dinheiro, não é banco e
+          não é meio de pagamento. Se algo não ficar claro, escreva para o canal indicado no fim do documento.
         </p>
+
         <LegalSection title="1. Quem somos">
           <p>
-            O In House Bank é operado na infraestrutura configurada pelo mantenedor do ambiente (deploy Cloudflare +
-            banco Neon). Esta política aplica-se ao uso dessa instância web.
+            O In House Bank é oferecido na instância operada por Codenes (site e API em{' '}
+            <strong className="text-foreground">inhousebank.codenes.com.br</strong>), com banco de dados Neon Postgres e
+            hospedagem Cloudflare. Somos os controladores dos dados das contas de usuário e dos cadastros públicos de
+            interesse (lista de espera) feitos neste site.
           </p>
         </LegalSection>
-        <LegalSection title="2. Dados que coletamos">
-          <ul className="grid list-disc gap-1 pl-5">
-            <li>Conta: e-mail, hash de senha, flags de conta (demo, troca de senha obrigatória).</li>
-            <li>Dados financeiros que você cadastra: parcelamentos, caixinhas, saldo livre, configurações de negócio, backup.</li>
-            <li>Técnicos: logs de erro no servidor podem incluir trechos de requisição; o front não envia DATABASE_URL.</li>
+
+        <LegalSection title="2. Quais dados coletamos">
+          <ul className="grid list-disc gap-2 pl-5">
+            <li>
+              <strong className="text-foreground">Conta de usuário:</strong> e-mail, hash de senha, tipo de conta (padrão
+              ou demonstração), obrigatoriedade de troca de senha, preferências de menu (holding), autenticação em dois
+              fatores (quando ativada).
+            </li>
+            <li>
+              <strong className="text-foreground">Dados que você cadastra:</strong> parcelamentos, parcelas, caixinhas,
+              movimentos, saldo livre, configurações (Pix, textos de PDF, metas), backup exportado e importado, logos em
+              base64 na conta.
+            </li>
+            <li>
+              <strong className="text-foreground">Lista de espera</strong> (formulário público): nome, e-mail, interesse
+              principal, mensagem opcional, data do cadastro e confirmação de consentimento para contato.
+            </li>
+            <li>
+              <strong className="text-foreground">Ferramentas públicas</strong> (organizador e gerador de parcelas na web):
+              os cálculos ficam no seu navegador; o gerador de carnê pode guardar rascunho apenas na sessão até você
+              fechar a aba, sem gravar na conta sem login.
+            </li>
+            <li>
+              <strong className="text-foreground">Dados técnicos:</strong> endereço IP, método e caminho de requisições da
+              API, tempo de resposta e registros de segurança (tentativas de login, rate limit). Não vendemos esses
+              registros.
+            </li>
           </ul>
         </LegalSection>
-        <LegalSection title="3. Finalidade">
-          <p>
-            Autenticar, persistir seus registros, gerar PDFs e relatórios no navegador e manter isolamento entre contas.
-            Não vendemos nem alugamos sua base de parcelamentos a terceiros para marketing.
+
+        <LegalSection title="3. Para que usamos esses dados">
+          <ul className="grid list-disc gap-1 pl-5">
+            <li>Autenticar, manter a sessão e isolar os dados de cada conta.</li>
+            <li>Calcular indicadores, gerar PDFs e relatórios a partir do que você informou.</li>
+            <li>Responder cadastros na lista de espera e avisar sobre abertura de vagas ou novidades do produto.</li>
+            <li>Proteger o serviço contra abuso (captcha, limites de taxa, auditoria básica).</li>
+          </ul>
+          <p className="mt-2">Não usamos seus parcelamentos para publicidade nem vendemos bases de dados a terceiros.</p>
+        </LegalSection>
+
+        <LegalSection title="4. Com quem compartilhamos">
+          <ul className="grid list-disc gap-1 pl-5">
+            <li>
+              <strong className="text-foreground">Neon</strong> — hospedagem do banco Postgres na nuvem (dados da conta e
+              lista de espera).
+            </li>
+            <li>
+              <strong className="text-foreground">Cloudflare</strong> — entrega do site, Worker da API e proteções de
+              borda.
+            </li>
+            <li>
+              <strong className="text-foreground">Cloudflare Turnstile</strong> (quando configurado) — validação de
+              captcha em login, cadastro, recuperação de senha e lista de espera.
+            </li>
+          </ul>
+          <p className="mt-2">
+            Cada fornecedor recebe apenas o necessário ao serviço contratado. Podemos divulgar dados se exigidos por lei
+            ou ordem válida de autoridade.
           </p>
         </LegalSection>
-        <LegalSection title="4. Armazenamento e segurança">
-          <p>
-            Dados ficam no Postgres (Neon), com Row Level Security por <code className="text-foreground">user_id</code>.
-            A sessão usa JWT no cliente; segredos de banco e assinatura JWT existem apenas no Worker/servidor de
-            desenvolvimento. Conexões usam TLS conforme provedores.
+
+        <LegalSection title="5. Base legal (LGPD)">
+          <ul className="grid list-disc gap-1 pl-5">
+            <li>
+              <strong className="text-foreground">Execução de contrato / uso do serviço:</strong> dados da conta e do que
+              você cadastrou para operar o app.
+            </li>
+            <li>
+              <strong className="text-foreground">Consentimento:</strong> lista de espera e contato por e-mail sobre o
+              produto.
+            </li>
+            <li>
+              <strong className="text-foreground">Legítimo interesse:</strong> segurança, logs técnicos e prevenção de
+              fraude ou abuso, dentro do razoável.
+            </li>
+          </ul>
+        </LegalSection>
+
+        <LegalSection title="6. Seus direitos">
+          <p>Você pode solicitar, quando aplicável:</p>
+          <ul className="mt-2 grid list-disc gap-1 pl-5">
+            <li>confirmação e acesso aos dados;</li>
+            <li>correção de dados incompletos ou desatualizados (muitos campos você mesmo altera no app);</li>
+            <li>portabilidade — use o backup JSON em Configurações;</li>
+            <li>eliminação ou encerramento da conta, conforme disponibilidade do operador;</li>
+            <li>revogação de consentimento da lista de espera (entraremos em contato para confirmar a exclusão).</li>
+          </ul>
+          <p className="mt-2">
+            Envie pedidos para{' '}
+            <a className="font-semibold text-primary hover:underline" href={`mailto:${PRIVACY_CONTACT_EMAIL}`}>
+              {PRIVACY_CONTACT_EMAIL}
+            </a>
+            . Você também pode apresentar reclamação à Autoridade Nacional de Proteção de Dados (ANPD).
           </p>
         </LegalSection>
-        <LegalSection title="5. Retenção e exclusão">
+
+        <LegalSection title="7. Por quanto tempo guardamos">
+          <ul className="grid list-disc gap-1 pl-5">
+            <li>Dados da conta: enquanto a conta estiver ativa ou enquanto precisarmos para cumprir obrigação legal.</li>
+            <li>Lista de espera: até o convite, descadastro ou pedido de exclusão, o que ocorrer primeiro.</li>
+            <li>
+              Logs técnicos de API: pelo tempo necessário para segurança e diagnóstico, respeitando obrigações legais
+              aplicáveis.
+            </li>
+          </ul>
+        </LegalSection>
+
+        <LegalSection title="8. Segurança">
           <p>
-            Os dados permanecem enquanto a conta existir. Você pode exportar backup JSON em Configurações. Exclusão
-            definitiva de conta deve ser solicitada ao operador da instância, se disponível.
+            Dados ficam isolados por conta no banco (Row Level Security por{' '}
+            <code className="text-foreground">user_id</code>). Senhas são armazenadas com hash; a API exige HTTPS. Segredos
+            de banco e JWT não ficam no navegador. Nenhum sistema é infalível: faça backup em Configurações e mantenha sua
+            senha em sigilo. Detalhes técnicos em{' '}
+            <Link to="/docs" className="font-semibold text-primary hover:underline">
+              Documentação
+            </Link>
+            .
           </p>
         </LegalSection>
-        <LegalSection title="6. Cookies e armazenamento local">
+
+        <LegalSection title="9. Cookies e armazenamento local">
           <p>
-            Preferências como tema e visibilidade de valores no dashboard podem usar <code className="text-foreground">localStorage</code>.
-            O token de sessão fica no mecanismo usado pelo app de autenticação (não compartilhado entre sites).
+            Exibimos um banner na primeira visita com <strong className="text-foreground">Aceitar</strong> ou{' '}
+            <strong className="text-foreground">Recusar</strong>. Usamos apenas armazenamento essencial: tema, preferências
+            do site público, consentimento do banner, visibilidade de valores no painel e token de sessão.{' '}
+            <strong className="text-foreground">Não</strong> usamos cookies de publicidade ou analytics de terceiros nesta
+            versão.
+          </p>
+          <p className="mt-2">
+            Você pode rever a escolha a qualquer momento em{' '}
+            <strong className="text-foreground">Preferências de cookies</strong> no rodapé do site.
           </p>
         </LegalSection>
-        <LegalSection title="7. Seus direitos">
+
+        <LegalSection title="10. Encarregado de dados">
           <p>
-            Você pode acessar e corrigir dados pela própria aplicação. Para portabilidade, use exportação de backup.
-            Legislação local (LGPD) pode garantir outros direitos — contate o operador para exercê-los.
+            Por enquanto não há encarregado (DPO) formalmente nomeado. Pedidos sobre privacidade e LGPD são tratados pelo
+            mesmo canal de contato abaixo. Se isso mudar, atualizaremos esta seção.
           </p>
         </LegalSection>
-        <LegalSection title="8. Alterações">
-          <p>Esta política pode ser atualizada junto com o produto. A data no topo indica a revisão corrente.</p>
+
+        <LegalSection title="11. Alterações">
+          <p>
+            Podemos atualizar esta política conforme o produto evolui. A data no topo indica a versão vigente. Mudanças
+            relevantes podem ser comunicadas pelo site ou por e-mail aos usuários cadastrados, quando couber.
+          </p>
         </LegalSection>
+
+        <LegalSection title="12. Fale conosco">
+          <p>
+            Privacidade, lista de espera e direitos LGPD:{' '}
+            <a className="font-semibold text-primary hover:underline" href={`mailto:${PRIVACY_CONTACT_EMAIL}`}>
+              {PRIVACY_CONTACT_EMAIL}
+            </a>
+            .
+          </p>
+        </LegalSection>
+
         <p className="text-sm">
+          <Link to="/termos" className="font-semibold text-primary">
+            Termos de uso
+          </Link>
+          {' · '}
           <Link to="/docs" className="font-semibold text-primary">
             Documentação técnica
           </Link>

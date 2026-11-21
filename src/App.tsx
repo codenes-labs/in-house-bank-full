@@ -13,6 +13,9 @@ import { InstallmentsPage } from './pages/installments-page';
 import { GeradorCarnePage } from './pages/gerador-carne-page';
 import { GerarCarneFerramentaPage } from './pages/ferramentas/gerar-carne-page';
 import { OrganizadorFinanceiroPage } from './pages/ferramentas/organizador-financeiro-page';
+import { HoldingWaitlistPage } from './pages/holding/holding-waitlist-page';
+import { WaitlistPage } from './pages/waitlist-page';
+import { CookieConsentBanner } from './components/cookie-consent-banner';
 import { LandingPage } from './pages/landing-page';
 import { PatrimonioPage } from './pages/patrimonio-page';
 import { PlanDetailPage } from './pages/plan-detail-page';
@@ -78,6 +81,8 @@ function PrivateRoutes() {
 
 export default function App() {
   return (
+    <>
+    <CookieConsentBanner />
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/ferramentas/organizador" element={<OrganizadorFinanceiroPage />} />
@@ -98,6 +103,7 @@ export default function App() {
       </Route>
       <Route path="/termos" element={<TermsPage />} />
       <Route path="/privacidade" element={<PrivacyPage />} />
+      <Route path="/lista-espera" element={<WaitlistPage />} />
       <Route path="/alterar-senha" element={<ChangePasswordGate />} />
       <Route element={<PrivateRoutes />}>
         <Route path="/inicio" element={<HomePage />} />
@@ -127,6 +133,7 @@ export default function App() {
             <Route path="backup" element={<SettingsBackupPage />} />
           </Route>
         </Route>
+        <Route path="/holding/lista-espera" element={<HoldingWaitlistPage />} />
         <Route path="/holding/empresas" element={<HoldingCompaniesPage />} />
         <Route path="/holding/empresas/novo" element={<HoldingNewCompanyPage />} />
         <Route path="/holding/empresas/:companyId" element={<HoldingCompanyDetailPage />} />
@@ -138,5 +145,6 @@ export default function App() {
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   );
 }

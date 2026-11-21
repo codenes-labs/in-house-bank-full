@@ -6,6 +6,7 @@ import { DocsHeaderSearchField, useDocsSearchOptional } from '../pages/docs/docs
 import { DocsMobileMenu } from '../pages/docs/docs-mobile-menu';
 import { useTheme } from './theme';
 import { PUBLIC_FOOTER_TAGLINE } from '../domain/navigation/public-site-copy';
+import { CookiePreferencesLink } from './cookie-preferences-link';
 import { PublicToolsFooterNav } from './public-tools-footer-nav';
 import { BrandMark, cx, Logo } from './ui';
 
@@ -182,10 +183,35 @@ export function PublicSiteChrome({
     );
   }
 
+  if (inDocs) {
+    return (
+      <div className="flex min-h-dvh min-w-0 flex-col">
+        <div className="sticky top-0 z-50 w-full border-b border-border bg-background/85 backdrop-blur-md">
+          <div className="mx-auto flex max-w-6xl items-center px-4 py-3 sm:px-6">
+            <PublicSiteHeader
+              inDocs
+              inLanding={false}
+              docsSearch={docsSearch}
+              themeLabel={themeLabel}
+              mode={mode}
+              toggle={toggle}
+            />
+          </div>
+        </div>
+        <main className="docs-public-chrome mx-auto w-full min-w-0 max-w-6xl flex-1 px-4 py-5 sm:px-6">
+          {children}
+        </main>
+        <div className="mx-auto w-full max-w-6xl shrink-0 px-4 pb-8 sm:px-6">
+          <PublicSiteFooter />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={`mx-auto min-h-dvh w-full min-w-0 max-w-6xl px-4 ${inDocs ? 'docs-public-chrome py-5' : 'py-5'}`}>
+    <div className="mx-auto min-h-dvh w-full min-w-0 max-w-6xl px-4 py-5">
       <PublicSiteHeader
-        inDocs={inDocs}
+        inDocs={false}
         inLanding={false}
         docsSearch={docsSearch}
         themeLabel={themeLabel}
@@ -193,7 +219,7 @@ export function PublicSiteChrome({
         toggle={toggle}
       />
       {children}
-      {!inDocs ? <PublicSiteFooter /> : null}
+      <PublicSiteFooter />
     </div>
   );
 }
@@ -218,12 +244,16 @@ export function PublicSiteFooter() {
             <Link to="/" className="font-semibold text-primary hover:underline">
               Início
             </Link>
+            <Link to="/lista-espera" className="font-semibold text-primary hover:underline">
+              Lista de espera
+            </Link>
             <Link to="/termos" className="font-semibold text-primary hover:underline">
               Termos de uso
             </Link>
             <Link to="/privacidade" className="font-semibold text-primary hover:underline">
               Privacidade
             </Link>
+            <CookiePreferencesLink />
             <Link to="/docs" className="font-semibold text-primary hover:underline">
               Documentação
             </Link>

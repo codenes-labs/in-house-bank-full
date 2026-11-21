@@ -4,6 +4,7 @@ import {
   MenuAccessCategory,
   type CompanyMenuAccess,
 } from '../holding/company-menu-access';
+import { isHoldingAdminEmail } from '../holding/holding-admin';
 import { canProvisionHoldingCompanies, type HoldingProvisionerSession } from '../holding/holding-provision';
 import { filterDesktopNavByMenuAccess, filterMobileNavByMenuAccess } from './filter-nav-by-menu-access';
 import { EXTRATO_KIND_OPTIONS, ExtratoKind } from '../ledger/extrato-kind';
@@ -40,6 +41,14 @@ export const HOLDING_DESKTOP_NAV_GROUP: ShellNavGroup = {
   title: 'Holding',
   items: [{ to: '/holding/empresas', label: 'Cadastro de empresas' }],
 };
+
+export function holdingDesktopNavGroupForUser(user: HoldingProvisionerSession): ShellNavGroup {
+  const items: ShellNavItem[] = [...HOLDING_DESKTOP_NAV_GROUP.items];
+  if (isHoldingAdminEmail(user.email)) {
+    items.push({ to: '/holding/lista-espera', label: 'Lista de espera' });
+  }
+  return { title: 'Holding', items };
+}
 
 export const HOLDING_ROUTE_PREFIXES = ['/holding'] as const;
 
@@ -82,7 +91,7 @@ export function desktopNavGroupsForUser(
     return [
       DESKTOP_NAV_GROUPS[0]!,
       DESKTOP_NAV_GROUPS[1]!,
-      HOLDING_DESKTOP_NAV_GROUP,
+      holdingDesktopNavGroupForUser(user),
       ...DESKTOP_NAV_GROUPS.slice(2),
     ];
   }

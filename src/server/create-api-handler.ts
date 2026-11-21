@@ -70,6 +70,9 @@ import { totpBegin, totpDisable, totpEnable } from './auth-totp-routes';
 import { demoBankSnapshot } from './demo-backup';
 import { readClientIp } from './read-client-ip';
 import { verifyTurnstileToken } from './turnstile';
+import { isHoldingAdminEmail } from '../domain/holding/holding-admin';
+import { postWaitlist } from './waitlist-api';
+import { listWaitlistSignups } from './waitlist-signups';
 import { DEMO_PERSISTENCE_ERROR, rejectsDemoPersistence } from './demo-persistence';
 import { buildOpenApiDocument } from './openapi-document';
 import {
@@ -259,6 +262,10 @@ async function route(
     return changePassword(sql, request, jwtSecret);
   }
 
+  if (pathname === '/api/waitlist' && request.method === 'POST') {
+    return postWaitlist(sql, request, authSecurity, json);
+  }
+
   const authState = await resolveAuthSession(sql, jwtSecret, readBearerToken(request));
   const account = authState.user;
   if (pathname === '/api/auth/totp/status' && request.method === 'GET') {
@@ -314,6 +321,24 @@ async function route(
   }
   if (rejectsDemoPersistence(account.isDemo, request.method, pathname)) {
     return json({ error: DEMO_PERSISTENCE_ERROR }, 403);
+  }
+
+  if (pathname === '/api/waitlist' && request.method === 'GET') {
+    if (!isHoldingAdminEmail(account.email)) {
+      return json({ error: 'Sem permissão.' }, 403);
+    }
+    const items = await listWaitlistSignups(sql);
+    return json({
+      items: items.map((row) => ({
+        id: String(row.id),
+        name: row.name,
+        email: row.email,
+        interest: row.interest,
+        message: row.message,
+        source: row.source,
+        createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at),
+      })),
+    });
   }
 
   if (pathname === '/api/holding/companies' && request.method === 'GET') {

@@ -150,12 +150,20 @@ export function LandingPage() {
                 ))}
               </ul>
             </div>
-            <Link
-              to="/entrar"
-              className="press inline-flex w-full shrink-0 items-center justify-center rounded-xl bg-card px-7 py-4 text-sm font-bold text-primary shadow-[var(--shadow-control)] sm:w-auto sm:text-base"
-            >
-              Entrar na conta agora
-            </Link>
+            <div className="flex w-full shrink-0 flex-col gap-3 sm:w-auto sm:flex-row">
+              <Link
+                to="/entrar"
+                className="press inline-flex w-full items-center justify-center rounded-xl bg-card px-7 py-4 text-sm font-bold text-primary shadow-[var(--shadow-control)] sm:w-auto sm:text-base"
+              >
+                Entrar na conta
+              </Link>
+              <Link
+                to="/lista-espera"
+                className="inline-flex w-full items-center justify-center rounded-xl border border-primary-foreground/40 px-7 py-4 text-sm font-semibold text-primary-foreground hover:bg-primary-foreground/10 sm:w-auto sm:text-base"
+              >
+                Lista de espera
+              </Link>
+            </div>
           </LandingReveal>
         </div>
       </section>

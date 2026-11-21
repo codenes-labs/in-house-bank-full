@@ -22,7 +22,7 @@ Barra inferior (3 itens): Início, Patrimônio (`/patrimonio` hub), Relatórios 
 
 Rotas privadas principais: `/inicio`, `/patrimonio`, `/financeiro`, `/financeiro/saldo-livre`, `/caixinhas`, `/parcelamentos`, `/relatorios/extrato`, `/relatorios/resumo`, `/configuracoes`, `/holding/empresas` (admin web).
 
-Rotas públicas extras: `/` (landing), `/ferramentas/organizador`, `/ferramentas/gerar-carne` (rodapé **Ferramentas**), `/gerador-carne` (redireciona), `/docs` (hub técnico: stack, arquitetura, Neon, CI/CD, deploy, apresentação/vídeo), `/docs/api` (Swagger), `/termos`, `/privacidade` com textos completos. Rodapé na landing. `GET /api/openapi.json` (SPEC-11). Não aparecem no menu logado.
+Rotas públicas extras: `/` (landing), `/lista-espera`, `/ferramentas/organizador`, `/ferramentas/gerar-carne` (rodapé **Ferramentas**), `/gerador-carne` (redireciona), `/docs` (hub técnico: stack, arquitetura, Neon, CI/CD, deploy, apresentação/vídeo; cabeçalho sticky; rodapé institucional com **Início**), `/docs/api` (Swagger), `/termos`, `/privacidade` com textos completos. Rodapé na landing e nas rotas públicas. Banner de cookies (SPEC-22). `GET /api/openapi.json` (SPEC-11). Não aparecem no menu logado.
 
 ## Parcelamentos — lista (`/parcelamentos`)
 
